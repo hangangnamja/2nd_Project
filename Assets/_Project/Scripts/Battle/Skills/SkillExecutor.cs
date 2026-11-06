@@ -48,7 +48,7 @@ namespace Game.Battle
 
             if (context.CountsAsAttack && context.HitTargets.Count > 0)
             {
-                services.Events.RaiseAttackPerformed(caster, context.HitTargets, source);
+                services.Events.RaiseAttackPerformed(caster, context.HitTargets, primaryTarget, source);
             }
         }
     }

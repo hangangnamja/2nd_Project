@@ -15,8 +15,8 @@ namespace Game.Battle
         public event Action<BattleUnit, BattleUnit> AttackHit;
 
         // 공격 행동 하나(스킬 또는 추가 공격)가 끝났을 때. 광역 공격도 1번만 알린다.
-        // Action<공격자, 맞은 대상 목록, 발생 원인> — 원인으로 스킬과 추가 공격을 구분한다.
-        public event Action<BattleUnit, IReadOnlyList<BattleUnit>, ActionSource> AttackPerformed;
+        // Action<공격자, 맞은 대상 목록, 메인 대상(확산만, 없으면 null), 발생 원인>
+        public event Action<BattleUnit, IReadOnlyList<BattleUnit>, BattleUnit, ActionSource> AttackPerformed;
 
         // 유닛이 스킬을 사용했음을 알린다. 행동마다 스택이 쌓이는 패시브가 여기에 반응한다.
         public void RaiseSkillUsed(BattleUnit caster)
@@ -32,9 +32,13 @@ namespace Game.Battle
         }
 
         // 공격 행동 하나가 끝났음을 알린다. 아군 공격에 반응하는 패시브가 여기서 추가 공격을 예약한다.
-        public void RaiseAttackPerformed(BattleUnit attacker, IReadOnlyList<BattleUnit> hitTargets, ActionSource source)
+        public void RaiseAttackPerformed(
+            BattleUnit attacker,
+            IReadOnlyList<BattleUnit> hitTargets,
+            BattleUnit primaryTarget,
+            ActionSource source)
         {
-            AttackPerformed?.Invoke(attacker, hitTargets, source);
+            AttackPerformed?.Invoke(attacker, hitTargets, primaryTarget, source);
         }
     }
 }

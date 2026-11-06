@@ -80,9 +80,24 @@ namespace Game.Battle
         // 예: 남은 거리 10000, 속도 120 → 약 83.3
         public double ActionValue => RemainingDistance / Speed;
 
-        // 지금 단계에서는 HP가 0 이하이면 바로 사망으로 본다.
-        // 나중에 "공격이 끝난 뒤 사망 처리" 규칙을 넣을 때 별도의 사망 상태로 분리한다.
-        public bool IsDead => CurrentHp <= 0;
+        // 사망은 두 단계로 나눈다 (기획서 3-9).
+        //  - IsDown: HP가 0이 된 상태. 지금 진행 중인 공격의 남은 효과는 끝까지 받는다
+        //  - IsDead: 공격이 끝난 뒤 사망이 확정된 상태. 행동 순서·대상 선택·승패 판정은 이 값을 쓴다
+        public bool IsDown => CurrentHp <= 0;
+        public bool IsDead { get; private set; }
+
+        // HP가 0이면 사망을 확정한다. 공격(스킬·추가 공격)이나 턴 종료 처리가 끝날 때 BattleManager가 호출한다.
+        // 이번에 새로 확정됐으면 true (로그·처치 반응용), 이미 확정됐거나 HP가 남았으면 false.
+        public bool ConfirmDeathIfDown()
+        {
+            if (IsDead || !IsDown)
+            {
+                return false;
+            }
+
+            IsDead = true;
+            return true;
+        }
 
         // 스킬 슬롯별 남은 쿨타임 (0 = 사용 가능). 인덱스 0 = 1스, 1 = 2스, 2 = 3스.
         private readonly int[] remainingCooldowns = new int[CharacterData.SkillCount];

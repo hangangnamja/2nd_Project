@@ -81,14 +81,21 @@ namespace Game.Battle
         // 공격 행동 1회가 끝남: 공격자를 제외한 같은 편 아군의 "아군 공격 시" 패시브를 실행한다.
         // 정규 행동(스킬)에만 반응하고, 추가 공격에는 반응하지 않는다 (기획서 3-4).
         // 추가 공격이 또 다른 추가 공격을 부르는 연쇄를 없애, 반응 횟수가 아군 스킬 횟수에 비례하게 만든다.
-        private void HandleAttackPerformed(BattleUnit attacker, IReadOnlyList<BattleUnit> hitTargets, ActionSource source)
+        private void HandleAttackPerformed(
+            BattleUnit attacker,
+            IReadOnlyList<BattleUnit> hitTargets,
+            BattleUnit primaryTarget,
+            ActionSource source)
         {
             if (source != ActionSource.Skill)
             {
                 return;
             }
 
-            BattleUnit mainTarget = PickMainTarget(hitTargets);
+            // 확산은 사실상 메인 대상 1인 공격이고 양옆은 여파라서, 반응 추가 공격도 메인 대상을 노린다 (기획서 4-3).
+            // 메인 대상이 없는 광역 공격이거나 메인 대상의 HP가 0이 됐으면 HP 최고 → 편성 순서로 고른다.
+            bool hasLivingPrimary = primaryTarget != null && !primaryTarget.IsDown;
+            BattleUnit mainTarget = hasLivingPrimary ? primaryTarget : PickMainTarget(hitTargets);
 
             foreach (BattleUnit unit in allUnits)
             {
@@ -109,9 +116,9 @@ namespace Game.Battle
             }
         }
 
-        // 광역 공격에 반응할 때 노릴 대상: 맞은 대상 중 살아 있고 현재 HP가 가장 높은 적 (기획서 4-3).
-        // 맞은 순서가 편성 순서이므로, HP가 "더 높을 때만" 바꾸면 같은 HP에서는 앞 번호가 남는다.
-        // 모두 쓰러졌으면 첫 대상을 넘기고, 실행 시점에 BattleManager가 살아 있는 적으로 다시 고른다.
+        // 광역 공격에 반응할 때 노릴 대상: 맞은 대상 중 HP가 남은 적에서 현재 HP 최고 → 같으면 편성 순서 (기획서 4-3).
+        // 맞은 순서는 스킬마다 다르므로(확산은 메인 → 왼쪽 → 오른쪽) 동률은 편성 번호로 직접 비교한다.
+        // 모두 HP 0이면 첫 대상을 넘기고, 실행 시점에 BattleManager가 살아 있는 적으로 다시 고른다.
         // 보스 우선 규칙은 보스 개념이 들어올 때 추가한다.
         private static BattleUnit PickMainTarget(IReadOnlyList<BattleUnit> hitTargets)
         {
@@ -119,18 +126,30 @@ namespace Game.Battle
 
             foreach (BattleUnit target in hitTargets)
             {
-                if (target.IsDead)
+                // 이번 공격으로 HP가 0이 된 적은 공격이 끝나면 쓰러지므로 노리지 않는다 (기획서 3-9).
+                if (target.IsDown)
                 {
                     continue;
                 }
 
-                if (best == null || target.CurrentHp > best.CurrentHp)
+                if (best == null || IsBetterTarget(target, best))
                 {
                     best = target;
                 }
             }
 
             return best ?? hitTargets[0];
+        }
+
+        // candidate가 current보다 우선인지: 현재 HP가 더 높거나, 같으면 편성 번호가 더 앞일 때.
+        private static bool IsBetterTarget(BattleUnit candidate, BattleUnit current)
+        {
+            if (candidate.CurrentHp != current.CurrentHp)
+            {
+                return candidate.CurrentHp > current.CurrentHp;
+            }
+
+            return candidate.FormationIndex < current.FormationIndex;
         }
 
         // 패시브 1회 발동: 턴당 횟수와 스택을 확인한 뒤, 실행 방식에 따라 즉시 실행하거나 추가 공격으로 예약한다.

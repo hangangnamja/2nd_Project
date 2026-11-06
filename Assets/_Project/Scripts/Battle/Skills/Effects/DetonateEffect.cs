@@ -14,7 +14,8 @@ namespace Game.Battle.Effects
         {
             foreach (BattleUnit target in context.Targets)
             {
-                if (target.IsDead)
+                // 이번 공격으로 HP가 이미 0이면 터뜨려도 피해가 들어가지 않으므로 건너뛴다.
+                if (target.IsDown)
                 {
                     continue;
                 }
