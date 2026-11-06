@@ -74,7 +74,8 @@ namespace Game.UI
             }
 
             string side = actor.IsAlly ? "아군" : "적";
-            return $"사이클 {battleManager.CurrentCycle} | {side} {actor.Name} 차례{BuildSkillGuide()}";
+            string extraTurn = battleManager.IsExtraTurn ? " (추가 턴)" : string.Empty;
+            return $"사이클 {battleManager.CurrentCycle} | {side} {actor.Name} 차례{extraTurn}{BuildSkillGuide()}";
         }
 
         // 아군 차례일 때 선택된 스킬과 다음에 할 행동을 안내한다.

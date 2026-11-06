@@ -5,25 +5,50 @@ using Game.Data;
 
 namespace Game.Battle
 {
-    // 스킬 한 번을 실행한다: 효과 블록을 목록 순서대로 실행하고, 끝나면 쿨타임을 건다.
-    // 대상 결정은 BattleManager가 하고, 이 클래스는 "정해진 대상에게 스킬을 쓰는 것"만 담당한다.
+    // 행동 하나(스킬 또는 추가 공격)를 실행한다: 효과 블록을 목록 순서대로 실행하고,
+    // 공격 행동이었다면 끝난 뒤 "공격 행동" 사건을 1번 알린다.
+    // 대상 결정은 BattleManager가 하고, 이 클래스는 "정해진 대상에게 효과를 실행하는 것"만 담당한다.
     public static class SkillExecutor
     {
-        // caster가 slot번 스킬을 targets에게 사용한다. 로그는 log 함수로, 사건은 events로 내보낸다.
-        public static void Execute(BattleUnit caster, int slot, IReadOnlyList<BattleUnit> targets, Action<string> log, BattleEvents events)
+        // caster가 slot번 스킬을 targets에게 사용하고 쿨타임을 건다.
+        public static void ExecuteSkill(
+            BattleUnit caster,
+            int slot,
+            IReadOnlyList<BattleUnit> targets,
+            Action<string> log,
+            BattleEvents events,
+            ActionQueue actions)
         {
             SkillData skill = caster.Data.GetSkill(slot);
             log($"{caster.Name}: {skill.SkillName}");
 
-            var context = new SkillContext(caster, targets, log, events, isReaction: false);
+            ExecuteEffects(caster, skill.Effects, targets, log, events, actions, ActionSource.Skill);
+            caster.StartCooldown(slot);
+        }
 
-            foreach (SkillEffect effect in skill.Effects)
+        // 효과 목록을 순서대로 실행한다. 스킬, 추가 공격, 패시브 효과가 모두 이 함수를 쓴다.
+        // 공격 행동(스킬·추가 공격)이 대상에게 피해를 줬다면, 모든 효과가 끝난 뒤 공격 행동 사건을 알린다.
+        public static void ExecuteEffects(
+            BattleUnit caster,
+            IReadOnlyList<SkillEffect> effects,
+            IReadOnlyList<BattleUnit> targets,
+            Action<string> log,
+            BattleEvents events,
+            ActionQueue actions,
+            ActionSource source)
+        {
+            var context = new SkillContext(caster, targets, log, events, actions, source);
+
+            foreach (SkillEffect effect in effects)
             {
                 // ?. 연산자: effect가 null(드롭다운에서 아직 종류를 안 고른 빈 칸)이면 호출을 건너뛴다.
                 effect?.Apply(context);
             }
 
-            caster.StartCooldown(slot);
+            if (context.CountsAsAttack && context.HitTargets.Count > 0)
+            {
+                events.RaiseAttackPerformed(caster, context.HitTargets);
+            }
         }
     }
 }

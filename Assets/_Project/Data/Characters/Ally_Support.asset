@@ -41,7 +41,13 @@ MonoBehaviour:
     effects:
     - rid: 7605779465967763790
     - rid: 7605779465967763837
-  passives: []
+  passives:
+  - passiveName: "\uC9C0\uC6D0 \uC0AC\uACA9"
+    trigger: 1
+    execution: 1
+    maxTriggersPerTurn: 1
+    effects:
+    - rid: 7605779465967763856
   references:
     version: 2
     RefIds:
@@ -69,3 +75,7 @@ MonoBehaviour:
       data:
         status: {fileID: 11400000, guid: 62dad865be8c8f14594f8af81597f160, type: 2}
         count: 1
+    - rid: 7605779465967763856
+      type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        multiplier: 1
