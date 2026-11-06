@@ -33,8 +33,12 @@ namespace Game.Battle
         private TurnScheduler scheduler;
         private int actionCount;
 
-        // 전투 사건 통로와, 그 사건에 반응해 패시브를 실행하는 처리기.
+        // 아군 + 적 전원 (행동 순서, 패시브 반응 대상 탐색용).
+        private readonly List<BattleUnit> allUnits = new List<BattleUnit>();
+
+        // 전투 사건 통로, 행동이 끝난 뒤 처리할 일(추가 공격·추가 턴) 대기열, 사건에 반응하는 패시브 처리기.
         private readonly BattleEvents battleEvents = new BattleEvents();
+        private readonly ActionQueue actionQueue = new ActionQueue();
         private PassiveRunner passiveRunner;
 
         // 이번 차례에 실행하기로 확정된 행동. 확정 전에는 hasPendingAction이 false다.
@@ -55,6 +59,9 @@ namespace Game.Battle
         public bool IsWaitingForPlayer { get; private set; }
         public bool IsBattleOver { get; private set; }
 
+        // 지금 행동이 추가 턴인지 (HUD 표시용).
+        public bool IsExtraTurn { get; private set; }
+
         // 플레이어가 지금 고른 스킬 슬롯 (0 = 1스). 고른 스킬이 없으면 NoSkillSelected.
         public int SelectedSkillSlot { get; private set; } = NoSkillSelected;
 
@@ -72,7 +79,7 @@ namespace Game.Battle
 
             CreateUnits();
             CreateScheduler();
-            passiveRunner = new PassiveRunner(battleEvents, Log);
+            passiveRunner = new PassiveRunner(battleEvents, actionQueue, allUnits, Log);
 
             // ?.Invoke: 구독자가 하나도 없으면(null) 호출하지 않고 넘어간다. 화면이 없는 씬에서도 안전하게 동작한다.
             BattleStarted?.Invoke();
@@ -168,16 +175,16 @@ namespace Game.Battle
 
         // ---------- 전투 흐름 ----------
 
-        // 한쪽 편이 전멸할 때까지 "다음 행동자 → 스킬·대상 선택 → 실행 → 턴 종료"를 반복하는 전투 루프.
+        // 한쪽 편이 전멸할 때까지 턴을 반복하는 전투 루프. 턴 하나의 처리 순서 (Architecture.md 3장):
+        // 행동자 결정(추가 턴이면 같은 유닛) → 스킬·대상 선택 → 스킬 실행 → 대기 중인 추가 공격 실행 → 턴 종료 → 추가 턴 확인
         private IEnumerator RunBattle()
         {
             Log($"전투 시작: 아군 {allies.Count}명 vs 적 {enemies.Count}명");
+            BattleUnit extraTurnUnit = null;
 
-            while (!IsAllDead(allies) && !IsAllDead(enemies))
+            while (!IsBattleDecided())
             {
-                CurrentActor = scheduler.AdvanceToNextActor();
-                hasPendingAction = false;
-                StateChanged?.Invoke();
+                BeginTurn(extraTurnUnit);
 
                 // yield return 다른 코루틴: 그 코루틴이 끝날 때까지 여기서 기다린다.
                 if (CurrentActor.IsAlly)
@@ -191,10 +198,92 @@ namespace Game.Battle
                 }
 
                 UseSkill(CurrentActor, pendingSkillSlot, pendingTarget);
+                ProcessFollowUpAttacks();
                 EndTurn(CurrentActor);
+
+                // 이번 턴에 추가 턴을 얻었으면, 다음 반복에서 스케줄러를 거치지 않고 같은 유닛이 바로 행동한다.
+                extraTurnUnit = actionQueue.ConsumeExtraTurn();
             }
 
             FinishBattle();
+        }
+
+        // 턴을 시작한다. 추가 턴이면 같은 유닛이 다시 행동하고, 아니면 스케줄러가 다음 행동자를 정한다.
+        // 새 턴마다 패시브의 "턴당 발동 횟수"를 초기화한다 (추가 턴도 새 턴이다).
+        private void BeginTurn(BattleUnit extraTurnUnit)
+        {
+            bool hasExtraTurn = extraTurnUnit != null && !extraTurnUnit.IsDead;
+
+            IsExtraTurn = hasExtraTurn;
+            CurrentActor = hasExtraTurn ? extraTurnUnit : scheduler.AdvanceToNextActor();
+            hasPendingAction = false;
+            passiveRunner.ResetTurnCounters();
+
+            if (hasExtraTurn)
+            {
+                Log($"[추가 턴] {CurrentActor.Name}");
+            }
+
+            StateChanged?.Invoke();
+        }
+
+        // 대기열에 쌓인 추가 공격을 들어온 순서대로 모두 실행한다.
+        // 추가 공격이 또 다른 추가 공격을 예약할 수 있지만, 패시브 횟수 제한 덕분에 반드시 끝난다.
+        private void ProcessFollowUpAttacks()
+        {
+            while (!IsBattleDecided() && actionQueue.TryDequeueFollowUp(out FollowUpAttack followUp))
+            {
+                if (followUp.Owner.IsDead)
+                {
+                    continue;
+                }
+
+                BattleUnit target = PickFollowUpTarget(followUp);
+                Log($"[추가 공격] {followUp.Owner.Name}: {followUp.Passive.PassiveName} → {target.Name}");
+
+                SkillExecutor.ExecuteEffects(
+                    followUp.Owner,
+                    followUp.Passive.Effects,
+                    new List<BattleUnit> { target },
+                    Log,
+                    battleEvents,
+                    actionQueue,
+                    ActionSource.FollowUpAttack);
+            }
+        }
+
+        // 추가 공격 대상: 원래 대상이 살아 있으면 그대로, 쓰러졌으면 살아 있는 상대 중에서 다시 고른다.
+        // 다시 고를 때는 현재 HP가 가장 높은 적 → 같으면 편성 순서 (기획서 4-3 격발 딜러 패시브 2 규칙).
+        // 보스 우선 규칙은 보스 개념이 들어올 때 추가한다.
+        private BattleUnit PickFollowUpTarget(FollowUpAttack followUp)
+        {
+            if (followUp.PreferredTarget != null && !followUp.PreferredTarget.IsDead)
+            {
+                return followUp.PreferredTarget;
+            }
+
+            BattleUnit best = null;
+            foreach (BattleUnit unit in followUp.Owner.IsAlly ? enemies : allies)
+            {
+                if (unit.IsDead)
+                {
+                    continue;
+                }
+
+                // 목록이 편성 순서대로 되어 있으므로, HP가 "더 높을 때만" 바꾸면 같은 HP에서는 앞 번호가 남는다.
+                if (best == null || unit.CurrentHp > best.CurrentHp)
+                {
+                    best = unit;
+                }
+            }
+
+            return best;
+        }
+
+        // 어느 한쪽이 전멸해 승패가 정해졌는지.
+        private bool IsBattleDecided()
+        {
+            return IsAllDead(allies) || IsAllDead(enemies);
         }
 
         // 아군 차례에 플레이어가 스킬과 대상을 확정할 때까지 기다린다. 시작할 때 1스(평타)를 미리 선택해 둔다.
@@ -234,7 +323,7 @@ namespace Game.Battle
             List<BattleUnit> targets = ResolveTargets(caster, skill.TargetType, chosenTarget);
 
             Log($"[사이클 {CurrentCycle} | 행동 {actionCount}]");
-            SkillExecutor.Execute(caster, slot, targets, Log, battleEvents);
+            SkillExecutor.ExecuteSkill(caster, slot, targets, Log, battleEvents, actionQueue);
         }
 
         // 행동을 마친 유닛의 턴 종료 처리: 상태효과(지속피해 → 남은 턴 감소) → 쿨타임 감소 → 출발점 복귀.
@@ -360,7 +449,8 @@ namespace Game.Battle
         // 아군과 적 전원을 하나의 트랙에 올려 행동 순서를 계산할 스케줄러를 만든다.
         private void CreateScheduler()
         {
-            var allUnits = new List<BattleUnit>(allies);
+            allUnits.Clear();
+            allUnits.AddRange(allies);
             allUnits.AddRange(enemies);
             scheduler = new TurnScheduler(allUnits);
         }

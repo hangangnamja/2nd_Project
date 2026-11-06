@@ -33,15 +33,18 @@ MonoBehaviour:
     effects:
     - rid: 7605779465967763786
   skill3:
-    skillName: "\uAC15\uD0C0"
+    skillName: "\uAC15\uD0C0 + \uCD94\uAC00 \uD134"
     targetType: 0
     cooldown: 4
     startCooldown: 0
     effects:
     - rid: 7605779465967763787
+    - rid: 7605779465967763857
   passives:
   - passiveName: "\uBD88\uAF43 \uD0C0\uACA9"
     trigger: 0
+    execution: 0
+    maxTriggersPerTurn: 0
     effects:
     - rid: 7605779465967763817
   references:
@@ -64,3 +67,6 @@ MonoBehaviour:
       data:
         status: {fileID: 11400000, guid: d5f4a9fc67ebae341881825b057d391d, type: 2}
         count: 1
+    - rid: 7605779465967763857
+      type: {class: GrantExtraTurnEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data: 

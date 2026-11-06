@@ -20,9 +20,11 @@ namespace Game.Battle.Effects
                 int dealt = target.TakeDamage(damage);
                 context.Log($"  {target.Name}에게 {dealt} 피해 (HP {target.CurrentHp}/{target.MaxHp})");
 
-                // 패시브 반응으로 나간 피해는 다시 사건을 일으키지 않는다 (반응이 반응을 부르는 무한 연쇄 방지).
-                if (!context.IsReaction)
+                // 공격 행동(스킬, 추가 공격)에서 나간 피해만 공격 판정 사건을 알린다.
+                // 패시브에 붙은 피해 효과는 공격이 아니므로 다른 패시브를 깨우지 않는다.
+                if (context.CountsAsAttack)
                 {
+                    context.RecordHit(target);
                     context.Events?.RaiseAttackHit(context.Caster, target);
                 }
             }
