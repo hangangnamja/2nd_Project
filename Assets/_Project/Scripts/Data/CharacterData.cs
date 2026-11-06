@@ -19,6 +19,13 @@ namespace Game.Data
         // 기초 속도. 아군은 기획서 기준 90~130 범위로 설정한다. 0이면 행동하지 못하므로 최소 1.
         [SerializeField, Min(1)] private int baseSpeed = 100;
 
+        [Header("스킬 (1스 = 평타)")]
+        [SerializeField] private SkillData skill1 = new SkillData();
+        [SerializeField] private SkillData skill2 = new SkillData();
+        [SerializeField] private SkillData skill3 = new SkillData();
+
+        public const int SkillCount = 3;
+
         // => 로 작성한 읽기 전용 프로퍼티: 외부 코드는 값을 읽을 수만 있고 에셋 값을 바꿀 수 없다.
         public string DisplayName => displayName;
         public CharacterRole Role => role;
@@ -26,5 +33,15 @@ namespace Game.Data
         public int Attack => attack;
         public int Defense => defense;
         public int BaseSpeed => baseSpeed;
+
+        // 슬롯 번호(0 = 1스, 1 = 2스, 2 = 3스)로 스킬을 꺼낸다.
+        // switch 식: 값에 따라 다른 결과를 고르는 문법. _ 는 위의 어느 경우에도 해당하지 않을 때(그 외)다.
+        public SkillData GetSkill(int slot) => slot switch
+        {
+            0 => skill1,
+            1 => skill2,
+            2 => skill3,
+            _ => throw new System.ArgumentOutOfRangeException(nameof(slot), slot, "스킬 슬롯은 0~2입니다."),
+        };
     }
 }

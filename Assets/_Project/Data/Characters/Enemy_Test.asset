@@ -18,3 +18,29 @@ MonoBehaviour:
   attack: 100
   defense: 40
   baseSpeed: 100
+  skill1:
+    skillName: "\uD3C9\uD0C0"
+    targetType: 0
+    cooldown: 0
+    startCooldown: 0
+    effects:
+    - rid: 7605779465967763791
+  skill2:
+    skillName: "\uC0C8 \uC2A4\uD0AC"
+    targetType: 0
+    cooldown: 0
+    startCooldown: 0
+    effects: []
+  skill3:
+    skillName: "\uC0C8 \uC2A4\uD0AC"
+    targetType: 0
+    cooldown: 0
+    startCooldown: 0
+    effects: []
+  references:
+    version: 2
+    RefIds:
+    - rid: 7605779465967763791
+      type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        multiplier: 1
