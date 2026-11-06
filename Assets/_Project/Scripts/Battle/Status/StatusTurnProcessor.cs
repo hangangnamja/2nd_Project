@@ -38,9 +38,9 @@ namespace Game.Battle.Status
 
                 // 부여 당시 공격력·부여자 레벨로 계산한다 (부여자가 이미 쓰러졌어도 피해는 그대로 남는다).
                 int damage = DamageCalculator.CalculateDamageOverTime(
+                    data,
                     instance.SnapshotAttack,
-                    data.DamageAttackRatio,
-                    instance.Source.Level,
+                    instance.Source,
                     unit,
                     services.Rules);
 

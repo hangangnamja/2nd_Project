@@ -10,12 +10,18 @@ namespace Game.Battle
     public static class SkillExecutor
     {
         // caster가 slot번 스킬을 targets에게 사용하고 쿨타임을 건다.
-        public static void ExecuteSkill(BattleUnit caster, int slot, IReadOnlyList<BattleUnit> targets, BattleServices services)
+        // primaryTarget: 확산 스킬의 메인 대상 (없으면 null)
+        public static void ExecuteSkill(
+            BattleUnit caster,
+            int slot,
+            IReadOnlyList<BattleUnit> targets,
+            BattleUnit primaryTarget,
+            BattleServices services)
         {
             SkillData skill = caster.Data.GetSkill(slot);
             services.Log($"{caster.Name}: {skill.SkillName}");
 
-            ExecuteEffects(caster, skill.Effects, targets, services, ActionSource.Skill);
+            ExecuteEffects(caster, skill.Effects, targets, primaryTarget, services, ActionSource.Skill);
             caster.StartCooldown(slot);
 
             // 스킬이 끝난 뒤 "자기 행동" 사건을 알린다. 이번 행동으로 쌓인 스택은 다음 아군 행동부터 쓸 수 있다.
@@ -28,10 +34,11 @@ namespace Game.Battle
             BattleUnit caster,
             IReadOnlyList<SkillEffect> effects,
             IReadOnlyList<BattleUnit> targets,
+            BattleUnit primaryTarget,
             BattleServices services,
             ActionSource source)
         {
-            var context = new SkillContext(caster, targets, services, source);
+            var context = new SkillContext(caster, targets, primaryTarget, services, source);
 
             foreach (SkillEffect effect in effects)
             {

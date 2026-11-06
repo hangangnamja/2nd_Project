@@ -44,6 +44,16 @@ namespace Game.Battle
         public double CritDamage => Math.Max(0d, Data.CritDamage + SumModifierPercent(StatType.CritDamage));
         public double DamageBonus => SumModifierPercent(StatType.DamageBonus);
         public double DamageTakenIncrease => SumModifierPercent(StatType.DamageTakenIncrease);
+        public double DamageOverTimeBonus => SumModifierPercent(StatType.DamageOverTimeBonus);
+
+        // 같은 편 유닛 목록 (자신 포함). 아군의 오라 패시브를 찾는 데 쓴다. 전투 시작 시 BattleManager가 연결한다.
+        private System.Collections.Generic.IReadOnlyList<BattleUnit> team = Array.Empty<BattleUnit>();
+
+        // 같은 편 유닛 목록을 연결한다. 이후 스탯 계산에 살아 있는 아군의 오라가 반영된다.
+        public void SetTeam(System.Collections.Generic.IReadOnlyList<BattleUnit> teamUnits)
+        {
+            team = teamUnits;
+        }
 
         // 피해 감소율: 효과끼리 곱연산 후 최대 75%로 제한한다 (기획서 3-5).
         // 남는 피해 비율을 곱해 나가는 방식이라 많이 쌓을수록 효율이 줄어든다.
@@ -188,7 +198,8 @@ namespace Game.Battle
             return sum;
         }
 
-        // 걸려 있는 모든 상태효과에서 특정 스탯의 보정만 골라 돌려준다.
+        // 이 유닛에 적용되는 특정 스탯의 보정을 모두 골라 돌려준다:
+        // 자신에게 걸린 상태효과 + 살아 있는 같은 편(자신 포함)의 오라 패시브.
         // yield return: 조건에 맞는 보정을 찾을 때마다 하나씩 넘겨주고, 호출한 foreach가 다음 값을 요청하면 이어서 찾는다.
         // 결과를 담을 리스트를 따로 만들지 않고, 필요한 보정만 차례로 꺼내 쓸 수 있다.
         private System.Collections.Generic.IEnumerable<StatModifier> GetModifiers(StatType stat)
@@ -200,6 +211,40 @@ namespace Game.Battle
                     if (modifier.Stat == stat)
                     {
                         yield return modifier;
+                    }
+                }
+            }
+
+            foreach (StatModifier modifier in GetAuraModifiers(stat))
+            {
+                yield return modifier;
+            }
+        }
+
+        // 살아 있는 같은 편 유닛들의 오라 패시브에서 특정 스탯 보정을 꺼낸다 (기획서 4-3 독 서브딜러 패시브).
+        // 오라 주인이 쓰러지면 그 오라는 더 이상 반영되지 않는다.
+        private System.Collections.Generic.IEnumerable<StatModifier> GetAuraModifiers(StatType stat)
+        {
+            foreach (BattleUnit ally in team)
+            {
+                if (ally.IsDead)
+                {
+                    continue;
+                }
+
+                foreach (PassiveData passive in ally.Data.Passives)
+                {
+                    if (passive.Trigger != PassiveTrigger.Aura)
+                    {
+                        continue;
+                    }
+
+                    foreach (StatModifier modifier in passive.AuraModifiers)
+                    {
+                        if (modifier.Stat == stat)
+                        {
+                            yield return modifier;
+                        }
                     }
                 }
             }

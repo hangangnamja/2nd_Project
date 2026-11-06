@@ -50,19 +50,21 @@ namespace Game.Battle
             return new DamageResult(FinalizeDamage(damage), isCritical);
         }
 
-        // 지속피해(화상 등) 1회 피해를 계산한다 (기획서 3-8).
-        // 공격자 쪽은 부여 당시 공격력(스냅샷)만 반영하고, 피해 증가 버프와 치명타는 적용하지 않는다.
-        // 대상 쪽 보정(받는 피해 증가, 피해 감소)은 일반 공격과 똑같이 적용한다.
+        // 지속피해(화상, 독) 1회 피해를 계산한다 (기획서 3-8).
+        // 기본 피해(화상 = 공격력 비례, 독 = 대상 최대 HP 비례)는 상태효과 데이터가 정하고,
+        // 공격자 쪽은 부여 당시 공격력(스냅샷)만 반영한다. 피해 증가 버프와 치명타는 적용하지 않는다.
+        // 예외로 "지속피해 증가"(파티 오라 등)는 발동하는 시점의 부여자 값을 쓴다 → 오라 주인이 쓰러지면 바로 꺼진다.
+        // 대상 쪽 보정(받는 피해 증가, 피해 감소)과 방어력은 일반 공격과 똑같이 적용한다.
         public static int CalculateDamageOverTime(
+            StatusEffectData status,
             int snapshotAttack,
-            float attackRatio,
-            int sourceLevel,
+            BattleUnit source,
             BattleUnit target,
             BattleRulesData rules)
         {
-            double damage = snapshotAttack
-                * attackRatio
-                * GetDefenseMultiplier(sourceLevel, target, rules)
+            double damage = status.GetDamageOverTimeBase(snapshotAttack, target.MaxHp)
+                * (1d + source.DamageOverTimeBonus)
+                * GetDefenseMultiplier(source.Level, target, rules)
                 * GetTargetSideMultiplier(target);
 
             return FinalizeDamage(damage);

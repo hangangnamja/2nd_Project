@@ -154,6 +154,7 @@ namespace Game.Battle
             {
                 case SkillTargetType.EnemySingle:
                 case SkillTargetType.EnemyAll:
+                case SkillTargetType.EnemyBlast:
                     return isOpponent;
                 case SkillTargetType.AllySingle:
                 case SkillTargetType.AllyAll:
@@ -176,11 +177,13 @@ namespace Game.Battle
             return CurrentActor.Data.GetSkill(SelectedSkillSlot);
         }
 
-        // 대상을 직접 하나 골라야 하는 스킬인지 (적 단일·아군 단일).
+        // 대상을 직접 하나 골라야 하는 스킬인지 (적 단일·아군 단일·확산의 메인 대상).
         public static bool NeedsSingleTarget(SkillData skill)
         {
             return skill != null
-                && (skill.TargetType == SkillTargetType.EnemySingle || skill.TargetType == SkillTargetType.AllySingle);
+                && (skill.TargetType == SkillTargetType.EnemySingle
+                    || skill.TargetType == SkillTargetType.AllySingle
+                    || skill.TargetType == SkillTargetType.EnemyBlast);
         }
 
         // ---------- 전투 흐름 ----------
@@ -255,6 +258,7 @@ namespace Game.Battle
                     followUp.Owner,
                     followUp.Passive.Effects,
                     new List<BattleUnit> { target },
+                    primaryTarget: null,
                     services,
                     ActionSource.FollowUpAttack);
             }
@@ -330,8 +334,11 @@ namespace Game.Battle
             SkillData skill = caster.Data.GetSkill(slot);
             List<BattleUnit> targets = ResolveTargets(caster, skill.TargetType, chosenTarget);
 
+            // 확산 스킬은 대상 목록의 첫 번째가 메인 대상이다. 나머지 스킬은 메인 대상 구분이 없다.
+            BattleUnit primaryTarget = skill.TargetType == SkillTargetType.EnemyBlast ? targets[0] : null;
+
             Log($"[사이클 {CurrentCycle} | 행동 {actionCount}]");
-            SkillExecutor.ExecuteSkill(caster, slot, targets, services);
+            SkillExecutor.ExecuteSkill(caster, slot, targets, primaryTarget, services);
         }
 
         // 행동을 마친 유닛의 턴 종료 처리: 상태효과(지속피해 → 남은 턴 감소) → 쿨타임 감소 → 출발점 복귀.
@@ -374,10 +381,34 @@ namespace Game.Battle
                 case SkillTargetType.AllySingle:
                     // ?? caster: 고른 대상이 없으면(적 AI) 자기 자신에게 쓴다.
                     return new List<BattleUnit> { chosenTarget ?? caster };
+                case SkillTargetType.EnemyBlast:
+                    return GetBlastTargets(opponents, chosenTarget ?? PickRandomAlive(opponents));
                 default:
                     // ?? : 고른 대상이 없으면(적 AI) 상대편 중 무작위 1명을 고른다.
                     return new List<BattleUnit> { chosenTarget ?? PickRandomAlive(opponents) };
             }
+        }
+
+        // 확산 대상: 메인 대상 + 살아 있는 적 중 편성 순서상 바로 앞·뒤 (기획서 4-3 독 서브딜러 2스).
+        // 쓰러진 적은 건너뛰므로, 가운데 적이 쓰러졌으면 그 너머의 적이 "옆"이 된다.
+        // 반환 목록의 첫 번째가 메인 대상이다.
+        private static List<BattleUnit> GetBlastTargets(List<BattleUnit> opponents, BattleUnit main)
+        {
+            List<BattleUnit> alive = GetAliveUnits(opponents);
+            int mainIndex = alive.IndexOf(main);
+            var targets = new List<BattleUnit> { main };
+
+            if (mainIndex > 0)
+            {
+                targets.Add(alive[mainIndex - 1]);
+            }
+
+            if (mainIndex >= 0 && mainIndex < alive.Count - 1)
+            {
+                targets.Add(alive[mainIndex + 1]);
+            }
+
+            return targets;
         }
 
         // 살아 있는 유닛 중 무작위 1명을 고른다 (적 AI의 단일 대상).
@@ -466,6 +497,17 @@ namespace Game.Battle
             for (int i = 0; i < enemyParty.Count; i++)
             {
                 enemies.Add(new BattleUnit(enemyParty[i], isAlly: false, formationIndex: i, level: testLevel));
+            }
+
+            // 각 유닛에 같은 편 목록을 연결해, 살아 있는 아군의 오라 패시브가 스탯 계산에 반영되게 한다.
+            foreach (BattleUnit ally in allies)
+            {
+                ally.SetTeam(allies);
+            }
+
+            foreach (BattleUnit enemy in enemies)
+            {
+                enemy.SetTeam(enemies);
             }
         }
 

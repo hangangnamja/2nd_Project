@@ -14,6 +14,10 @@ namespace Game.Data
 
         // 다른 아군이 스킬로 적을 공격했을 때 (스킬 1회마다, 광역도 1번, 추가 공격은 제외). 효과 대상 = 그 공격에 맞은 적
         OnAllyAttack,
+
+        // 파티 오라: 이 캐릭터가 살아 있는 동안 자신을 포함한 아군 전원에게 "오라 스탯 보정"을 항상 적용한다.
+        // 사건에 반응하지 않으므로 효과 목록·실행 방식은 쓰지 않는다. 쓰러지면 즉시 꺼진다.
+        Aura,
     }
 
     // 패시브가 발동했을 때 효과를 언제 실행하는지.
@@ -51,6 +55,10 @@ namespace Game.Data
         [Tooltip("발동 1회에 소모하는 스택 수")]
         [SerializeField, Min(0)] private int stackCostPerTrigger = 1;
 
+        [Header("오라 (트리거가 Aura일 때만)")]
+        [Tooltip("아군 전원(자신 포함)에게 적용할 스탯 보정. 예: 지속피해 증가 +20%")]
+        [SerializeField] private List<StatModifier> auraModifiers = new List<StatModifier>();
+
         // [SerializeReference] + [SubclassSelector]: 스킬 효과 목록과 같은 방식으로 효과 종류를 골라 넣는다.
         [SerializeReference, SubclassSelector]
         private List<SkillEffect> effects = new List<SkillEffect>();
@@ -63,6 +71,7 @@ namespace Game.Data
         public int MaxStacks => maxStacks;
         public int StacksPerOwnAction => stacksPerOwnAction;
         public int StackCostPerTrigger => stackCostPerTrigger;
+        public IReadOnlyList<StatModifier> AuraModifiers => auraModifiers;
         public IReadOnlyList<SkillEffect> Effects => effects;
     }
 }

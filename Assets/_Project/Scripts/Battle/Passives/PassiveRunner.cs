@@ -155,6 +155,7 @@ namespace Game.Battle
                 owner,
                 passive.Effects,
                 new List<BattleUnit> { target },
+                primaryTarget: null,
                 services,
                 ActionSource.PassiveEffect);
         }
