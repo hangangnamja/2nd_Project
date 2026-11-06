@@ -16,9 +16,16 @@ namespace Game.Battle.Effects
         {
             foreach (BattleUnit target in context.Targets)
             {
-                int damage = DamageCalculator.CalculateDamage(context.Caster, target, multiplier);
-                int dealt = target.TakeDamage(damage);
-                context.Log($"  {target.Name}에게 {dealt} 피해 (HP {target.CurrentHp}/{target.MaxHp})");
+                DamageResult result = DamageCalculator.CalculateAttackDamage(
+                    context.Caster,
+                    target,
+                    multiplier,
+                    context.Services.Random,
+                    context.Services.Rules);
+
+                int dealt = target.TakeDamage(result.Amount);
+                string critText = result.IsCritical ? " (치명!)" : string.Empty;
+                context.Log($"  {target.Name}에게 {dealt} 피해{critText} (HP {target.CurrentHp}/{target.MaxHp})");
 
                 // 공격 행동(스킬, 추가 공격)에서 나간 피해만 공격 판정 사건을 알린다.
                 // 패시브에 붙은 피해 효과는 공격이 아니므로 다른 패시브를 깨우지 않는다.

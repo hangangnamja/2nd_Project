@@ -18,6 +18,8 @@ MonoBehaviour:
   attack: 120
   defense: 50
   baseSpeed: 120
+  critRate: 0.8
+  critDamage: 1
   skill1:
     skillName: "\uD3C9\uD0C0"
     targetType: 0

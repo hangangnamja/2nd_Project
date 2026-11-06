@@ -312,6 +312,9 @@ MonoBehaviour:
   enemyParty:
   - {fileID: 11400000, guid: fa5db8d986b4b66428761a8da3d67530, type: 2}
   - {fileID: 11400000, guid: 81d6e306125c13b4b83d00623fe05ecd, type: 2}
+  testLevel: 1
+  rules: {fileID: 11400000, guid: 578a03459990c304aae4e2558428a676, type: 2}
+  randomSeed: 0
   enemyActionDelay: 0.6
 --- !u!4 &413514916
 Transform:

@@ -26,7 +26,11 @@ namespace Game.Battle.Status
         {
             List<StatusInstance> slots = GetSlots(data.Category);
 
-            if (data.StackMode == StatusStackMode.Refresh)
+            // 같은 버프는 중첩되지 않는다 (기획서 3-7): 버프는 데이터 설정과 관계없이 항상 갱신형으로 처리한다.
+            // 디버프만 데이터의 중첩 방식(중첩 / 갱신)을 따른다.
+            bool refreshOnly = data.Category == StatusCategory.Buff || data.StackMode == StatusStackMode.Refresh;
+
+            if (refreshOnly)
             {
                 StatusInstance existing = FindByData(slots, data);
                 if (existing != null)

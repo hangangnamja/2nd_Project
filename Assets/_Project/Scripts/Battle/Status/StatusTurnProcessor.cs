@@ -1,4 +1,3 @@
-using System;
 using Game.Data;
 
 namespace Game.Battle.Status
@@ -8,15 +7,15 @@ namespace Game.Battle.Status
     // 예: 3턴짜리 화상은 대상의 턴 종료 3번에 걸쳐 피해를 준 뒤 사라진다.
     public static class StatusTurnProcessor
     {
-        // unit의 턴 종료 시 상태효과를 처리한다. 결과는 log 함수로 내보낸다.
-        public static void ProcessTurnEnd(BattleUnit unit, Action<string> log)
+        // unit의 턴 종료 시 상태효과를 처리한다. 결과는 전투 로그로 내보낸다.
+        public static void ProcessTurnEnd(BattleUnit unit, BattleServices services)
         {
-            ApplyDamageOverTime(unit, log);
+            ApplyDamageOverTime(unit, services);
             unit.Statuses.DecreaseTurnsAndRemoveExpired();
         }
 
         // 걸려 있는 지속피해 효과를 하나씩 발동시킨다. 중첩된 화상 3개면 3번 피해를 받는다.
-        private static void ApplyDamageOverTime(BattleUnit unit, Action<string> log)
+        private static void ApplyDamageOverTime(BattleUnit unit, BattleServices services)
         {
             foreach (StatusInstance instance in unit.Statuses.GetAll())
             {
@@ -32,9 +31,16 @@ namespace Game.Battle.Status
                     continue;
                 }
 
-                int damage = DamageCalculator.CalculateDamageOverTime(instance.SnapshotAttack, data.DamageAttackRatio, unit);
+                // 부여 당시 공격력·부여자 레벨로 계산한다 (부여자가 이미 쓰러졌어도 피해는 그대로 남는다).
+                int damage = DamageCalculator.CalculateDamageOverTime(
+                    instance.SnapshotAttack,
+                    data.DamageAttackRatio,
+                    instance.Source.Level,
+                    unit,
+                    services.Rules);
+
                 int dealt = unit.TakeDamage(damage);
-                log($"  {unit.Name}: {data.DisplayName} {dealt} 피해 (HP {unit.CurrentHp}/{unit.MaxHp})");
+                services.Log($"  {unit.Name}: {data.DisplayName} {dealt} 피해 (HP {unit.CurrentHp}/{unit.MaxHp})");
             }
         }
     }

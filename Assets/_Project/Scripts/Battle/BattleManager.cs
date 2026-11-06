@@ -24,6 +24,15 @@ namespace Game.Battle
         [SerializeField] private List<CharacterData> allyParty = new List<CharacterData>();
         [SerializeField] private List<CharacterData> enemyParty = new List<CharacterData>();
 
+        [Tooltip("편성 전원에게 적용할 테스트 레벨 (성장 시스템 전까지 임시)")]
+        [SerializeField, Range(1, 60)] private int testLevel = 1;
+
+        [Header("전투 규칙")]
+        [SerializeField] private BattleRulesData rules;
+
+        [Tooltip("난수 시드. 0이면 매번 다른 결과, 0이 아니면 같은 시드에서 치명타·무작위 대상이 항상 똑같이 나온다")]
+        [SerializeField] private int randomSeed;
+
         [Header("진행 설정")]
         [Tooltip("적 AI가 행동하기 전 대기 시간(초). 적의 행동을 눈으로 따라가기 위한 값")]
         [SerializeField, Min(0f)] private float enemyActionDelay = 0.6f;
@@ -36,10 +45,10 @@ namespace Game.Battle
         // 아군 + 적 전원 (행동 순서, 패시브 반응 대상 탐색용).
         private readonly List<BattleUnit> allUnits = new List<BattleUnit>();
 
-        // 전투 사건 통로, 행동이 끝난 뒤 처리할 일(추가 공격·추가 턴) 대기열, 사건에 반응하는 패시브 처리기.
-        private readonly BattleEvents battleEvents = new BattleEvents();
-        private readonly ActionQueue actionQueue = new ActionQueue();
+        // 전투 공용 도구(로그, 사건, 대기열, 난수, 규칙)와 사건에 반응하는 패시브 처리기. 전투 시작 시 만든다.
+        private BattleServices services;
         private PassiveRunner passiveRunner;
+        private ActionQueue actionQueue => services.Actions;
 
         // 이번 차례에 실행하기로 확정된 행동. 확정 전에는 hasPendingAction이 false다.
         // pendingTarget은 단일 대상 스킬일 때만 쓰고, 광역·자신 스킬은 대상 규칙으로 다시 계산한다.
@@ -77,9 +86,10 @@ namespace Game.Battle
                 return;
             }
 
+            CreateServices();
             CreateUnits();
             CreateScheduler();
-            passiveRunner = new PassiveRunner(battleEvents, actionQueue, allUnits, Log);
+            passiveRunner = new PassiveRunner(services, allUnits);
 
             // ?.Invoke: 구독자가 하나도 없으면(null) 호출하지 않고 넘어간다. 화면이 없는 씬에서도 안전하게 동작한다.
             BattleStarted?.Invoke();
@@ -245,9 +255,7 @@ namespace Game.Battle
                     followUp.Owner,
                     followUp.Passive.Effects,
                     new List<BattleUnit> { target },
-                    Log,
-                    battleEvents,
-                    actionQueue,
+                    services,
                     ActionSource.FollowUpAttack);
             }
         }
@@ -323,13 +331,13 @@ namespace Game.Battle
             List<BattleUnit> targets = ResolveTargets(caster, skill.TargetType, chosenTarget);
 
             Log($"[사이클 {CurrentCycle} | 행동 {actionCount}]");
-            SkillExecutor.ExecuteSkill(caster, slot, targets, Log, battleEvents, actionQueue);
+            SkillExecutor.ExecuteSkill(caster, slot, targets, services);
         }
 
         // 행동을 마친 유닛의 턴 종료 처리: 상태효과(지속피해 → 남은 턴 감소) → 쿨타임 감소 → 출발점 복귀.
         private void EndTurn(BattleUnit actor)
         {
-            StatusTurnProcessor.ProcessTurnEnd(actor, Log);
+            StatusTurnProcessor.ProcessTurnEnd(actor, services);
             actor.TickCooldowns();
             scheduler.EndTurn(actor);
             StateChanged?.Invoke();
@@ -373,12 +381,12 @@ namespace Game.Battle
         }
 
         // 살아 있는 유닛 중 무작위 1명을 고른다 (적 AI의 단일 대상).
-        private static BattleUnit PickRandomAlive(List<BattleUnit> units)
+        private BattleUnit PickRandomAlive(List<BattleUnit> units)
         {
             List<BattleUnit> alive = GetAliveUnits(units);
 
-            // Random.Range(0, n): 0 이상 n 미만의 정수를 무작위로 뽑는다 (정수 버전은 최댓값을 포함하지 않음).
-            return alive[UnityEngine.Random.Range(0, alive.Count)];
+            // Next(n): 0 이상 n 미만의 정수를 무작위로 뽑는다. 전투 난수를 써서 시드 고정 시 같은 대상이 나온다.
+            return alive[services.Random.Next(alive.Count)];
         }
 
         // 지금 사용할 수 있는 스킬 중 가장 앞 슬롯을 찾는다 (보통 1스). 전부 쿨타임이면 선택 없음.
@@ -400,6 +408,12 @@ namespace Game.Battle
         // 양쪽 편성에 캐릭터가 한 명 이상 있고 빈 슬롯이 없는지 확인한다. 문제가 있으면 전투를 시작하지 않는다.
         private bool HasValidSetup()
         {
+            if (rules == null)
+            {
+                Debug.LogError("[Battle] 전투 규칙(BattleRulesData)이 연결되지 않았습니다.", this);
+                return false;
+            }
+
             if (IsValidParty(allyParty) && IsValidParty(enemyParty))
             {
                 return true;
@@ -407,6 +421,15 @@ namespace Game.Battle
 
             Debug.LogError("[Battle] 아군 또는 적 편성이 비어 있거나 빈 슬롯이 있습니다.", this);
             return false;
+        }
+
+        // 전투 공용 도구를 만든다. 시드가 0이면 시간 기반 난수, 아니면 고정 시드 난수를 쓴다.
+        private void CreateServices()
+        {
+            // new System.Random(): 시드 없이 만들면 매번 다른 순서의 난수가 나온다.
+            // new System.Random(seed): 같은 시드면 항상 같은 순서의 난수가 나와 전투를 그대로 재현할 수 있다.
+            System.Random random = randomSeed == 0 ? new System.Random() : new System.Random(randomSeed);
+            services = new BattleServices(Log, new BattleEvents(), new ActionQueue(), random, rules);
         }
 
         // 편성 리스트가 비어 있지 않고, 연결이 빠진(null) 슬롯이 없는지 검사한다.
@@ -437,12 +460,12 @@ namespace Game.Battle
 
             for (int i = 0; i < allyParty.Count; i++)
             {
-                allies.Add(new BattleUnit(allyParty[i], isAlly: true, formationIndex: i));
+                allies.Add(new BattleUnit(allyParty[i], isAlly: true, formationIndex: i, level: testLevel));
             }
 
             for (int i = 0; i < enemyParty.Count; i++)
             {
-                enemies.Add(new BattleUnit(enemyParty[i], isAlly: false, formationIndex: i));
+                enemies.Add(new BattleUnit(enemyParty[i], isAlly: false, formationIndex: i, level: testLevel));
             }
         }
 

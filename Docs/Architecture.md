@@ -29,6 +29,7 @@
 | `CharacterData`: 등급, 직군, 기본 스탯, 치명, 속도, 1~3스, 패시브, 변신 스킬 세트 | `BattleUnit`: 현재 스탯·HP, 남은 거리, 남은 쿨타임, 상태효과 칸, 패시브 스택·사용 횟수 |
 | `StatusEffectData`: 화상·독·버프의 공통 정의 (수치, 지속 턴, 중첩/갱신, 지속피해 타입) | `StatusInstance`: 실제로 걸린 효과 1개 (정의 참조, 부여자, 남은 턴, 시전 당시 공격력 스냅샷) |
 | `StageData`: 웨이브 구성, 보상 | `BattleState`: 현재 웨이브, 사이클 카운터, 승패 |
+| `BattleRulesData`: 전투 공통 수치 (방어 상수 K 계산 파라미터) | - |
 
 ### 캐릭터 조립 구조
 ```
@@ -60,6 +61,9 @@ BattleManager            전투 흐름 상태 머신
  ├─ BattleEvents         전투 중 일어난 일을 알림 (옵저버 패턴)
  ├─ 행동 결정자           같은 인터페이스: PlayerInput / RandomAI / BehaviorGraph(보스)
  └─ BattlePresenter      연출 재생, 재생이 끝나면 BattleManager에 완료를 알림
+
+BattleServices            전투 공용 도구 묶음 (로그, BattleEvents, ActionQueue, 난수, BattleRulesData)
+                          효과 블록·패시브·스킬 실행에 하나로 전달. 난수 시드를 고정하면 전투를 그대로 재현
 
 BattleUnit (순수 C#)      값과 규칙
 UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당

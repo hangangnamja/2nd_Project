@@ -20,6 +20,11 @@ namespace Game.Data
         // 기초 속도. 아군은 기획서 기준 90~130 범위로 설정한다. 0이면 행동하지 못하므로 최소 1.
         [SerializeField, Min(1)] private int baseSpeed = 100;
 
+        // 치명 스탯은 캐릭터마다 다르다 (장비가 생기면 장비로도 증감). 값은 비율: 0.05 = 5%
+        [Header("치명")]
+        [SerializeField, Range(0f, 1f)] private float critRate = 0.05f;
+        [SerializeField, Min(0f)] private float critDamage = 0.5f;
+
         [Header("스킬 (1스 = 평타)")]
         [SerializeField] private SkillData skill1 = new SkillData();
         [SerializeField] private SkillData skill2 = new SkillData();
@@ -39,6 +44,8 @@ namespace Game.Data
         public int Attack => attack;
         public int Defense => defense;
         public int BaseSpeed => baseSpeed;
+        public float CritRate => critRate;
+        public float CritDamage => critDamage;
 
         // 슬롯 번호(0 = 1스, 1 = 2스, 2 = 3스)로 스킬을 꺼낸다.
         // switch 식: 값에 따라 다른 결과를 고르는 문법. _ 는 위의 어느 경우에도 해당하지 않을 때(그 외)다.
