@@ -35,8 +35,12 @@ namespace Game.Battle
         // 나중에 "공격이 끝난 뒤 사망 처리" 규칙을 넣을 때 별도의 사망 상태로 분리한다.
         public bool IsDead => CurrentHp <= 0;
 
+        // 스킬 슬롯별 남은 쿨타임 (0 = 사용 가능). 인덱스 0 = 1스, 1 = 2스, 2 = 3스.
+        private readonly int[] remainingCooldowns = new int[CharacterData.SkillCount];
+
         // 원본 데이터, 소속(아군/적), 편성 순서를 받아 전투용 유닛을 만든다.
         // 시작 HP는 최대 HP, 시작 거리는 트랙 길이 (기획서: 전투 시작 시 전원 10000).
+        // 쿨타임은 스킬마다 설정한 시작 쿨타임으로 채운다 (기본 0 = 첫 턴부터 사용 가능).
         public BattleUnit(CharacterData data, bool isAlly, int formationIndex)
         {
             Data = data;
@@ -44,6 +48,45 @@ namespace Game.Battle
             FormationIndex = formationIndex;
             CurrentHp = data.MaxHp;
             RemainingDistance = TurnScheduler.TrackLength;
+
+            for (int slot = 0; slot < CharacterData.SkillCount; slot++)
+            {
+                remainingCooldowns[slot] = data.GetSkill(slot).StartCooldown;
+            }
+        }
+
+        // 해당 슬롯의 남은 쿨타임 (UI 표시용).
+        public int GetRemainingCooldown(int slot) => remainingCooldowns[slot];
+
+        // 쿨타임이 끝나 지금 사용할 수 있는 스킬인지 확인한다.
+        public bool CanUseSkill(int slot) => remainingCooldowns[slot] <= 0;
+
+        // 스킬을 사용했을 때 해당 슬롯에 쿨타임을 건다.
+        public void StartCooldown(int slot)
+        {
+            remainingCooldowns[slot] = Data.GetSkill(slot).Cooldown;
+        }
+
+        // 자기 턴이 끝날 때 모든 스킬의 쿨타임을 1씩 줄인다 (추가 턴도 턴이므로 똑같이 호출된다).
+        // 이번 턴에 사용한 스킬도 함께 줄어들어, 쿨타임 N인 스킬은 N턴마다 한 번 쓸 수 있다.
+        // 예: 쿨타임 3 → 사용(3) → 턴 종료 2 → 다음 턴 종료 1 → 다음 턴 종료 0 → 그다음 턴에 사용 가능
+        public void TickCooldowns()
+        {
+            for (int slot = 0; slot < remainingCooldowns.Length; slot++)
+            {
+                // Math.Max(0, ...): 이미 0인 쿨타임이 음수로 내려가지 않게 한다.
+                remainingCooldowns[slot] = Math.Max(0, remainingCooldowns[slot] - 1);
+            }
+        }
+
+        // HP를 회복하고, 실제로 회복된 양을 돌려준다. 최대 HP를 넘지 않는다.
+        public int Heal(int amount)
+        {
+            int hpBefore = CurrentHp;
+
+            // Math.Min: 회복 후 HP가 최대 HP를 넘으면 최대 HP로 맞춘다.
+            CurrentHp = Math.Min(MaxHp, CurrentHp + amount);
+            return CurrentHp - hpBefore;
         }
 
         // 피해를 받아 HP를 줄이고, 실제로 줄어든 양을 돌려준다 (로그·연출용).
