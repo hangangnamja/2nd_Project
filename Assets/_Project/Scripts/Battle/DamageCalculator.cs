@@ -13,8 +13,19 @@ namespace Game.Battle
         // 공격자가 대상에게 주는 피해량을 계산한다. skillMultiplier는 스킬 배율 (평타 100% = 1.0).
         public static int CalculateDamage(BattleUnit attacker, BattleUnit target, float skillMultiplier)
         {
-            float rawDamage = attacker.Data.Attack * skillMultiplier;
+            return ApplyDefense(attacker.Data.Attack * skillMultiplier, target);
+        }
 
+        // 지속피해(화상 등) 1회 피해량을 계산한다.
+        // 부여 당시 시전자 공격력(스냅샷) × 배율에 방어력을 적용하고, 치명타는 없다 (기획서 3-8).
+        public static int CalculateDamageOverTime(int snapshotAttack, float attackRatio, BattleUnit target)
+        {
+            return ApplyDefense(snapshotAttack * attackRatio, target);
+        }
+
+        // 방어력 배율을 적용해 최종 피해를 만든다 (일반 공격과 지속피해 공용).
+        private static int ApplyDefense(float rawDamage, BattleUnit target)
+        {
             // 방어력 배율 = K / (K + 방어력). 방어력이 높을수록 1보다 작아져 피해가 줄어든다.
             // 예: K 1000, 방어력 500 → 1000 / 1500 ≈ 0.667 → 피해의 약 67%만 들어간다.
             float defenseMultiplier = DefenseConstant / (DefenseConstant + target.Data.Defense);

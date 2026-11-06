@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Game.Battle.Status;
 using Game.Data;
 using UnityEngine;
 
@@ -31,6 +32,10 @@ namespace Game.Battle
         private readonly List<BattleUnit> enemies = new List<BattleUnit>();
         private TurnScheduler scheduler;
         private int actionCount;
+
+        // 전투 사건 통로와, 그 사건에 반응해 패시브를 실행하는 처리기.
+        private readonly BattleEvents battleEvents = new BattleEvents();
+        private PassiveRunner passiveRunner;
 
         // 이번 차례에 실행하기로 확정된 행동. 확정 전에는 hasPendingAction이 false다.
         // pendingTarget은 단일 대상 스킬일 때만 쓰고, 광역·자신 스킬은 대상 규칙으로 다시 계산한다.
@@ -67,6 +72,7 @@ namespace Game.Battle
 
             CreateUnits();
             CreateScheduler();
+            passiveRunner = new PassiveRunner(battleEvents, Log);
 
             // ?.Invoke: 구독자가 하나도 없으면(null) 호출하지 않고 넘어간다. 화면이 없는 씬에서도 안전하게 동작한다.
             BattleStarted?.Invoke();
@@ -74,6 +80,12 @@ namespace Game.Battle
             // StartCoroutine: RunBattle을 여러 프레임에 걸쳐 실행한다.
             // 코루틴 안의 yield return 지점에서 잠시 멈췄다가 다음 프레임(또는 조건 충족 시)에 이어서 실행된다.
             StartCoroutine(RunBattle());
+        }
+
+        // 오브젝트가 파괴될 때(씬 종료, 플레이 중지) 패시브 처리기의 사건 구독을 해제한다.
+        private void OnDestroy()
+        {
+            passiveRunner?.Dispose();
         }
 
         // ---------- 화면(HUD, 클릭)에서 호출하는 함수 ----------
@@ -222,12 +234,13 @@ namespace Game.Battle
             List<BattleUnit> targets = ResolveTargets(caster, skill.TargetType, chosenTarget);
 
             Log($"[사이클 {CurrentCycle} | 행동 {actionCount}]");
-            SkillExecutor.Execute(caster, slot, targets, Log);
+            SkillExecutor.Execute(caster, slot, targets, Log, battleEvents);
         }
 
-        // 행동을 마친 유닛의 쿨타임을 줄이고, 트랙 출발점으로 되돌린다.
+        // 행동을 마친 유닛의 턴 종료 처리: 상태효과(지속피해 → 남은 턴 감소) → 쿨타임 감소 → 출발점 복귀.
         private void EndTurn(BattleUnit actor)
         {
+            StatusTurnProcessor.ProcessTurnEnd(actor, Log);
             actor.TickCooldowns();
             scheduler.EndTurn(actor);
             StateChanged?.Invoke();

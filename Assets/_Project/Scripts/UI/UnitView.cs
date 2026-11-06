@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using Game.Battle;
+using Game.Battle.Status;
 using UnityEngine;
 
 namespace Game.UI
@@ -9,6 +11,7 @@ namespace Game.UI
     {
         [SerializeField] private Renderer bodyRenderer;
         [SerializeField] private TextMesh label;
+        [SerializeField] private UnitStatusBar statusBar;
 
         [Header("상태별 색상")]
         [SerializeField] private Color allyColor = new Color(0.35f, 0.6f, 1f);
@@ -40,6 +43,9 @@ namespace Game.UI
             // renderer.material: 이 오브젝트 전용 머티리얼 복사본을 돌려주므로 다른 캡슐 색에는 영향이 없다.
             // URP Lit 셰이더는 기본 색(_BaseColor)을 material.color로 바꿀 수 있다.
             bodyRenderer.material.color = PickColor(isActing);
+
+            // 쓰러진 유닛은 상태효과를 표시하지 않는다.
+            statusBar.Show(Unit.IsDead ? new List<StatusInstance>() : Unit.Statuses.GetAll());
         }
 
         // 상태 우선순위: 사망 → 행동 중 → 소속(아군/적) 순으로 색을 고른다.

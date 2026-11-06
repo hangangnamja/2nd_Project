@@ -39,6 +39,11 @@ MonoBehaviour:
     startCooldown: 0
     effects:
     - rid: 7605779465967763787
+  passives:
+  - passiveName: "\uBD88\uAF43 \uD0C0\uACA9"
+    trigger: 0
+    effects:
+    - rid: 7605779465967763817
   references:
     version: 2
     RefIds:
@@ -54,3 +59,8 @@ MonoBehaviour:
       type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         multiplier: 2.5
+    - rid: 7605779465967763817
+      type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        status: {fileID: 11400000, guid: d5f4a9fc67ebae341881825b057d391d, type: 2}
+        count: 1

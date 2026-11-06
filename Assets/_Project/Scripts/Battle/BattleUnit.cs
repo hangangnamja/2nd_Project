@@ -1,4 +1,5 @@
 using System;
+using Game.Battle.Status;
 using Game.Data;
 
 namespace Game.Battle
@@ -14,6 +15,9 @@ namespace Game.Battle
         public int FormationIndex { get; }
 
         public int CurrentHp { get; private set; }
+
+        // 이 유닛에게 걸린 버프·디버프 칸.
+        public StatusContainer Statuses { get; } = new StatusContainer();
 
         // 행동 게이지 트랙에서 도착점까지 남은 거리. 행동하면 트랙 길이(10000)로 되돌아간다.
         // 행동수치가 아니라 남은 거리를 저장해야, 속도가 중간에 바뀌어도 도착 시간만 다시 계산하면 된다.

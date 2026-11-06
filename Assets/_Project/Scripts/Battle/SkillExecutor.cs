@@ -9,13 +9,13 @@ namespace Game.Battle
     // 대상 결정은 BattleManager가 하고, 이 클래스는 "정해진 대상에게 스킬을 쓰는 것"만 담당한다.
     public static class SkillExecutor
     {
-        // caster가 slot번 스킬을 targets에게 사용한다. 로그는 log 함수로 내보낸다.
-        public static void Execute(BattleUnit caster, int slot, IReadOnlyList<BattleUnit> targets, Action<string> log)
+        // caster가 slot번 스킬을 targets에게 사용한다. 로그는 log 함수로, 사건은 events로 내보낸다.
+        public static void Execute(BattleUnit caster, int slot, IReadOnlyList<BattleUnit> targets, Action<string> log, BattleEvents events)
         {
             SkillData skill = caster.Data.GetSkill(slot);
             log($"{caster.Name}: {skill.SkillName}");
 
-            var context = new SkillContext(caster, targets, log);
+            var context = new SkillContext(caster, targets, log, events, isReaction: false);
 
             foreach (SkillEffect effect in skill.Effects)
             {

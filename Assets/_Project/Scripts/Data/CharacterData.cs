@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Game.Data
@@ -24,7 +25,12 @@ namespace Game.Data
         [SerializeField] private SkillData skill2 = new SkillData();
         [SerializeField] private SkillData skill3 = new SkillData();
 
+        [Header("패시브")]
+        [SerializeField] private List<PassiveData> passives = new List<PassiveData>();
+
         public const int SkillCount = 3;
+
+        public IReadOnlyList<PassiveData> Passives => passives;
 
         // => 로 작성한 읽기 전용 프로퍼티: 외부 코드는 값을 읽을 수만 있고 에셋 값을 바꿀 수 없다.
         public string DisplayName => displayName;
