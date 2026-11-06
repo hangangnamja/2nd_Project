@@ -148,9 +148,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bb91db7b63af7ac44b4f2c52fdbbe06b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game.Battle.BattleManager
-  allyData: {fileID: 11400000, guid: 4cb9afbd1657ffa458f53baa27eef1dc, type: 2}
-  enemyData: {fileID: 11400000, guid: fa5db8d986b4b66428761a8da3d67530, type: 2}
-  actionInterval: 0.1
+  allyParty:
+  - {fileID: 11400000, guid: 4cb9afbd1657ffa458f53baa27eef1dc, type: 2}
+  - {fileID: 11400000, guid: 2f677f8251338f548b38f185b10f804a, type: 2}
+  enemyParty:
+  - {fileID: 11400000, guid: fa5db8d986b4b66428761a8da3d67530, type: 2}
+  - {fileID: 11400000, guid: 81d6e306125c13b4b83d00623fe05ecd, type: 2}
+  actionInterval: 0.05
   basicAttackMultiplier: 1
 --- !u!4 &413514916
 Transform:

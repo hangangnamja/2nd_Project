@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: Ally_Test
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.CharacterData
   displayName: Ally_Test
+  role: 1
   maxHp: 1000
   attack: 120
   defense: 50
+  baseSpeed: 120

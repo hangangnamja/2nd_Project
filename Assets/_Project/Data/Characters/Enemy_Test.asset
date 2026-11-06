@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: Enemy_Test
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.CharacterData
   displayName: Enemy_Test
+  role: 1
   maxHp: 800
   attack: 100
   defense: 40
+  baseSpeed: 100
