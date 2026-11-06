@@ -92,16 +92,24 @@ UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
 ```
 Assets/_Project/
   Scripts/
-    Core/      세이브, 씬 이동, 공용 매니저
-    Data/      SO 정의 (CharacterData, StatusEffectData, StageData, ...)
-    Battle/    전투 로직 (Effects/, Passives/, AI/)
-    Outgame/   가챠, 육성, 편성
-    UI/        Canvas 화면
-    Editor/    효과 블록 추가 UI 등 에디터 스크립트
-  Data/        SO 에셋 (Characters/, StatusEffects/, Stages/)
+    Core/        공용 (세이브, 씬 이동, 매니저, SubclassSelector 속성)
+    Data/        SO·데이터 정의 (CharacterData, StatusEffectData, StatModifier, ...)
+      Skills/    스킬·패시브 정의 (SkillData, SkillTargetType, PassiveData)
+    Battle/      전투 흐름 (BattleManager, BattleUnit, TurnScheduler, DamageCalculator,
+                 BattleEvents, ActionQueue, ActionSource)
+      Skills/    스킬 실행 (SkillExecutor, SkillContext)
+        Effects/ 효과 블록 (SkillEffect, DamageEffect, HealEffect, ApplyStatusEffect, ...)
+      Passives/  패시브 실행 (PassiveRunner)
+      Status/    상태효과 (StatusInstance, StatusContainer, StatusTurnProcessor)
+    Outgame/     가챠, 육성, 편성
+    UI/          화면 (UnitView, BattleStageView, BattleHud, ...)
+    Editor/      에디터 스크립트 (효과 블록 드롭다운 등)
+  Data/          SO 에셋 (Characters/, StatusEffects/, Stages/)
   Prefabs/  Scenes/  Art/
 ```
 - `_Project`로 감싸 에셋 스토어 에셋과 섞이지 않게 한다
+- **정의(Data)와 실행(Battle)을 나눈다**: Inspector에서 조립하는 데이터는 `Data/`, 그 데이터를 전투에서 실행하는 코드는 `Battle/`
+- 폴더를 옮겨도 **네임스페이스는 바꾸지 않는다**. 효과 블록은 `[SerializeReference]`로 "네임스페이스 + 클래스 이름"이 에셋에 저장되므로, 바꾸면 조립해둔 효과가 사라진다
 
 ---
 
