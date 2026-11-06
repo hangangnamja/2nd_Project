@@ -35,9 +35,21 @@ namespace Game.Data
         [SerializeField] private PassiveTrigger trigger = PassiveTrigger.OnAttackHit;
         [SerializeField] private PassiveExecution execution = PassiveExecution.Immediate;
 
-        // 반응형 패시브는 반드시 횟수 제한을 둬야 연쇄가 언제나 끝난다 (기획서 3-4).
+        // 반응형 패시브는 반드시 횟수 제한(턴당 횟수 또는 스택)을 둬야 연쇄가 언제나 끝난다 (기획서 3-4).
         [Tooltip("한 턴(누구의 턴이든)에 발동할 수 있는 최대 횟수. 0이면 제한 없음")]
         [SerializeField, Min(0)] private int maxTriggersPerTurn;
+
+        // 스택: 정해진 때에 쌓이고, 발동할 때 소모된다. 스택이 모자라면 발동하지 않는다.
+        // 예: 격발 딜러 패시브 2 = 자기 행동마다 1개(최대 2개), 발동 시 1개 소모
+        [Header("스택 (0이면 스택 없이 발동)")]
+        [Tooltip("최대 스택 수. 0이면 스택을 쓰지 않는다")]
+        [SerializeField, Min(0)] private int maxStacks;
+
+        [Tooltip("이 캐릭터가 스킬로 행동할 때마다 얻는 스택 수 (추가 턴의 행동 포함)")]
+        [SerializeField, Min(0)] private int stacksPerOwnAction;
+
+        [Tooltip("발동 1회에 소모하는 스택 수")]
+        [SerializeField, Min(0)] private int stackCostPerTrigger = 1;
 
         // [SerializeReference] + [SubclassSelector]: 스킬 효과 목록과 같은 방식으로 효과 종류를 골라 넣는다.
         [SerializeReference, SubclassSelector]
@@ -47,6 +59,10 @@ namespace Game.Data
         public PassiveTrigger Trigger => trigger;
         public PassiveExecution Execution => execution;
         public int MaxTriggersPerTurn => maxTriggersPerTurn;
+        public bool UsesStacks => maxStacks > 0;
+        public int MaxStacks => maxStacks;
+        public int StacksPerOwnAction => stacksPerOwnAction;
+        public int StackCostPerTrigger => stackCostPerTrigger;
         public IReadOnlyList<SkillEffect> Effects => effects;
     }
 }

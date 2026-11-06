@@ -77,6 +77,10 @@ namespace Game.Battle
         // 스킬 슬롯별 남은 쿨타임 (0 = 사용 가능). 인덱스 0 = 1스, 1 = 2스, 2 = 3스.
         private readonly int[] remainingCooldowns = new int[CharacterData.SkillCount];
 
+        // 패시브별 현재 스택 수. 원본 데이터(PassiveData)는 바꾸지 않고 전투 중 값만 여기에 둔다.
+        private readonly System.Collections.Generic.Dictionary<PassiveData, int> passiveStacks =
+            new System.Collections.Generic.Dictionary<PassiveData, int>();
+
         // 원본 데이터, 소속(아군/적), 편성 순서, 레벨을 받아 전투용 유닛을 만든다.
         // 시작 HP는 최대 HP, 시작 거리는 트랙 길이 (기획서: 전투 시작 시 전원 10000).
         // 쿨타임은 스킬마다 설정한 시작 쿨타임으로 채운다 (기본 0 = 첫 턴부터 사용 가능).
@@ -93,6 +97,36 @@ namespace Game.Battle
             {
                 remainingCooldowns[slot] = data.GetSkill(slot).StartCooldown;
             }
+        }
+
+        // 패시브의 현재 스택 수. 한 번도 쌓이지 않았으면 0.
+        public int GetPassiveStacks(PassiveData passive)
+        {
+            // TryGetValue: 키가 있으면 값을 stacks에 담고, 없으면 stacks = 0이다.
+            passiveStacks.TryGetValue(passive, out int stacks);
+            return stacks;
+        }
+
+        // 패시브 스택을 amount만큼 늘린다. 최대 스택을 넘지 않게 자르고, 실제로 늘어난 양을 돌려준다.
+        public int AddPassiveStacks(PassiveData passive, int amount)
+        {
+            int before = GetPassiveStacks(passive);
+            int after = Math.Min(passive.MaxStacks, before + amount);
+            passiveStacks[passive] = after;
+            return after - before;
+        }
+
+        // 패시브 스택을 amount만큼 쓴다. 모자라면 쓰지 않고 false를 돌려준다.
+        public bool TryConsumePassiveStacks(PassiveData passive, int amount)
+        {
+            int current = GetPassiveStacks(passive);
+            if (current < amount)
+            {
+                return false;
+            }
+
+            passiveStacks[passive] = current - amount;
+            return true;
         }
 
         // 해당 슬롯의 남은 쿨타임 (UI 표시용).

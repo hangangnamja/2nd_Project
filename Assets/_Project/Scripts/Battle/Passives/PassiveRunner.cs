@@ -29,6 +29,7 @@ namespace Game.Battle
             this.services = services;
             this.allUnits = allUnits;
 
+            events.SkillUsed += HandleSkillUsed;
             events.AttackHit += HandleAttackHit;
             events.AttackPerformed += HandleAttackPerformed;
         }
@@ -36,8 +37,27 @@ namespace Game.Battle
         // 전투가 끝나 더 이상 반응할 필요가 없을 때 구독을 해제한다.
         public void Dispose()
         {
+            events.SkillUsed -= HandleSkillUsed;
             events.AttackHit -= HandleAttackHit;
             events.AttackPerformed -= HandleAttackPerformed;
+        }
+
+        // 자기 행동(스킬)을 마쳤을 때: 행동마다 스택이 쌓이는 패시브에 스택을 더한다.
+        private void HandleSkillUsed(BattleUnit caster)
+        {
+            foreach (PassiveData passive in caster.Data.Passives)
+            {
+                if (!passive.UsesStacks || passive.StacksPerOwnAction <= 0)
+                {
+                    continue;
+                }
+
+                int gained = caster.AddPassiveStacks(passive, passive.StacksPerOwnAction);
+                if (gained > 0)
+                {
+                    log($"  [패시브] {caster.Name}: {passive.PassiveName} 스택 +{gained} ({caster.GetPassiveStacks(passive)}/{passive.MaxStacks})");
+                }
+            }
         }
 
         // 새 턴이 시작될 때(추가 턴 포함) 패시브 발동 횟수를 초기화한다.
@@ -68,7 +88,7 @@ namespace Game.Battle
                 return;
             }
 
-            BattleUnit mainTarget = hitTargets[0];
+            BattleUnit mainTarget = PickMainTarget(hitTargets);
 
             foreach (BattleUnit unit in allUnits)
             {
@@ -89,13 +109,39 @@ namespace Game.Battle
             }
         }
 
-        // 패시브 1회 발동: 횟수 제한을 확인한 뒤, 실행 방식에 따라 즉시 실행하거나 추가 공격으로 예약한다.
+        // 광역 공격에 반응할 때 노릴 대상: 맞은 대상 중 살아 있고 현재 HP가 가장 높은 적 (기획서 4-3).
+        // 맞은 순서가 편성 순서이므로, HP가 "더 높을 때만" 바꾸면 같은 HP에서는 앞 번호가 남는다.
+        // 모두 쓰러졌으면 첫 대상을 넘기고, 실행 시점에 BattleManager가 살아 있는 적으로 다시 고른다.
+        // 보스 우선 규칙은 보스 개념이 들어올 때 추가한다.
+        private static BattleUnit PickMainTarget(IReadOnlyList<BattleUnit> hitTargets)
+        {
+            BattleUnit best = null;
+
+            foreach (BattleUnit target in hitTargets)
+            {
+                if (target.IsDead)
+                {
+                    continue;
+                }
+
+                if (best == null || target.CurrentHp > best.CurrentHp)
+                {
+                    best = target;
+                }
+            }
+
+            return best ?? hitTargets[0];
+        }
+
+        // 패시브 1회 발동: 턴당 횟수와 스택을 확인한 뒤, 실행 방식에 따라 즉시 실행하거나 추가 공격으로 예약한다.
         private void Activate(BattleUnit owner, PassiveData passive, BattleUnit target)
         {
-            if (!TryConsumeTrigger(owner, passive))
+            if (!CanTrigger(owner, passive))
             {
                 return;
             }
+
+            ConsumeTrigger(owner, passive);
 
             if (passive.Execution == PassiveExecution.FollowUpAttack)
             {
@@ -113,22 +159,34 @@ namespace Game.Battle
                 ActionSource.PassiveEffect);
         }
 
-        // 이번 턴 발동 횟수가 최대치보다 적으면 1 늘리고 true, 이미 다 썼으면 false.
-        private bool TryConsumeTrigger(BattleUnit owner, PassiveData passive)
+        // 지금 발동할 수 있는지: 이번 턴 발동 횟수가 남아 있고, 스택형이면 소모할 스택이 충분해야 한다.
+        // 두 조건을 모두 확인한 뒤에만 소모해야, 한쪽만 깎이고 발동은 안 되는 일이 없다.
+        private bool CanTrigger(BattleUnit owner, PassiveData passive)
         {
-            var key = (owner, passive);
+            // TryGetValue: 키가 있으면 값을 count에 담고, 없으면 count = 0이다.
+            triggerCountsThisTurn.TryGetValue((owner, passive), out int count);
 
-            // TryGetValue: 키가 있으면 값을 count에 담고 true, 없으면 count = 0이고 false.
-            triggerCountsThisTurn.TryGetValue(key, out int count);
-
-            bool hasLimit = passive.MaxTriggersPerTurn > 0;
-            if (hasLimit && count >= passive.MaxTriggersPerTurn)
+            bool hasTurnLimit = passive.MaxTriggersPerTurn > 0;
+            if (hasTurnLimit && count >= passive.MaxTriggersPerTurn)
             {
                 return false;
             }
 
+            return !passive.UsesStacks || owner.GetPassiveStacks(passive) >= passive.StackCostPerTrigger;
+        }
+
+        // 발동 1회를 기록한다: 이번 턴 발동 횟수 +1, 스택형이면 스택 소모.
+        private void ConsumeTrigger(BattleUnit owner, PassiveData passive)
+        {
+            var key = (owner, passive);
+            triggerCountsThisTurn.TryGetValue(key, out int count);
             triggerCountsThisTurn[key] = count + 1;
-            return true;
+
+            if (passive.UsesStacks)
+            {
+                owner.TryConsumePassiveStacks(passive, passive.StackCostPerTrigger);
+                log($"  [패시브] {owner.Name}: {passive.PassiveName} 스택 -{passive.StackCostPerTrigger} ({owner.GetPassiveStacks(passive)}/{passive.MaxStacks})");
+            }
         }
     }
 }

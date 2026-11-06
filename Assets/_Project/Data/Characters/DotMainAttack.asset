@@ -10,16 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0cf10047d4cbc1d4a9d1cde009aa4d18, type: 3}
-  m_Name: Ally_Test
+  m_Name: DotMainAttack
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.CharacterData
-  displayName: Ally_Test
+  displayName: DotMainAttack
   role: 1
   maxHp: 1000
   attack: 120
   defense: 50
   baseSpeed: 120
-  critRate: 0.8
-  critDamage: 1
+  critRate: 0.05
+  critDamage: 0.5
   skill1:
     skillName: "\uD3C9\uD0C0"
     targetType: 0
@@ -28,27 +28,41 @@ MonoBehaviour:
     effects:
     - rid: 7605779465967763785
   skill2:
-    skillName: "\uAD11\uC5ED \uBCA0\uAE30"
+    skillName: "\uD654\uC5FC \uD655\uC0B0"
     targetType: 1
     cooldown: 3
     startCooldown: 0
     effects:
-    - rid: 7605779465967763786
+    - rid: 7605779465967763912
+    - rid: 7605779465967763913
   skill3:
-    skillName: "\uAC15\uD0C0 + \uCD94\uAC00 \uD134"
+    skillName: "\uACA9\uBC1C"
     targetType: 0
     cooldown: 4
     startCooldown: 0
     effects:
-    - rid: 7605779465967763787
-    - rid: 7605779465967763857
+    - rid: 7605779465967763914
+    - rid: 7605779465967763915
   passives:
   - passiveName: "\uBD88\uAF43 \uD0C0\uACA9"
     trigger: 0
     execution: 0
     maxTriggersPerTurn: 0
+    maxStacks: 0
+    stacksPerOwnAction: 0
+    stackCostPerTrigger: 1
     effects:
     - rid: 7605779465967763817
+  - passiveName: "\uC5F0\uC1C4 \uACA9\uBC1C"
+    trigger: 1
+    execution: 1
+    maxTriggersPerTurn: 0
+    maxStacks: 2
+    stacksPerOwnAction: 1
+    stackCostPerTrigger: 1
+    effects:
+    - rid: 7605779465967763934
+    - rid: 7605779465967763935
   references:
     version: 2
     RefIds:
@@ -56,19 +70,31 @@ MonoBehaviour:
       type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         multiplier: 1
-    - rid: 7605779465967763786
-      type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
-      data:
-        multiplier: 0.7
-    - rid: 7605779465967763787
-      type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
-      data:
-        multiplier: 2.5
     - rid: 7605779465967763817
       type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         status: {fileID: 11400000, guid: d5f4a9fc67ebae341881825b057d391d, type: 2}
         count: 1
-    - rid: 7605779465967763857
-      type: {class: GrantExtraTurnEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+    - rid: 7605779465967763912
+      type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        multiplier: 0.8
+    - rid: 7605779465967763913
+      type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        status: {fileID: 11400000, guid: d5f4a9fc67ebae341881825b057d391d, type: 2}
+        count: 1
+    - rid: 7605779465967763914
+      type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        multiplier: 2
+    - rid: 7605779465967763915
+      type: {class: DetonateEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data: 
+    - rid: 7605779465967763934
+      type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        multiplier: 0.5
+    - rid: 7605779465967763935
+      type: {class: DetonateEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data: 

@@ -17,6 +17,9 @@ namespace Game.Battle
 
             ExecuteEffects(caster, skill.Effects, targets, services, ActionSource.Skill);
             caster.StartCooldown(slot);
+
+            // 스킬이 끝난 뒤 "자기 행동" 사건을 알린다. 이번 행동으로 쌓인 스택은 다음 아군 행동부터 쓸 수 있다.
+            services.Events.RaiseSkillUsed(caster);
         }
 
         // 효과 목록을 순서대로 실행한다. 스킬, 추가 공격, 패시브 효과가 모두 이 함수를 쓴다.
