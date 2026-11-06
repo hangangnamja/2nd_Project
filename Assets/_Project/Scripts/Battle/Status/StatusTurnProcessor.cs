@@ -24,8 +24,8 @@ namespace Game.Battle.Status
 
             foreach (StatusInstance instance in unit.Statuses.GetAll())
             {
-                // 앞선 지속피해로 이미 쓰러졌다면 남은 지속피해는 발동하지 않는다 ("0 피해" 로그 방지).
-                if (unit.IsDead)
+                // 앞선 지속피해로 HP가 0이 됐다면 남은 지속피해는 발동하지 않는다 ("0 피해" 로그 방지).
+                if (unit.IsDown)
                 {
                     break;
                 }

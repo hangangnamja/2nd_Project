@@ -18,12 +18,13 @@ namespace Game.Battle.Effects
         [Tooltip("기준 스탯 대비 회복 비율 (100% = 1.0)")]
         [SerializeField, Min(0f)] private float ratio = 1f;
 
-        // 대상마다 회복량을 계산해 적용한다. 쓰러진 대상은 부활시키지 않는다 (게임에 부활 없음).
+        // 대상마다 회복량을 계산해 적용한다. HP가 0인 대상은 회복하지 않는다 (게임에 부활 없음).
+        // 사망 확정 전(같은 공격 안에서 HP 0)이라도 회복하면 사실상 부활이 되므로 IsDown으로 막는다.
         public override void Apply(SkillContext context)
         {
             foreach (BattleUnit target in context.Targets)
             {
-                if (target.IsDead)
+                if (target.IsDown)
                 {
                     continue;
                 }

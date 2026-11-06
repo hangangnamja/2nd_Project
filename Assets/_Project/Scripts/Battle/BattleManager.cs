@@ -261,6 +261,22 @@ namespace Game.Battle
                     primaryTarget: null,
                     services,
                     ActionSource.FollowUpAttack);
+
+                // 추가 공격도 하나의 공격이므로, 끝날 때 HP 0인 유닛의 사망을 확정한다.
+                ConfirmDeaths();
+            }
+        }
+
+        // 공격이나 턴 종료 처리가 끝난 시점에 HP가 0인 유닛의 사망을 확정한다 (기획서 3-9).
+        // 공격 도중에는 HP가 0이어도 남은 효과를 끝까지 받고, 여기서 확정된 뒤부터 행동·대상 선택에서 빠진다.
+        private void ConfirmDeaths()
+        {
+            foreach (BattleUnit unit in allUnits)
+            {
+                if (unit.ConfirmDeathIfDown())
+                {
+                    Log($"  {unit.Name} 쓰러짐");
+                }
             }
         }
 
@@ -339,12 +355,18 @@ namespace Game.Battle
 
             Log($"[사이클 {CurrentCycle} | 행동 {actionCount}]");
             SkillExecutor.ExecuteSkill(caster, slot, targets, primaryTarget, services);
+
+            // 스킬의 모든 효과가 끝난 뒤에 사망을 확정한다. 이후의 추가 공격은 확정된 사망을 기준으로 대상을 고른다.
+            ConfirmDeaths();
         }
 
         // 행동을 마친 유닛의 턴 종료 처리: 상태효과(지속피해 → 남은 턴 감소) → 쿨타임 감소 → 출발점 복귀.
         private void EndTurn(BattleUnit actor)
         {
             StatusTurnProcessor.ProcessTurnEnd(actor, services);
+
+            // 지속피해로 HP가 0이 됐으면 턴 종료 처리가 끝난 뒤 사망을 확정한다.
+            ConfirmDeaths();
             actor.TickCooldowns();
             scheduler.EndTurn(actor);
             StateChanged?.Invoke();
