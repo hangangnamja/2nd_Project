@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Game.Data
@@ -35,9 +36,13 @@ namespace Game.Data
         [Tooltip("턴 종료 시 주는 피해 = 부여 당시 시전자 공격력 × 이 배율. 0이면 지속피해 없음 (화상 = 0.6)")]
         [SerializeField, Min(0f)] private float damageAttackRatio;
 
+        [Header("스탯 보정")]
+        [Tooltip("이 효과가 걸려 있는 동안 적용되는 스탯 보정 (공격력 증가 등)")]
+        [SerializeField] private List<StatModifier> statModifiers = new List<StatModifier>();
+
         [Header("표시")]
-        [Tooltip("유닛 머리 위에 표시할 블럭 색")]
-        [SerializeField] private Color iconColor = Color.red;
+        [Tooltip("머리 위 블럭에 겹쳐 그릴 그림 (흰색 그림 + 투명 배경). 비우면 색 블럭만 표시")]
+        [SerializeField] private Texture2D icon;
 
         public string DisplayName => displayName;
         public StatusCategory Category => category;
@@ -45,6 +50,7 @@ namespace Game.Data
         public int Duration => duration;
         public float DamageAttackRatio => damageAttackRatio;
         public bool DealsDamageOverTime => damageAttackRatio > 0f;
-        public Color IconColor => iconColor;
+        public IReadOnlyList<StatModifier> StatModifiers => statModifiers;
+        public Texture2D Icon => icon;
     }
 }

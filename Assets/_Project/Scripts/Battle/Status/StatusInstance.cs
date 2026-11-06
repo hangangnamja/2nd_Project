@@ -9,7 +9,8 @@ namespace Game.Battle.Status
         public BattleUnit Source { get; }
         public int RemainingTurns { get; private set; }
 
-        // 부여 당시 시전자의 공격력 (스냅샷). 이후 시전자의 공격력이 바뀌어도 이 효과의 피해는 그대로다.
+        // 부여 당시 시전자의 최종 공격력 (스냅샷, 버프 포함). 이후 시전자의 공격력이 바뀌어도 이 효과의 피해는 그대로다.
+        // 그래서 "공격력 버프를 받고 화상을 거는" 순서가 의미를 가진다 (기획서 3-7).
         public int SnapshotAttack { get; }
 
         // 몇 번째로 걸린 효과인지. 칸이 가득 차 밀어낼 때 "남은 턴이 같으면 먼저 걸린 것부터" 비교에 쓴다.
@@ -20,7 +21,7 @@ namespace Game.Battle.Status
         {
             Data = data;
             Source = source;
-            SnapshotAttack = source.Data.Attack;
+            SnapshotAttack = source.Attack;
             RemainingTurns = data.Duration;
             AppliedOrder = appliedOrder;
         }
