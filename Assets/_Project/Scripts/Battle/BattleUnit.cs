@@ -27,9 +27,13 @@ namespace Game.Battle
         public int MaxHp => Data.MaxHp;
         public CharacterRole Role => Data.Role;
 
-        // 최종 속도. 지금은 기초 속도 그대로이고, 속도 버프는 상태효과 단계에서
-        // "기초 속도 × (1 + 속도 %) + 고정 속도" 공식으로 확장한다.
-        public double Speed => Data.BaseSpeed;
+        // 최종 스탯: 원본 스탯에 걸려 있는 버프·디버프 보정을 더한 값. 전투 계산은 항상 이 값을 쓴다.
+        public int Attack => (int)CalculateFinalStat(StatType.Attack, Data.Attack);
+        public int Defense => (int)CalculateFinalStat(StatType.Defense, Data.Defense);
+
+        // 최종 속도 = 기초 속도 × (1 + 속도 %) + 고정 속도 (기획서 3-3).
+        // 속도가 바뀌어도 남은 거리는 그대로이고, 행동수치(도착 시간)만 이 값으로 다시 계산된다.
+        public double Speed => CalculateFinalStat(StatType.Speed, Data.BaseSpeed);
 
         // 행동수치 = 남은 거리 / 속도. 도착까지 걸리는 시간이며, 가장 작은 유닛이 다음에 행동한다.
         // 예: 남은 거리 10000, 속도 120 → 약 83.3
@@ -81,6 +85,36 @@ namespace Game.Battle
                 // Math.Max(0, ...): 이미 0인 쿨타임이 음수로 내려가지 않게 한다.
                 remainingCooldowns[slot] = Math.Max(0, remainingCooldowns[slot] - 1);
             }
+        }
+
+        // 원본 값에 상태효과의 스탯 보정을 적용한다.
+        // 같은 스탯의 % 보정은 모두 더한 뒤 한 번에 곱한다 (같은 종류는 합연산, 기획서 3-5).
+        // 예: 공격력 120, 공증 30% + 공증 10% → 120 × (1 + 0.4) = 168
+        private double CalculateFinalStat(StatType stat, double baseValue)
+        {
+            double percentSum = 0d;
+            double flatSum = 0d;
+
+            foreach (StatusInstance status in Statuses.GetAll())
+            {
+                foreach (StatModifier modifier in status.Data.StatModifiers)
+                {
+                    if (modifier.Stat != stat)
+                    {
+                        continue;
+                    }
+
+                    percentSum += modifier.Percent;
+                    flatSum += modifier.Flat;
+                }
+            }
+
+            double finalValue = baseValue * (1d + percentSum) + flatSum;
+
+            // 디버프가 아무리 겹쳐도 스탯이 0 아래로 내려가지 않게 한다.
+            // 속도는 0이면 행동수치 계산(남은 거리 ÷ 속도)이 불가능하므로 최소 1로 둔다.
+            double minimum = stat == StatType.Speed ? 1d : 0d;
+            return Math.Max(minimum, finalValue);
         }
 
         // HP를 회복하고, 실제로 회복된 양을 돌려준다. 최대 HP를 넘지 않는다.

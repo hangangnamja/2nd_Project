@@ -36,7 +36,8 @@ namespace Game.Battle.Effects
         // 기준 스탯 × 비율로 회복량을 구한다. 시전자 공격력 기준이면 시전자, 최대 HP 기준이면 대상의 값을 쓴다.
         private int CalculateAmount(BattleUnit caster, BattleUnit target)
         {
-            float baseValue = scaleStat == ScaleStat.CasterAttack ? caster.Data.Attack : target.MaxHp;
+            // caster.Attack: 버프가 반영된 시전자의 최종 공격력
+            float baseValue = scaleStat == ScaleStat.CasterAttack ? caster.Attack : target.MaxHp;
 
             // Mathf.FloorToInt: 소수점을 버려 정수 회복량으로 만든다.
             return Mathf.FloorToInt(baseValue * ratio);

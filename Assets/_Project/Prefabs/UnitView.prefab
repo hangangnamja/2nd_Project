@@ -45,9 +45,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game.UI.UnitStatusBar
   iconMaterial: {fileID: 2100000, guid: 9e3162451ecb26748ba1a83e02fc542d, type: 2}
+  glyphMaterial: {fileID: 2100000, guid: 0432b8c0df5e54d42918f74510708e5e, type: 2}
   font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
+  buffColor: {r: 0.2, g: 0.45, b: 0.95, a: 1}
+  debuffColor: {r: 0.9, g: 0.15, b: 0.1, a: 1}
   iconSize: 0.3
   iconSpacing: 0.38
+  glyphScale: 0.8
   turnTextSize: 0.05
 --- !u!1 &4663243773613344490
 GameObject:

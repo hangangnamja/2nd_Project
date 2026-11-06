@@ -26,19 +26,22 @@ MonoBehaviour:
     effects:
     - rid: 7605779465967763788
   skill2:
-    skillName: "\uCE58\uC720"
+    skillName: "\uCE58\uC720 + \uACF5\uACA9\uB825 \uC99D\uAC00"
     targetType: 3
     cooldown: 2
     startCooldown: 0
     effects:
     - rid: 7605779465967763789
+    - rid: 7605779465967763836
   skill3:
-    skillName: "\uC804\uCCB4 \uCE58\uC720"
+    skillName: "\uC804\uCCB4 \uCE58\uC720 + \uBC29\uC5B4\uB825 \uC99D\uAC00"
     targetType: 4
     cooldown: 4
     startCooldown: 0
     effects:
     - rid: 7605779465967763790
+    - rid: 7605779465967763837
+  passives: []
   references:
     version: 2
     RefIds:
@@ -56,3 +59,13 @@ MonoBehaviour:
       data:
         scaleStat: 1
         ratio: 0.15
+    - rid: 7605779465967763836
+      type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        status: {fileID: 11400000, guid: 178f2cced3933644abc52cf12479f8d7, type: 2}
+        count: 1
+    - rid: 7605779465967763837
+      type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        status: {fileID: 11400000, guid: 62dad865be8c8f14594f8af81597f160, type: 2}
+        count: 1
