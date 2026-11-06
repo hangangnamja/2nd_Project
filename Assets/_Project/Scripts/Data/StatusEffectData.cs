@@ -33,9 +33,18 @@ namespace Game.Data
         [Tooltip("지속 턴 수 (효과를 가진 유닛의 자기 턴 기준)")]
         [SerializeField, Min(1)] private int duration = 3;
 
+        // 지속피해 기본 피해는 두 가지 중 하나 (기획서 3-8). 둘 다 0이면 지속피해 없음.
+        //  - 화상형: 부여 당시 시전자 공격력 × 배율
+        //  - 독형: 대상 최대 HP × 배율, 단 부여 당시 시전자 공격력 × 상한 배율을 넘지 않음
         [Header("지속피해")]
-        [Tooltip("턴 종료 시 주는 피해 = 부여 당시 시전자 공격력 × 이 배율. 0이면 지속피해 없음 (화상 = 0.6)")]
+        [Tooltip("공격력 비례: 부여 당시 시전자 공격력 × 이 배율 (화상 = 0.6). 0이면 사용 안 함")]
         [SerializeField, Min(0f)] private float damageAttackRatio;
+
+        [Tooltip("최대 HP 비례: 대상 최대 HP × 이 배율 (독 = 0.06). 0이면 사용 안 함")]
+        [SerializeField, Min(0f)] private float damageTargetMaxHpRatio;
+
+        [Tooltip("최대 HP 비례 피해의 상한 = 부여 당시 시전자 공격력 × 이 배율 (독 = 3.0). 0이면 상한 없음")]
+        [SerializeField, Min(0f)] private float maxHpDamageAttackCap;
 
         [Header("스탯 보정")]
         [Tooltip("이 효과가 걸려 있는 동안 적용되는 스탯 보정 (공격력 증가 등)")]
@@ -50,7 +59,27 @@ namespace Game.Data
         public StatusStackMode StackMode => stackMode;
         public int Duration => duration;
         public float DamageAttackRatio => damageAttackRatio;
-        public bool DealsDamageOverTime => damageAttackRatio > 0f;
+        public float DamageTargetMaxHpRatio => damageTargetMaxHpRatio;
+        public float MaxHpDamageAttackCap => maxHpDamageAttackCap;
+        public bool DealsDamageOverTime => damageAttackRatio > 0f || damageTargetMaxHpRatio > 0f;
+
+        // 지속피해 1회의 기본 피해 (방어력·대상 쪽 보정을 적용하기 전 값).
+        // snapshotAttack: 부여 당시 시전자 공격력, targetMaxHp: 대상 최대 HP
+        // 예: 독 6%, 대상 HP 30000, 시전자 공격력 400, 상한 3.0 → min(1800, 1200) = 1200
+        public double GetDamageOverTimeBase(int snapshotAttack, int targetMaxHp)
+        {
+            double attackPart = snapshotAttack * (double)damageAttackRatio;
+            double maxHpPart = targetMaxHp * (double)damageTargetMaxHpRatio;
+
+            // 상한 배율이 있으면 최대 HP 비례 피해가 "공격력 × 상한 배율"을 넘지 않게 자른다.
+            // 보스처럼 HP가 매우 큰 대상에게 독이 지나치게 강해지는 것을 막는다 (기획서 3-8).
+            if (maxHpDamageAttackCap > 0f)
+            {
+                maxHpPart = System.Math.Min(maxHpPart, snapshotAttack * (double)maxHpDamageAttackCap);
+            }
+
+            return attackPart + maxHpPart;
+        }
         public IReadOnlyList<StatModifier> StatModifiers => statModifiers;
         public Texture2D Icon => icon;
     }

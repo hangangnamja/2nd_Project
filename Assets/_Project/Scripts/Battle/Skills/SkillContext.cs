@@ -12,6 +12,10 @@ namespace Game.Battle.Effects
         public BattleUnit Caster { get; }
         public IReadOnlyList<BattleUnit> Targets { get; }
 
+        // 메인 대상 (확산 스킬에서 직접 고른 적). 메인 대상이 없는 광역·자신 스킬은 null.
+        // 피해 블록은 메인 대상이 있을 때 나머지 대상에게 "주변 대상 배율"을 적용한다.
+        public BattleUnit PrimaryTarget { get; }
+
         // 전투 공용 도구 (로그, 사건, 대기열, 난수, 규칙).
         public BattleServices Services { get; }
 
@@ -29,11 +33,17 @@ namespace Game.Battle.Effects
         // 이번 행동에서 피해를 받은 대상들 (중복 없이). 행동이 끝난 뒤 "공격 행동" 사건에 담아 보낸다.
         public IReadOnlyList<BattleUnit> HitTargets => hitTargets;
 
-        // 시전자, 대상 목록, 전투 공용 도구, 발생 원인을 받아 실행 정보를 만든다.
-        public SkillContext(BattleUnit caster, IReadOnlyList<BattleUnit> targets, BattleServices services, ActionSource source)
+        // 시전자, 대상 목록, 메인 대상, 전투 공용 도구, 발생 원인을 받아 실행 정보를 만든다.
+        public SkillContext(
+            BattleUnit caster,
+            IReadOnlyList<BattleUnit> targets,
+            BattleUnit primaryTarget,
+            BattleServices services,
+            ActionSource source)
         {
             Caster = caster;
             Targets = targets;
+            PrimaryTarget = primaryTarget;
             Services = services;
             Source = source;
         }

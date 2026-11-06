@@ -10,6 +10,9 @@ namespace Game.Battle.Effects
         [Tooltip("공격력 대비 배율 (100% = 1.0)")]
         [SerializeField, Min(0f)] private float multiplier = 1f;
 
+        [Tooltip("확산 스킬에서 메인 대상이 아닌 주변 대상이 받는 비율 (0.5 = 메인 배율의 50%). 메인 대상이 없는 스킬에서는 쓰지 않는다")]
+        [SerializeField, Range(0f, 1f)] private float secondaryTargetRatio = 1f;
+
         // 대상마다 피해를 계산해 적용한다. 이미 쓰러진 대상도 같은 공격 안에서는 효과를 받는다 (기획서 3-9).
         // 피해를 준 직후 "공격 판정" 사건을 알려, 공격 시 발동 패시브(화상 부여 등)가 같은 판정 안에서 붙게 한다.
         public override void Apply(SkillContext context)
@@ -19,7 +22,7 @@ namespace Game.Battle.Effects
                 DamageResult result = DamageCalculator.CalculateAttackDamage(
                     context.Caster,
                     target,
-                    multiplier,
+                    GetMultiplierFor(target, context),
                     context.Services.Random,
                     context.Services.Rules);
 
@@ -35,6 +38,14 @@ namespace Game.Battle.Effects
                     context.Events?.RaiseAttackHit(context.Caster, target);
                 }
             }
+        }
+
+        // 이 대상에게 쓸 배율: 메인 대상이 있는 스킬(확산)에서 주변 대상이면 배율 × 주변 비율, 그 외는 배율 그대로.
+        // 예: 배율 1.5, 주변 비율 0.5 → 메인 150%, 양옆 75%
+        private float GetMultiplierFor(BattleUnit target, SkillContext context)
+        {
+            bool isSecondary = context.PrimaryTarget != null && target != context.PrimaryTarget;
+            return isSecondary ? multiplier * secondaryTargetRatio : multiplier;
         }
     }
 }
