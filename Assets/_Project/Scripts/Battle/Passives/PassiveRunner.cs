@@ -10,10 +10,12 @@ namespace Game.Battle
     // IDisposable: "다 쓰고 나면 Dispose()로 정리해야 하는 객체"라는 표시. 여기서는 사건 구독 해제가 정리 작업이다.
     public class PassiveRunner : IDisposable
     {
-        private readonly BattleEvents events;
-        private readonly ActionQueue actions;
+        private readonly BattleServices services;
         private readonly IReadOnlyList<BattleUnit> allUnits;
-        private readonly Action<string> log;
+
+        private BattleEvents events => services.Events;
+        private ActionQueue actions => services.Actions;
+        private Action<string> log => services.Log;
 
         // 이번 턴에 패시브가 몇 번 발동했는지. 턴마다 비우고, 패시브별 최대 횟수와 비교한다.
         // Dictionary<키, 값>: 키로 값을 빠르게 찾는 자료구조.
@@ -21,13 +23,11 @@ namespace Game.Battle
         private readonly Dictionary<(BattleUnit, PassiveData), int> triggerCountsThisTurn =
             new Dictionary<(BattleUnit, PassiveData), int>();
 
-        // 사건 통로, 대기열, 전투 유닛 전체, 로그 함수를 받아 사건 구독을 시작한다.
-        public PassiveRunner(BattleEvents events, ActionQueue actions, IReadOnlyList<BattleUnit> allUnits, Action<string> log)
+        // 전투 공용 도구와 전투 유닛 전체를 받아 사건 구독을 시작한다.
+        public PassiveRunner(BattleServices services, IReadOnlyList<BattleUnit> allUnits)
         {
-            this.events = events;
-            this.actions = actions;
+            this.services = services;
             this.allUnits = allUnits;
-            this.log = log;
 
             events.AttackHit += HandleAttackHit;
             events.AttackPerformed += HandleAttackPerformed;
@@ -59,8 +59,15 @@ namespace Game.Battle
         }
 
         // 공격 행동 1회가 끝남: 공격자를 제외한 같은 편 아군의 "아군 공격 시" 패시브를 실행한다.
-        private void HandleAttackPerformed(BattleUnit attacker, IReadOnlyList<BattleUnit> hitTargets)
+        // 정규 행동(스킬)에만 반응하고, 추가 공격에는 반응하지 않는다 (기획서 3-4).
+        // 추가 공격이 또 다른 추가 공격을 부르는 연쇄를 없애, 반응 횟수가 아군 스킬 횟수에 비례하게 만든다.
+        private void HandleAttackPerformed(BattleUnit attacker, IReadOnlyList<BattleUnit> hitTargets, ActionSource source)
         {
+            if (source != ActionSource.Skill)
+            {
+                return;
+            }
+
             BattleUnit mainTarget = hitTargets[0];
 
             foreach (BattleUnit unit in allUnits)
@@ -102,9 +109,7 @@ namespace Game.Battle
                 owner,
                 passive.Effects,
                 new List<BattleUnit> { target },
-                log,
-                events,
-                actions,
+                services,
                 ActionSource.PassiveEffect);
         }
 

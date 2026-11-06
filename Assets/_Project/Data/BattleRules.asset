@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa8bb3061586ef14d8cf6d264fca267c, type: 3}
+  m_Name: BattleRules
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.BattleRulesData
+  targetDefenseReduction: 0.35
+  balancedDefenseAtLv1: 48
+  balancedDefenseAtLv60: 600
+  ascensionJumpLevels: 5

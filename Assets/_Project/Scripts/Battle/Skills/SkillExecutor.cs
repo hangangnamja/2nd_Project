@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Game.Battle.Effects;
 using Game.Data;
@@ -11,18 +10,12 @@ namespace Game.Battle
     public static class SkillExecutor
     {
         // caster가 slot번 스킬을 targets에게 사용하고 쿨타임을 건다.
-        public static void ExecuteSkill(
-            BattleUnit caster,
-            int slot,
-            IReadOnlyList<BattleUnit> targets,
-            Action<string> log,
-            BattleEvents events,
-            ActionQueue actions)
+        public static void ExecuteSkill(BattleUnit caster, int slot, IReadOnlyList<BattleUnit> targets, BattleServices services)
         {
             SkillData skill = caster.Data.GetSkill(slot);
-            log($"{caster.Name}: {skill.SkillName}");
+            services.Log($"{caster.Name}: {skill.SkillName}");
 
-            ExecuteEffects(caster, skill.Effects, targets, log, events, actions, ActionSource.Skill);
+            ExecuteEffects(caster, skill.Effects, targets, services, ActionSource.Skill);
             caster.StartCooldown(slot);
         }
 
@@ -32,12 +25,10 @@ namespace Game.Battle
             BattleUnit caster,
             IReadOnlyList<SkillEffect> effects,
             IReadOnlyList<BattleUnit> targets,
-            Action<string> log,
-            BattleEvents events,
-            ActionQueue actions,
+            BattleServices services,
             ActionSource source)
         {
-            var context = new SkillContext(caster, targets, log, events, actions, source);
+            var context = new SkillContext(caster, targets, services, source);
 
             foreach (SkillEffect effect in effects)
             {
@@ -47,7 +38,7 @@ namespace Game.Battle
 
             if (context.CountsAsAttack && context.HitTargets.Count > 0)
             {
-                events.RaiseAttackPerformed(caster, context.HitTargets);
+                services.Events.RaiseAttackPerformed(caster, context.HitTargets, source);
             }
         }
     }

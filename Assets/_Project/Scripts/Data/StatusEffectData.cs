@@ -27,6 +27,7 @@ namespace Game.Data
     {
         [SerializeField] private string displayName = "새 상태효과";
         [SerializeField] private StatusCategory category = StatusCategory.Debuff;
+        [Tooltip("디버프 전용. 버프는 같은 버프끼리 중첩되지 않으므로 이 값과 관계없이 항상 갱신형이다")]
         [SerializeField] private StatusStackMode stackMode = StatusStackMode.Stack;
 
         [Tooltip("지속 턴 수 (효과를 가진 유닛의 자기 턴 기준)")]

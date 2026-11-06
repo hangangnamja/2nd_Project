@@ -14,6 +14,9 @@ namespace Game.Battle
         // 편성 순서 (0부터). 행동 순서가 동시에 도착했을 때 마지막 기준으로 쓴다.
         public int FormationIndex { get; }
 
+        // 레벨. 방어 상수 K(공격자 레벨 기준) 계산에 쓴다. 성장 시스템 전까지는 편성의 테스트 레벨을 받는다.
+        public int Level { get; }
+
         public int CurrentHp { get; private set; }
 
         // 이 유닛에게 걸린 버프·디버프 칸.
@@ -35,6 +38,34 @@ namespace Game.Battle
         // 속도가 바뀌어도 남은 거리는 그대로이고, 행동수치(도착 시간)만 이 값으로 다시 계산된다.
         public double Speed => CalculateFinalStat(StatType.Speed, Data.BaseSpeed);
 
+        // 비율 스탯: 원본 값 + 상태효과 % 칸의 합 (0.2 = +20%p).
+        // Math.Clamp(값, 0, 1): 치명확률을 0~100% 사이로 제한한다 (기획서 3-6 상한 100%).
+        public double CritRate => Math.Clamp(Data.CritRate + SumModifierPercent(StatType.CritRate), 0d, 1d);
+        public double CritDamage => Math.Max(0d, Data.CritDamage + SumModifierPercent(StatType.CritDamage));
+        public double DamageBonus => SumModifierPercent(StatType.DamageBonus);
+        public double DamageTakenIncrease => SumModifierPercent(StatType.DamageTakenIncrease);
+
+        // 피해 감소율: 효과끼리 곱연산 후 최대 75%로 제한한다 (기획서 3-5).
+        // 남는 피해 비율을 곱해 나가는 방식이라 많이 쌓을수록 효율이 줄어든다.
+        // 예: 40% + 30% → 남는 비율 0.6 × 0.7 = 0.42 → 감소율 58% (합연산이면 70%)
+        public double DamageReduction
+        {
+            get
+            {
+                double remainingRatio = 1d;
+
+                foreach (StatModifier modifier in GetModifiers(StatType.DamageReduction))
+                {
+                    remainingRatio *= 1d - modifier.Percent;
+                }
+
+                return Math.Clamp(1d - remainingRatio, 0d, MaxDamageReduction);
+            }
+        }
+
+        // 피해 감소율 최대치 (기획서 3-5). 버프를 쌓아 피해가 0이 되는 것을 막는다.
+        public const double MaxDamageReduction = 0.75d;
+
         // 행동수치 = 남은 거리 / 속도. 도착까지 걸리는 시간이며, 가장 작은 유닛이 다음에 행동한다.
         // 예: 남은 거리 10000, 속도 120 → 약 83.3
         public double ActionValue => RemainingDistance / Speed;
@@ -46,14 +77,15 @@ namespace Game.Battle
         // 스킬 슬롯별 남은 쿨타임 (0 = 사용 가능). 인덱스 0 = 1스, 1 = 2스, 2 = 3스.
         private readonly int[] remainingCooldowns = new int[CharacterData.SkillCount];
 
-        // 원본 데이터, 소속(아군/적), 편성 순서를 받아 전투용 유닛을 만든다.
+        // 원본 데이터, 소속(아군/적), 편성 순서, 레벨을 받아 전투용 유닛을 만든다.
         // 시작 HP는 최대 HP, 시작 거리는 트랙 길이 (기획서: 전투 시작 시 전원 10000).
         // 쿨타임은 스킬마다 설정한 시작 쿨타임으로 채운다 (기본 0 = 첫 턴부터 사용 가능).
-        public BattleUnit(CharacterData data, bool isAlly, int formationIndex)
+        public BattleUnit(CharacterData data, bool isAlly, int formationIndex, int level)
         {
             Data = data;
             IsAlly = isAlly;
             FormationIndex = formationIndex;
+            Level = level;
             CurrentHp = data.MaxHp;
             RemainingDistance = TurnScheduler.TrackLength;
 
@@ -95,18 +127,10 @@ namespace Game.Battle
             double percentSum = 0d;
             double flatSum = 0d;
 
-            foreach (StatusInstance status in Statuses.GetAll())
+            foreach (StatModifier modifier in GetModifiers(stat))
             {
-                foreach (StatModifier modifier in status.Data.StatModifiers)
-                {
-                    if (modifier.Stat != stat)
-                    {
-                        continue;
-                    }
-
-                    percentSum += modifier.Percent;
-                    flatSum += modifier.Flat;
-                }
+                percentSum += modifier.Percent;
+                flatSum += modifier.Flat;
             }
 
             double finalValue = baseValue * (1d + percentSum) + flatSum;
@@ -115,6 +139,36 @@ namespace Game.Battle
             // 속도는 0이면 행동수치 계산(남은 거리 ÷ 속도)이 불가능하므로 최소 1로 둔다.
             double minimum = stat == StatType.Speed ? 1d : 0d;
             return Math.Max(minimum, finalValue);
+        }
+
+        // 걸려 있는 모든 상태효과에서 특정 스탯의 % 보정만 더한다 (비율 스탯용).
+        private double SumModifierPercent(StatType stat)
+        {
+            double sum = 0d;
+
+            foreach (StatModifier modifier in GetModifiers(stat))
+            {
+                sum += modifier.Percent;
+            }
+
+            return sum;
+        }
+
+        // 걸려 있는 모든 상태효과에서 특정 스탯의 보정만 골라 돌려준다.
+        // yield return: 조건에 맞는 보정을 찾을 때마다 하나씩 넘겨주고, 호출한 foreach가 다음 값을 요청하면 이어서 찾는다.
+        // 결과를 담을 리스트를 따로 만들지 않고, 필요한 보정만 차례로 꺼내 쓸 수 있다.
+        private System.Collections.Generic.IEnumerable<StatModifier> GetModifiers(StatType stat)
+        {
+            foreach (StatusInstance status in Statuses.GetAll())
+            {
+                foreach (StatModifier modifier in status.Data.StatModifiers)
+                {
+                    if (modifier.Stat == stat)
+                    {
+                        yield return modifier;
+                    }
+                }
+            }
         }
 
         // HP를 회복하고, 실제로 회복된 양을 돌려준다. 최대 HP를 넘지 않는다.
