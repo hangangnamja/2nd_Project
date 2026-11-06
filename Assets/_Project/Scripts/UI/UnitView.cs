@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Game.Battle;
 using Game.Battle.Status;
+using Game.Data;
 using UnityEngine;
 
 namespace Game.UI
@@ -38,7 +39,7 @@ namespace Game.UI
 
             // 지금 선택된 스킬로 고를 수 있는 대상은 이름 앞에 ▼ 표시를 붙여 구분한다.
             string marker = isTargetable ? "▼ " : string.Empty;
-            label.text = $"{marker}{Unit.Name}\nHP {Unit.CurrentHp}/{Unit.MaxHp}";
+            label.text = $"{marker}{Unit.Name}{BuildStackText()}\nHP {Unit.CurrentHp}/{Unit.MaxHp}";
 
             // renderer.material: 이 오브젝트 전용 머티리얼 복사본을 돌려주므로 다른 캡슐 색에는 영향이 없다.
             // URP Lit 셰이더는 기본 색(_BaseColor)을 material.color로 바꿀 수 있다.
@@ -46,6 +47,22 @@ namespace Game.UI
 
             // 쓰러진 유닛은 상태효과를 표시하지 않는다.
             statusBar.Show(Unit.IsDead ? new List<StatusInstance>() : Unit.Statuses.GetAll());
+        }
+
+        // 스택형 패시브가 있으면 이름 뒤에 현재 스택을 붙인다 (테스트용). 예: "DotMainAttack ★1/2"
+        private string BuildStackText()
+        {
+            string text = string.Empty;
+
+            foreach (PassiveData passive in Unit.Data.Passives)
+            {
+                if (passive.UsesStacks)
+                {
+                    text += $" ★{Unit.GetPassiveStacks(passive)}/{passive.MaxStacks}";
+                }
+            }
+
+            return text;
         }
 
         // 상태 우선순위: 사망 → 행동 중 → 소속(아군/적) 순으로 색을 고른다.
