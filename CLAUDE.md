@@ -111,3 +111,4 @@
 - 수치(성장표, 적 스탯, 파라미터)는 `Docs/StatTable.xlsx`가 기준이다. 엑셀은 임포트되지 않으므로 수치가 필요할 때 직접 읽어서 확인한다.
 
 @Docs/GameDesign.md
+@Docs/Architecture.md
