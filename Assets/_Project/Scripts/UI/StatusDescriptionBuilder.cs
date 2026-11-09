@@ -75,6 +75,11 @@ namespace Game.UI
                 lines.Add($"턴 종료 시 피해 (최대 HP {ToPercent(data.DamageTargetMaxHpRatio)}{cap})");
             }
 
+            if (data.HealsOverTime)
+            {
+                lines.Add($"턴 종료 시 회복 (부여 당시 시전자 최대 HP {ToPercent(data.HealSourceMaxHpRatio)} = {(int)(status.SnapshotMaxHp * data.HealSourceMaxHpRatio)})");
+            }
+
             if (status.HasShield)
             {
                 lines.Add($"보호막 {status.ShieldAmount} 남음");

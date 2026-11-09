@@ -392,7 +392,7 @@ MonoBehaviour:
   enemyParty:
   - {fileID: 11400000, guid: d0130fc9089396e44999e8180a20caea, type: 2}
   - {fileID: 11400000, guid: 1bb45f7a54428b6409569af9e61548c3, type: 2}
-  - {fileID: 11400000, guid: d0130fc9089396e44999e8180a20caea, type: 2}
+  - {fileID: 11400000, guid: b80c1b4f25d6fff44becf175f401c9d4, type: 2}
   allyLevel: 60
   enemyLevel: 60
   rules: {fileID: 11400000, guid: 578a03459990c304aae4e2558428a676, type: 2}
