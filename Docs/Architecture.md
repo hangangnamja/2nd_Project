@@ -28,7 +28,8 @@
 |---|---|
 | `CharacterData`: 등급, 직군, 기본 스탯, 치명, 속도, 1~3스, 패시브, 변신 스킬 세트 | `BattleUnit`: 현재 스탯·HP, 남은 거리, 남은 쿨타임, 상태효과 칸, 패시브 스택·사용 횟수 |
 | `StatusEffectData`: 화상·독·버프의 공통 정의 (수치, 지속 턴, 중첩/갱신, 지속피해 타입) | `StatusInstance`: 실제로 걸린 효과 1개 (정의 참조, 부여자, 남은 턴, 시전 당시 공격력 스냅샷) |
-| `StageData`: 웨이브 구성, 보상 | `BattleState`: 현재 웨이브, 사이클 카운터, 승패 |
+| `StageData`: 적 구성(자리마다 무적 여부), 적 레벨 (웨이브·보상은 이후) | `BattleState`: 현재 웨이브, 사이클 카운터, 승패 |
+| `EnemyCharacterData`: `CharacterData` + 행동 패턴 목록 (패턴이 필요한 적만) | `BattleManager.DecideEnemyAction`: 패턴을 순서대로 확인해 스킬·대상 결정 |
 | `BattleRulesData`: 전투 공통 수치 (방어 상수 K 계산 파라미터, 레벨 성장 곡선) | `BattleUnit` 기본 스탯 = 데이터 스탯(Lv1) × 레벨 배율(`StatScaling`), 전투 시작 때 고정 |
 
 ### 캐릭터 조립 구조
@@ -103,6 +104,8 @@ UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
   - 행동 순서·게이지 전진·대상 선택·반응 패시브·오라는 `IsOnField`, 승패 판정은 `IsDead`
 - 변신은 `BattleUnit.Transformation`(런타임 상태)이 들고, 스킬·쿨타임은 항상 `BattleUnit.GetSkill` 등 유닛을 거쳐 읽어 변신 스킬로 자동 교체된다
 - 변신 스탯 보정은 상태효과 칸이 아니라 변신 설정에 있어 강탈·소모·만료 대상이 아니다
+- 무적(`IsInvulnerable`)은 스테이지 설정으로 정해진다: `StatusApplier.DealDamage`에서 피해 0, 승리 판정에서 제외 (무적이 아닌 적 전멸 = 승리)
+- 기절(행동 불가 상태효과)이면 행동 선택·스킬을 건너뛰고 턴 종료 처리만 한다
 
 ---
 

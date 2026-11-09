@@ -31,8 +31,15 @@ namespace Game.Battle
         [UnityEngine.Serialization.FormerlySerializedAs("testLevel")]
         [SerializeField, Range(1, 60)] private int allyLevel = 1;
 
-        [Tooltip("적 전원 레벨")]
+        [Tooltip("적 전원 레벨 (스테이지를 지정하면 스테이지의 적 레벨을 쓴다)")]
         [SerializeField, Range(1, 60)] private int enemyLevel = 1;
+
+        [Header("스테이지 (선택)")]
+        [Tooltip("지정하면 위 적 편성·적 레벨 대신 이 스테이지의 적 구성과 규칙(무적 등)으로 전투한다")]
+        [SerializeField] private StageData stage;
+
+        // 이번 전투에서 실제로 쓰는 적 레벨 (스테이지가 있으면 스테이지 값, 없으면 테스트 적 레벨).
+        private int ActiveEnemyLevel { get; set; }
 
         [Header("전투 규칙")]
         [SerializeField] private BattleRulesData rules;
@@ -205,7 +212,7 @@ namespace Game.Battle
         // 행동자 결정(추가 턴이면 같은 유닛) → 스킬·대상 선택 → 스킬 실행 → 턴 종료 → 추가 공격(임시 턴) 실행 → 추가 턴 확인
         private IEnumerator RunBattle()
         {
-            Log($"전투 시작: 아군 {allies.Count}명 (Lv{allyLevel}) vs 적 {enemies.Count}명 (Lv{enemyLevel})");
+            Log($"전투 시작: 아군 {allies.Count}명 (Lv{allyLevel}) vs 적 {enemies.Count}명 (Lv{ActiveEnemyLevel})");
             LogUnitStats();
             BattleUnit extraTurnUnit = null;
 
@@ -213,18 +220,25 @@ namespace Game.Battle
             {
                 BeginTurn(extraTurnUnit);
 
+                // 기절 중이면 행동(스킬 선택·사용)을 건너뛰고 바로 턴을 마친다.
+                // 턴 종료 처리는 그대로라 기절의 남은 턴이 줄어 풀린다.
+                if (CurrentActor.IsStunned)
+                {
+                    Log($"  {CurrentActor.Name}: 기절로 행동 불가");
+                    yield return new WaitForSeconds(enemyActionDelay);
+                }
                 // yield return 다른 코루틴: 그 코루틴이 끝날 때까지 여기서 기다린다.
-                if (CurrentActor.IsAlly)
+                else if (CurrentActor.IsAlly)
                 {
                     yield return WaitForPlayerAction();
+                    UseSkill(CurrentActor, pendingSkillSlot, pendingTarget);
                 }
                 else
                 {
                     yield return new WaitForSeconds(enemyActionDelay);
                     DecideEnemyAction(CurrentActor);
+                    UseSkill(CurrentActor, pendingSkillSlot, pendingTarget);
                 }
-
-                UseSkill(CurrentActor, pendingSkillSlot, pendingTarget);
 
                 // 추가 공격은 행동자의 턴이 완전히 끝난 뒤, 각자의 임시 턴으로 실행한다 (기획서 3-4).
                 EndTurn(CurrentActor);
@@ -397,10 +411,25 @@ namespace Game.Battle
             return best;
         }
 
-        // 어느 한쪽이 전멸해 승패가 정해졌는지.
+        // 승패가 정해졌는지: 아군 전멸(패배) 또는 쓰러뜨려야 하는 적 전멸(승리).
         private bool IsBattleDecided()
         {
-            return IsAllDead(allies) || IsAllDead(enemies);
+            return IsAllDead(allies) || AreTargetEnemiesDefeated();
+        }
+
+        // 쓰러뜨려야 하는 적(무적이 아닌 적)이 모두 쓰러졌는지.
+        // 무적인 적(보스 스테이지의 버프몹)은 죽일 수 없으므로 승리 조건에서 뺀다 → 보스만 쓰러뜨리면 클리어.
+        private bool AreTargetEnemiesDefeated()
+        {
+            foreach (BattleUnit enemy in enemies)
+            {
+                if (!enemy.IsInvulnerable && !enemy.IsDead)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         // 아군 차례에 플레이어가 스킬과 대상을 확정할 때까지 기다린다. 시작할 때 1스(평타)를 미리 선택해 둔다.
@@ -426,10 +455,65 @@ namespace Game.Battle
             hasPendingAction = true;
         }
 
-        // 적 AI 행동 결정 (임시): 1스(평타)를 사용하고, 대상은 대상 규칙에 따라 자동으로 정한다 (기획서 3-10).
+        // 적 AI 행동 결정 (기획서 3-10).
+        //  - 패턴이 있는 적(EnemyCharacterData): 패턴 목록을 위에서부터 확인해 조건이 맞고 쓸 수 있는 첫 패턴을 실행
+        //  - 그 외 / 맞는 패턴이 없음: 1스(평타), 대상은 대상 규칙대로 자동
         private void DecideEnemyAction(BattleUnit enemy)
         {
+            // 패턴 매칭 is: Data가 EnemyCharacterData 타입이면 그 타입으로 꺼내 enemyData에 담고 true.
+            if (enemy.Data is EnemyCharacterData enemyData)
+            {
+                foreach (EnemyPattern pattern in enemyData.Patterns)
+                {
+                    if (IsPatternReady(enemy, pattern))
+                    {
+                        Log($"  [패턴] {enemy.Name}: {pattern.PatternName}");
+                        ConfirmAction(pattern.SkillSlot, PickPatternTarget(enemy, pattern.Target));
+                        return;
+                    }
+                }
+            }
+
             ConfirmAction(slot: 0, target: null);
+        }
+
+        // 패턴을 지금 쓸 수 있는지: 그 스킬의 쿨타임이 끝났고, 조건이 맞아야 한다.
+        private static bool IsPatternReady(BattleUnit enemy, EnemyPattern pattern)
+        {
+            if (!enemy.CanUseSkill(pattern.SkillSlot))
+            {
+                return false;
+            }
+
+            switch (pattern.Condition)
+            {
+                case PatternCondition.SelfBuffCountAtLeast:
+                    // Statuses.Buffs.Count: 자신에게 걸린 버프 개수. 같은 버프는 중첩되지 않으므로 곧 "버프 종류 수"다.
+                    return enemy.Statuses.Buffs.Count >= pattern.Threshold;
+                default:
+                    return true;
+            }
+        }
+
+        // 패턴의 대상 고르기 방식에 따라 대상을 정한다. null이면 스킬의 대상 규칙대로 자동 선택된다.
+        private BattleUnit PickPatternTarget(BattleUnit enemy, PatternTarget target)
+        {
+            if (target != PatternTarget.StrongestAlly)
+            {
+                return null;
+            }
+
+            // 같은 편 중 최대 HP가 가장 높은 유닛 = 보스. 버프몹이 보스에게만 버프를 걸게 한다.
+            BattleUnit strongest = null;
+            foreach (BattleUnit friend in GetOnFieldUnits(enemy.IsAlly ? allies : enemies))
+            {
+                if (strongest == null || friend.MaxHp > strongest.MaxHp)
+                {
+                    strongest = friend;
+                }
+            }
+
+            return strongest;
         }
 
         // 스킬 대상을 정하고 실행한다.
@@ -531,7 +615,7 @@ namespace Game.Battle
             IsBattleOver = true;
             CurrentActor = null;
 
-            string result = IsAllDead(enemies) ? "승리" : "패배";
+            string result = AreTargetEnemiesDefeated() ? "승리" : "패배";
             Log($"전투 종료: {result} (총 {actionCount}회 행동, {CurrentCycle}사이클)");
             StateChanged?.Invoke();
         }
@@ -620,7 +704,9 @@ namespace Game.Battle
                 return false;
             }
 
-            if (IsValidParty(allyParty) && IsValidParty(enemyParty))
+            // 스테이지가 지정돼 있으면 적 편성은 스테이지 설정을 쓰므로 enemyParty는 비어 있어도 된다.
+            bool hasEnemies = stage != null ? IsValidStage(stage) : IsValidParty(enemyParty);
+            if (IsValidParty(allyParty) && hasEnemies)
             {
                 return true;
             }
@@ -657,6 +743,25 @@ namespace Game.Battle
             return true;
         }
 
+        // 스테이지에 적이 한 명 이상 있고, 캐릭터가 빠진 자리가 없는지 검사한다.
+        private static bool IsValidStage(StageData stageData)
+        {
+            if (stageData.Enemies.Count == 0)
+            {
+                return false;
+            }
+
+            foreach (StageEnemy enemy in stageData.Enemies)
+            {
+                if (enemy == null || enemy.Character == null)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         // 레벨이 반영된 유닛별 스탯을 로그로 남긴다 (밸런스 테스트용, 콘솔에서 확인).
         private void LogUnitStats()
         {
@@ -675,16 +780,18 @@ namespace Game.Battle
 
             // 아군과 적은 레벨 성장 곡선이 다르다: 적 HP는 아군 공격력 성장을, 적 공격력은 아군 HP 성장을 따라간다 (BattleRulesData).
             StatScaling allyScaling = rules.GetAllyScaling(allyLevel);
-            StatScaling enemyScaling = rules.GetEnemyScaling(enemyLevel);
-
             for (int i = 0; i < allyParty.Count; i++)
             {
                 allies.Add(new BattleUnit(allyParty[i], isAlly: true, formationIndex: i, level: allyLevel, allyScaling));
             }
 
-            for (int i = 0; i < enemyParty.Count; i++)
+            if (stage != null)
             {
-                enemies.Add(new BattleUnit(enemyParty[i], isAlly: false, formationIndex: i, level: enemyLevel, enemyScaling));
+                CreateStageEnemies();
+            }
+            else
+            {
+                CreateTestEnemies();
             }
 
             // 각 유닛에 같은 편 목록을 연결해, 살아 있는 아군의 오라 패시브가 스탯 계산에 반영되게 한다.
@@ -696,6 +803,38 @@ namespace Game.Battle
             foreach (BattleUnit enemy in enemies)
             {
                 enemy.SetTeam(enemies);
+            }
+        }
+
+        // 테스트 편성(enemyParty)과 테스트 적 레벨로 적을 만든다.
+        private void CreateTestEnemies()
+        {
+            ActiveEnemyLevel = enemyLevel;
+            StatScaling enemyScaling = rules.GetEnemyScaling(ActiveEnemyLevel);
+
+            for (int i = 0; i < enemyParty.Count; i++)
+            {
+                enemies.Add(new BattleUnit(enemyParty[i], isAlly: false, formationIndex: i, level: ActiveEnemyLevel, enemyScaling));
+            }
+        }
+
+        // 스테이지 설정으로 적을 만든다: 스테이지의 적 레벨을 쓰고, 무적 자리의 적은 무적으로 만든다.
+        private void CreateStageEnemies()
+        {
+            ActiveEnemyLevel = stage.EnemyLevel;
+            StatScaling enemyScaling = rules.GetEnemyScaling(ActiveEnemyLevel);
+
+            for (int i = 0; i < stage.Enemies.Count; i++)
+            {
+                StageEnemy slot = stage.Enemies[i];
+                var unit = new BattleUnit(slot.Character, isAlly: false, formationIndex: i, level: ActiveEnemyLevel, enemyScaling);
+
+                if (slot.Invulnerable)
+                {
+                    unit.MakeInvulnerable();
+                }
+
+                enemies.Add(unit);
             }
         }
 

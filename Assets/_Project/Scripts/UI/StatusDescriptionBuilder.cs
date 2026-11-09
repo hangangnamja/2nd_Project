@@ -43,7 +43,8 @@ namespace Game.UI
                 : data.IsPersonal ? "개인 버프"
                 : "버프";
 
-            return $"<b>{data.DisplayName}</b> ({category} · 남은 {status.RemainingTurns}턴)";
+            string duration = data.IsPermanent ? "영구" : $"남은 {status.RemainingTurns}턴";
+            return $"<b>{data.DisplayName}</b> ({category} · {duration})";
         }
 
         // 실제 효과를 한 줄씩 붙인다: 지연 버프, 스탯 보정, 지속피해, 보호막, 피해 기록.
