@@ -90,6 +90,17 @@ namespace Game.Battle
         // ?? 1: 앞의 결과가 null이면 대신 1을 쓴다. 전투 시작 전 HUD가 읽어도 오류 없이 1사이클로 표시된다.
         public int CurrentCycle => scheduler?.CurrentCycle ?? 1;
 
+        // 앞으로의 행동 순서 예측 (행동 순서 UI용). 맨 앞이 지금 행동 중인 유닛이다. 전투 전·후에는 빈 목록.
+        public IReadOnlyList<BattleUnit> PredictActionOrder(int count)
+        {
+            if (scheduler == null || IsBattleOver)
+            {
+                return Array.Empty<BattleUnit>();
+            }
+
+            return scheduler.PredictActionOrder(CurrentActor, count);
+        }
+
         // 씬이 시작되면 설정을 확인하고, 유닛과 스케줄러를 만든 뒤 전투를 시작한다.
         private void Start()
         {

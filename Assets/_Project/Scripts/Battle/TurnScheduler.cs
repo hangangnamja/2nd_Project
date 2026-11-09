@@ -57,6 +57,71 @@ namespace Game.Battle
             actor.ResetDistance();
         }
 
+        // 앞으로의 행동 순서를 count개까지 미리 계산한다 (행동 순서 UI용). 실제 유닛 값은 바꾸지 않는다.
+        // currentActor: 지금 행동 중인 유닛. 목록 맨 앞에 두고, 계산에서는 이번 턴이 끝나 출발점(10000)으로 돌아간 것으로 본다.
+        // 지금 걸린 속도 버프가 앞으로도 그대로라고 가정한 예측이다 (버프 만료·행동 당기기는 반영하지 않음).
+        // 속도가 빠른 유닛은 목록에 여러 번 나올 수 있다.
+        public List<BattleUnit> PredictActionOrder(BattleUnit currentActor, int count)
+        {
+            var order = new List<BattleUnit>();
+            if (currentActor != null && currentActor.IsOnField)
+            {
+                order.Add(currentActor);
+            }
+
+            // 유닛별 "가상의 남은 거리". Dictionary<유닛, 남은 거리>: 실제 유닛을 건드리지 않고 복사본으로 시뮬레이션한다.
+            var distances = new Dictionary<BattleUnit, double>();
+            foreach (BattleUnit unit in units)
+            {
+                if (unit.IsOnField)
+                {
+                    distances[unit] = unit == currentActor ? TrackLength : unit.RemainingDistance;
+                }
+            }
+
+            while (order.Count < count && distances.Count > 0)
+            {
+                BattleUnit next = FindNextInSimulation(distances);
+
+                // 다음 행동자가 도착할 때까지의 시간만큼 모두 전진시키고, 행동한 유닛은 출발점으로 되돌린다.
+                double elapsed = distances[next] / next.Speed;
+
+                // new List<>(distances.Keys): 순회 도중 Dictionary 값을 바꾸면 오류가 나므로 키 목록을 복사해서 돈다.
+                foreach (BattleUnit unit in new List<BattleUnit>(distances.Keys))
+                {
+                    distances[unit] = Math.Max(0d, distances[unit] - unit.Speed * elapsed);
+                }
+
+                distances[next] = TrackLength;
+                order.Add(next);
+            }
+
+            return order;
+        }
+
+        // 시뮬레이션용 다음 행동자: 가상의 남은 거리 ÷ 속도가 가장 작은 유닛, 같으면 동시 도착 규칙.
+        private static BattleUnit FindNextInSimulation(Dictionary<BattleUnit, double> distances)
+        {
+            BattleUnit best = null;
+            double bestValue = 0d;
+
+            foreach (KeyValuePair<BattleUnit, double> pair in distances)
+            {
+                double value = pair.Value / pair.Key.Speed;
+                bool isEarlier = best == null || value < bestValue - Epsilon;
+                bool isTieButFirst = best != null && Math.Abs(value - bestValue) <= Epsilon
+                    && CompareTiePriority(pair.Key, best) < 0;
+
+                if (isEarlier || isTieButFirst)
+                {
+                    best = pair.Key;
+                    bestValue = value;
+                }
+            }
+
+            return best;
+        }
+
         // 전장에 있는 유닛 중 가장 먼저 도착하는 유닛을 찾는다. 쓰러졌거나 퇴장한 유닛은 행동하지 않는다.
         private BattleUnit FindNextActor()
         {

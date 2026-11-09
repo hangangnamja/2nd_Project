@@ -134,7 +134,7 @@ Assets/_Project/
     Outgame/     가챠, 육성, 편성
     UI/          화면 (UnitView, BattleStageView, BattleHud, ...)
     Editor/      에디터 스크립트 (효과 블록 드롭다운 등)
-  Data/          SO 에셋 (Characters/, StatusEffects/, Stages/)
+  Data/          SO 에셋 (Characters/ = 플레이어블, Enemies/ = 적·보스, StatusEffects/, Stages/)
   Prefabs/  Scenes/  Art/
 ```
 - `_Project`로 감싸 에셋 스토어 에셋과 섞이지 않게 한다
