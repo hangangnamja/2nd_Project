@@ -62,6 +62,16 @@ namespace Game.UI
         {
             foreach (UnitView view in views)
             {
+                // 퇴장한 아군(하이퍼캐리 변신 중)은 다른 공간에 남겨진 것이므로 화면에서 아예 숨긴다.
+                // SetActive(false): 오브젝트를 끄면 그려지지 않고 콜라이더도 꺼져 클릭 대상에서도 빠진다.
+                // 뷰는 views 목록이 계속 들고 있으므로, 복귀하면 다시 켜고 그대로 갱신한다.
+                bool isVisible = !view.Unit.IsExited;
+                view.gameObject.SetActive(isVisible);
+                if (!isVisible)
+                {
+                    continue;
+                }
+
                 bool isActing = view.Unit == battleManager.CurrentActor;
 
                 // 플레이어 입력을 기다리는 중일 때만, 선택된 스킬로 고를 수 있는 유닛을 강조한다.

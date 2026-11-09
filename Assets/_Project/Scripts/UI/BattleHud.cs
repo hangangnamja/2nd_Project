@@ -75,7 +75,15 @@ namespace Game.UI
 
             string side = actor.IsAlly ? "아군" : "적";
             string extraTurn = battleManager.IsExtraTurn ? " (추가 턴)" : string.Empty;
-            return $"사이클 {battleManager.CurrentCycle} | {side} {actor.Name} 차례{extraTurn}{BuildSkillGuide()}";
+
+            // 변신 중 엑스트라 턴이면 몇 번째인지 보여준다. 예: 5회 중 1회째 → "[엑스트라 턴 1/5]"
+            // 마지막 엑스트라 턴은 턴이 끝난 뒤 종결기로 변신이 해제되므로, 같은 턴 안이라도 변신 정보(Transformation)가
+            // 이미 없을 수 있다. 그래서 IsTransformed도 함께 확인해 사라진 정보를 읽지 않게 한다.
+            TransformationState transformation = actor.Transformation;
+            string transform = battleManager.IsTransformTurn && actor.IsTransformed
+                ? $" [엑스트라 턴 {transformation.TurnsTaken}/{transformation.Data.TurnLimit}]"
+                : string.Empty;
+            return $"사이클 {battleManager.CurrentCycle} | {side} {actor.Name} 차례{extraTurn}{transform}{BuildSkillGuide()}";
         }
 
         // 아군 차례일 때 선택된 스킬과 다음에 할 행동을 안내한다.
@@ -114,7 +122,8 @@ namespace Game.UI
                     continue;
                 }
 
-                SkillData skill = actor.Data.GetSkill(slot);
+                // 변신 중이면 변신 스킬 이름이 나오도록 유닛을 거쳐 꺼낸다.
+                SkillData skill = actor.GetSkill(slot);
                 int remaining = actor.GetRemainingCooldown(slot);
 
                 // interactable = false: 버튼을 회색으로 바꾸고 클릭을 막는다 (쿨타임 중인 스킬).

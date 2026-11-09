@@ -47,6 +47,15 @@ namespace Game.Battle.Status
             return damage - absorbed;
         }
 
+        // 이 효과가 걸려 있는 동안 보유자가 받은 피해 합계. 정의의 "피해 기록"이 켜진 효과만 쌓인다 (반격 태세).
+        public int RecordedDamage { get; private set; }
+
+        // 받은 피해를 누적한다. StatusApplier.DealDamage가 피해를 적용할 때마다 호출한다.
+        public void RecordDamage(int amount)
+        {
+            RecordedDamage += amount;
+        }
+
         // 효과를 가진 유닛의 턴이 끝날 때 남은 턴을 1 줄인다.
         public void DecreaseTurn()
         {

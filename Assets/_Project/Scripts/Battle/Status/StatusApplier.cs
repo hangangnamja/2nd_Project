@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Game.Data;
 
@@ -58,6 +59,8 @@ namespace Game.Battle.Status
         // absorbed: 보호막이 흡수한 양 (로그용)
         public static int DealDamage(BattleUnit target, int amount, BattleUnit attacker, BattleServices services, out int absorbed)
         {
+            RecordDamageTaken(target, amount);
+
             var broken = new List<StatusInstance>();
             int remaining = target.Statuses.AbsorbWithShields(amount, broken);
             absorbed = amount - remaining;
@@ -68,7 +71,77 @@ namespace Game.Battle.Status
                 ReportRemoved(target, shield, services);
             }
 
+            // 남은 HP 이상의 피해 = 치명적인 피해. 사망을 막는 효과가 있으면 HP에 넣기 전에 피해량을 바꾼다.
+            // !target.IsDown: 이미 HP 0인 대상(같은 공격 안에서 쓰러진 대상)은 다시 막지 않는다.
+            if (remaining >= target.CurrentHp && !target.IsDown)
+            {
+                remaining = ApplyFatalDamageRules(target, remaining, services);
+            }
+
             return target.TakeDamage(remaining, attacker);
+        }
+
+        // 받은 피해를 "피해 기록" 효과(반격 태세)에 누적한다. 보호막에 흡수된 피해도 받은 피해로 센다.
+        // 기록은 피해 감소가 적용되기 전 값으로 한다: 태세의 75% 감소로 줄어든 피해를 세면 반격이 너무 약해지기 때문이다.
+        // 피해 공식의 마지막 칸이 × (1 - 피해 감소율)이므로, 들어온 피해를 (1 - 피해 감소율)로 나누면 감소 전 피해가 된다.
+        // 예: 감소 전 80 → 75% 감소로 20이 들어옴 → 20 / 0.25 = 80 기록
+        private static void RecordDamageTaken(BattleUnit target, int amount)
+        {
+            int beforeReduction = (int)Math.Round(amount / (1d - target.DamageReduction));
+
+            foreach (StatusInstance buff in target.Statuses.Buffs)
+            {
+                if (buff.Data.RecordsDamageTaken)
+                {
+                    buff.RecordDamage(beforeReduction);
+                }
+            }
+        }
+
+        // 치명적인 피해 처리 (기획서 4-3 하이퍼캐리). 실제로 HP에 넣을 피해량을 돌려준다.
+        //  - 변신 중: 사망 대신 변신 상태 최대 HP의 일정 비율로 HP를 맞추고, 종결기 → 변신 해제를 예약한다 (강제 해제)
+        //    종결기가 나가기 전에 또 치명적인 피해를 받으면 HP 1로 버틴다 (해제 전 사망 방지)
+        //  - 변신 전: "치명적인 피해" 사건을 알려, 버티기 패시브가 막으면 HP 1로 버틴다
+        private static int ApplyFatalDamageRules(BattleUnit target, int damage, BattleServices services)
+        {
+            int survivingDamage = target.CurrentHp - 1;
+
+            if (target.IsTransformed)
+            {
+                TransformationState transformation = target.Transformation;
+                if (transformation.TryMarkFinisherQueued())
+                {
+                    // (int): 소수점을 버린다. 예: 변신 최대 HP 1300 × 0.25 = 325
+                    target.SetHp((int)(target.MaxHp * transformation.Data.ForcedReleaseHpRatio));
+                    services.Log($"  {target.Name}: 치명상 → 변신 강제 해제 (HP {target.CurrentHp}로 버팀)");
+                    QueueFinisher(target, services);
+                    return 0;
+                }
+
+                return survivingDamage;
+            }
+
+            if (services.Events.RaiseFatalDamageIncoming(target))
+            {
+                services.Log($"  {target.Name}: 치명상을 HP 1로 버팀");
+                return survivingDamage;
+            }
+
+            return damage;
+        }
+
+        // 변신 종결기를 추가 공격(임시 턴)으로 예약한다. 종결기가 끝나면 변신이 해제되고 아군이 복귀한다.
+        // 턴 제한 도달(BattleManager)과 강제 해제(위)가 함께 쓴다. 중복 예약 확인은 부르는 쪽이 한다.
+        public static void QueueFinisher(BattleUnit unit, BattleServices services)
+        {
+            SkillData finisher = unit.Transformation.Data.Finisher;
+            services.Actions.EnqueueFollowUp(new FollowUpAttack(
+                unit,
+                finisher.SkillName,
+                finisher.Effects,
+                finisher.TargetType,
+                preferredTarget: null,
+                endsTransformation: true));
         }
 
         // 밀려난 효과를 로그로 남기고 "지워짐"으로 처리하며, 새로 들어간 버프면 사건을 알린다.

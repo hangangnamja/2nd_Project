@@ -29,6 +29,18 @@ namespace Game.Battle
         // Action<버프를 가졌던 유닛, 지워진 버프 인스턴스(부여자 = Source)>
         public event Action<BattleUnit, StatusInstance> BuffRemoved;
 
+        // 유닛이 치명적인 피해(남은 HP 이상의 피해)를 받기 직전. 구독자가 사망을 막을지 정한다.
+        // 다른 사건과 달리 "결과를 돌려받는" 사건이라, 값을 바꿀 수 있는 FatalDamageArgs를 넘긴다.
+        public event Action<FatalDamageArgs> FatalDamageIncoming;
+
+        // 치명적인 피해를 알리고, 구독자 중 누군가 사망을 막았으면 true를 돌려준다 (하이퍼캐리 버티기 패시브).
+        public bool RaiseFatalDamageIncoming(BattleUnit target)
+        {
+            var args = new FatalDamageArgs(target);
+            FatalDamageIncoming?.Invoke(args);
+            return args.IsPrevented;
+        }
+
         // 버프가 지워졌음을 알린다. "자신이 건 버프가 지워질 때" 패시브(곰인형 버퍼)가 여기에 반응한다.
         public void RaiseBuffRemoved(BattleUnit holder, StatusInstance buff)
         {
@@ -68,6 +80,25 @@ namespace Game.Battle
             ActionSource source)
         {
             AttackPerformed?.Invoke(attacker, hitTargets, primaryTarget, source);
+        }
+    }
+
+    // 치명적인 피해 사건의 정보. 구독자가 Prevent()를 부르면 피해를 넣는 쪽이 HP 1로 버티게 처리한다.
+    // 사건 알림은 반환값을 받을 수 없으므로, 구독자가 이 객체의 값을 바꾸는 방식으로 결과를 돌려준다.
+    public class FatalDamageArgs
+    {
+        public BattleUnit Target { get; }
+        public bool IsPrevented { get; private set; }
+
+        public FatalDamageArgs(BattleUnit target)
+        {
+            Target = target;
+        }
+
+        // 이번 피해로 쓰러지지 않게 한다 (HP 1로 버팀).
+        public void Prevent()
+        {
+            IsPrevented = true;
         }
     }
 }

@@ -41,16 +41,46 @@ MonoBehaviour:
     startCooldown: 0
     effects: []
   passives: []
+  hasTransformation: 0
+  transformation:
+    transformName: "\uBCC0\uC2E0"
+    statModifiers: []
+    turnLimit: 5
+    forcedReleaseHpRatio: 0.25
+    skill1:
+      skillName: "\uC0C8 \uC2A4\uD0AC"
+      targetType: 0
+      cooldown: 0
+      startCooldown: 0
+      effects: []
+    skill2:
+      skillName: "\uC0C8 \uC2A4\uD0AC"
+      targetType: 0
+      cooldown: 0
+      startCooldown: 0
+      effects: []
+    skill3:
+      skillName: "\uC0C8 \uC2A4\uD0AC"
+      targetType: 0
+      cooldown: 0
+      startCooldown: 0
+      effects: []
+    finisher:
+      skillName: "\uC0C8 \uC2A4\uD0AC"
+      targetType: 0
+      cooldown: 0
+      startCooldown: 0
+      effects: []
   references:
     version: 2
     RefIds:
     - rid: 7605779530016096346
       type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
-        status: {fileID: 11400000, guid: 178f2cced3933644abc52cf12479f8d7, type: 2}
+        status: {fileID: 11400000, guid: dd2b771b6c89ead438aba503b9f8ec80, type: 2}
         count: 1
     - rid: 7605779530016096347
       type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
-        status: {fileID: 11400000, guid: 62dad865be8c8f14594f8af81597f160, type: 2}
+        status: {fileID: 11400000, guid: edf1d1a0fe27e8f4a9d22283792da664, type: 2}
         count: 1

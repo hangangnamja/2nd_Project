@@ -10,9 +10,15 @@ namespace Game.Battle.Status
     public static class StatusTurnProcessor
     {
         // unit의 턴 종료 시 상태효과를 처리한다. 결과는 전투 로그로 내보낸다.
-        public static void ProcessTurnEnd(BattleUnit unit, BattleServices services)
+        // decreaseDurations: false면 지속피해만 발동하고 남은 턴은 줄이지 않는다 (하이퍼캐리 변신 중 엑스트라 턴).
+        public static void ProcessTurnEnd(BattleUnit unit, BattleServices services, bool decreaseDurations = true)
         {
             TriggerDamageOverTime(unit, services, logPrefix: string.Empty);
+
+            if (!decreaseDurations)
+            {
+                return;
+            }
 
             // 만료된 효과도 "지워짐"으로 알린다 → 지연 버프는 바뀐 효과를 이번 턴 종료 단계에 받는다.
             List<StatusInstance> expired = unit.Statuses.DecreaseTurnsAndRemoveExpired();

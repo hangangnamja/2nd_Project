@@ -49,6 +49,7 @@ namespace Game.UI
         private class StatusIcon
         {
             public GameObject Root;
+            public StatusIconView View;
             public Renderer Block;
             public Renderer Glyph;
             public TextMesh TurnText;
@@ -94,6 +95,9 @@ namespace Game.UI
         {
             icon.Root.transform.localPosition = localPosition;
 
+            // 클릭했을 때 툴팁이 이 블럭의 상태효과를 보여주도록 연결한다.
+            icon.View.SetStatus(status);
+
             // material: 블럭마다 전용 머티리얼 복사본을 쓰므로 색·그림을 바꿔도 다른 블럭에 영향이 없다.
             icon.Block.material.color = status.Data.Category == StatusCategory.Buff ? buffColor : debuffColor;
 
@@ -127,9 +131,15 @@ namespace Game.UI
             var root = new GameObject("StatusIcon");
             root.transform.SetParent(transform, false);
 
+            // 클릭 판정용 상자 콜라이더 (블럭 크기). 블럭·그림 면의 콜라이더는 지우고 이것 하나만 둔다.
+            // 블럭이 꺼지면(SetActive(false)) 콜라이더도 함께 꺼져 클릭되지 않는다.
+            var clickArea = root.AddComponent<BoxCollider>();
+            clickArea.size = new Vector3(iconSize, iconSize, 0.05f);
+
             return new StatusIcon
             {
                 Root = root,
+                View = root.AddComponent<StatusIconView>(),
                 Block = CreateQuad("Block", root.transform, iconSize, 0f, iconMaterial),
 
                 // 카메라는 -z 쪽에 있으므로 z를 조금 빼서 그림이 배경보다 카메라에 가깝게(앞에) 보이게 한다.
@@ -138,7 +148,7 @@ namespace Game.UI
             };
         }
 
-        // 사각형 면 하나를 만든다. 클릭 판정을 막지 않도록 콜라이더는 지운다.
+        // 사각형 면 하나를 만든다. 클릭 판정은 블럭 루트의 상자 콜라이더가 맡으므로 면의 콜라이더는 지운다.
         private static Renderer CreateQuad(string objectName, Transform parent, float size, float zOffset, Material material)
         {
             // CreatePrimitive(Quad): 1×1 크기의 사각형 면을 만든다.

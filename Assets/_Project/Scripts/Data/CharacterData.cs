@@ -37,6 +37,11 @@ namespace Game.Data
 
         public IReadOnlyList<PassiveData> Passives => passives;
 
+        // 변신 설정. 일반 캐릭터는 변신이 없으므로 null이다.
+        // virtual: 변신 캐릭터 전용 타입(TransformingCharacterData)이 덮어써서 자기 변신 설정을 돌려준다.
+        // 그래서 전투 코드는 캐릭터 타입을 몰라도 "Transformation이 null이 아니면 변신 가능"으로만 판단하면 된다.
+        public virtual TransformationData Transformation => null;
+
         // => 로 작성한 읽기 전용 프로퍼티: 외부 코드는 값을 읽을 수만 있고 에셋 값을 바꿀 수 없다.
         public string DisplayName => displayName;
         public CharacterRole Role => role;

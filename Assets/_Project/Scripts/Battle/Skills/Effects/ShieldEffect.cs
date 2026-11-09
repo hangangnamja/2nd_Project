@@ -14,7 +14,18 @@ namespace Game.Battle.Effects
         [Tooltip("보호막으로 쓸 버프 (지속 턴·아이콘은 이 상태효과 데이터를 따른다)")]
         [SerializeField] private StatusEffectData shieldStatus;
 
-        [Tooltip("시전자 최대 HP 대비 보호막 양 (0.25 = 25%)")]
+        // 보호막 양의 기준 스탯. 곰인형 버퍼는 최대 HP, 하이퍼캐리 버티기는 공격력 비례다.
+        public enum ScaleStat
+        {
+            CasterMaxHp,
+            CasterAttack,
+        }
+
+        [Tooltip("보호막 양의 기준 스탯")]
+        [SerializeField] private ScaleStat scaleStat = ScaleStat.CasterMaxHp;
+
+        // 기존 에셋에 저장된 이름(maxHpRatio)을 유지한다. 기준 스탯을 고를 수 있게 되어 이름만 의미상 "비율"이다.
+        [Tooltip("기준 스탯 대비 보호막 양 (0.25 = 25%)")]
         [SerializeField, Min(0f)] private float maxHpRatio = 0.25f;
 
         // 대상마다 보호막 버프를 걸고 양을 정한다.
@@ -27,7 +38,8 @@ namespace Game.Battle.Effects
             }
 
             // (int): 소수점 아래를 버려 정수 보호막 양으로 만든다. 예: 최대 HP 1000 × 0.25 = 250
-            int amount = (int)(context.Caster.MaxHp * maxHpRatio);
+            int baseValue = scaleStat == ScaleStat.CasterAttack ? context.Caster.Attack : context.Caster.MaxHp;
+            int amount = (int)(baseValue * maxHpRatio);
 
             foreach (BattleUnit target in context.Targets)
             {
