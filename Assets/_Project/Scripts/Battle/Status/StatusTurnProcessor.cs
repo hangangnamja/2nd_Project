@@ -3,8 +3,8 @@ using Game.Data;
 
 namespace Game.Battle.Status
 {
-    // 지속피해 발동과 턴 종료 시 상태효과 처리를 담당한다.
-    //  - 턴 종료: 지속피해 발동 → 남은 턴 1 감소 → 끝난 효과 제거 (기획서 3-8: 대상의 턴 종료 시 발동)
+    // 지속피해·지속 회복 발동과 턴 종료 시 상태효과 처리를 담당한다.
+    //  - 턴 종료: 지속피해 발동 → 지속 회복 발동 → 남은 턴 1 감소 → 끝난 효과 제거 (기획서 3-8: 대상의 턴 종료 시 발동)
     //  - 격발: 지속피해만 즉시 1회 발동하고, 남은 턴은 줄이지 않는다
     // 예: 3턴짜리 화상은 대상의 턴 종료 3번에 걸쳐 피해를 준 뒤 사라진다.
     public static class StatusTurnProcessor
@@ -15,6 +15,9 @@ namespace Game.Battle.Status
         {
             TriggerDamageOverTime(unit, services, logPrefix: string.Empty);
 
+            // 지속피해 다음에 회복한다 → 같은 턴에 지속피해로 HP가 0이 됐으면 회복으로 되살아나지 않는다 (부활 없음).
+            TriggerHealOverTime(unit, services);
+
             if (!decreaseDurations)
             {
                 return;
@@ -23,6 +26,29 @@ namespace Game.Battle.Status
             // 만료된 효과도 "지워짐"으로 알린다 → 지연 버프는 바뀐 효과를 이번 턴 종료 단계에 받는다.
             List<StatusInstance> expired = unit.Statuses.DecreaseTurnsAndRemoveExpired();
             StatusApplier.ReportRemoved(unit, expired, services);
+        }
+
+        // 걸려 있는 지속 회복 효과(소생)를 하나씩 1회 발동시킨다. 회복량 = 부여 당시 시전자 최대 HP × 비율.
+        // HP가 0인 유닛은 회복하지 않는다 (게임에 부활 없음).
+        private static void TriggerHealOverTime(BattleUnit unit, BattleServices services)
+        {
+            foreach (StatusInstance instance in unit.Statuses.GetAll())
+            {
+                if (unit.IsDown)
+                {
+                    return;
+                }
+
+                StatusEffectData data = instance.Data;
+                if (!data.HealsOverTime)
+                {
+                    continue;
+                }
+
+                // (int): 소수점을 버린다. 예: 시전자 최대 HP 1,530 × 0.05 = 76
+                int healed = unit.Heal((int)(instance.SnapshotMaxHp * data.HealSourceMaxHpRatio));
+                services.Log($"  {unit.Name}: {data.DisplayName} {healed} 회복 (HP {unit.CurrentHp}/{unit.MaxHp})");
+            }
         }
 
         // 걸려 있는 지속피해 효과를 하나씩 1회 발동시키고, 발동한 개수를 돌려준다.

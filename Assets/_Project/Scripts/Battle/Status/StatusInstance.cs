@@ -13,6 +13,10 @@ namespace Game.Battle.Status
         // 그래서 "공격력 버프를 받고 화상을 거는" 순서가 의미를 가진다 (기획서 3-7).
         public int SnapshotAttack { get; }
 
+        // 부여 당시 시전자의 최대 HP (스냅샷). 지속 회복(소생)의 회복량 기준이다.
+        // 강탈로 다른 유닛에게 넘어가도 처음 건 시전자의 값을 그대로 쓴다.
+        public int SnapshotMaxHp { get; }
+
         // 몇 번째로 걸린 효과인지. 칸이 가득 차 밀어낼 때 "남은 턴이 같으면 먼저 걸린 것부터" 비교에 쓴다.
         public long AppliedOrder { get; private set; }
 
@@ -22,6 +26,7 @@ namespace Game.Battle.Status
             Data = data;
             Source = source;
             SnapshotAttack = source.Attack;
+            SnapshotMaxHp = source.MaxHp;
             RemainingTurns = data.Duration;
             AppliedOrder = appliedOrder;
         }

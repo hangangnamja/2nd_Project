@@ -51,6 +51,12 @@ namespace Game.Data
         [Tooltip("최대 HP 비례 피해의 상한 = 부여 당시 시전자 공격력 × 이 배율 (독 = 3.0). 0이면 상한 없음")]
         [SerializeField, Min(0f)] private float maxHpDamageAttackCap;
 
+        // 지속 회복: 보유자의 턴이 끝날 때마다 HP를 회복한다 (기획서 4-1 '소생'). 지속피해와 같은 시점에 발동한다.
+        // 회복량 = 부여 당시 시전자 최대 HP × 이 비율 (스냅샷). 회복이므로 치명타·방어력은 적용하지 않는다.
+        [Header("지속 회복")]
+        [Tooltip("턴 종료 시 회복량 = 부여 당시 시전자 최대 HP × 이 비율 (소생 = 0.05). 0이면 사용 안 함")]
+        [SerializeField, Min(0f)] private float healSourceMaxHpRatio;
+
         [Header("스탯 보정")]
         [Tooltip("이 효과가 걸려 있는 동안 적용되는 스탯 보정 (공격력 증가 등)")]
         [SerializeField] private List<StatModifier> statModifiers = new List<StatModifier>();
@@ -87,6 +93,8 @@ namespace Game.Data
         public float DamageTargetMaxHpRatio => damageTargetMaxHpRatio;
         public float MaxHpDamageAttackCap => maxHpDamageAttackCap;
         public bool DealsDamageOverTime => damageAttackRatio > 0f || damageTargetMaxHpRatio > 0f;
+        public float HealSourceMaxHpRatio => healSourceMaxHpRatio;
+        public bool HealsOverTime => healSourceMaxHpRatio > 0f;
 
         // 지속피해 1회의 기본 피해 (방어력·대상 쪽 보정을 적용하기 전 값).
         // snapshotAttack: 부여 당시 시전자 공격력, targetMaxHp: 대상 최대 HP
