@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Game.Battle.Effects;
 using Game.Battle.Status;
 using Game.Data;
 
@@ -139,20 +140,47 @@ namespace Game.Battle
         }
     }
 
-    // 대기열에 들어가는 추가 공격 하나: 누가, 어떤 패시브로, 누구를 노리는지.
+    // 대기열에 들어가는 추가 공격 하나 (= 임시 턴 하나): 누가, 어떤 효과를, 어떤 대상 규칙으로, 누구를 노리는지.
+    // 패시브 추가 공격뿐 아니라 반격 태세의 강제 공격·반격, 변신 종결기도 같은 대기열로 순서대로 실행한다.
     public class FollowUpAttack
     {
         public BattleUnit Owner { get; }
-        public PassiveData Passive { get; }
+
+        // 로그에 표시할 이름 (패시브 이름, "반격", 종결기 이름 등).
+        public string Name { get; }
+
+        public IReadOnlyList<SkillEffect> Effects { get; }
+
+        // 대상 규칙. 단일 대상이면 PreferredTarget을 노리고, 광역이면 실행 시점의 상대 전원을 노린다.
+        public SkillTargetType TargetType { get; }
 
         // 추가 공격을 일으킨 공격의 대상. 실행 시점에 이미 쓰러졌다면 다른 적을 다시 고른다 (기획서 3-9).
         public BattleUnit PreferredTarget { get; }
 
+        // 이 추가 공격이 끝나면 주인의 변신을 해제하는지 (변신 종결기).
+        public bool EndsTransformation { get; }
+
+        // 패시브로 나가는 추가 공격 (격발 딜러 패시브 2 등). 패시브의 효과를 단일 대상에게 쓴다.
         public FollowUpAttack(BattleUnit owner, PassiveData passive, BattleUnit preferredTarget)
+            : this(owner, passive.PassiveName, passive.Effects, SkillTargetType.EnemySingle, preferredTarget)
+        {
+        }
+
+        // 효과 목록을 직접 지정하는 추가 공격 (반격 태세, 변신 종결기 등).
+        public FollowUpAttack(
+            BattleUnit owner,
+            string name,
+            IReadOnlyList<SkillEffect> effects,
+            SkillTargetType targetType,
+            BattleUnit preferredTarget,
+            bool endsTransformation = false)
         {
             Owner = owner;
-            Passive = passive;
+            Name = name;
+            Effects = effects;
+            TargetType = targetType;
             PreferredTarget = preferredTarget;
+            EndsTransformation = endsTransformation;
         }
     }
 }

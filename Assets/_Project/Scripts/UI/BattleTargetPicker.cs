@@ -15,6 +15,9 @@ namespace Game.UI
         [Tooltip("클릭 판정 최대 거리")]
         [SerializeField] private float maxRayDistance = 100f;
 
+        [Tooltip("상태효과 블럭을 클릭했을 때 설명을 띄울 툴팁 (없으면 툴팁 없이 대상 선택만 한다)")]
+        [SerializeField] private StatusTooltip statusTooltip;
+
         // 매 프레임 마우스 왼쪽 클릭이 있었는지 확인하고, 있으면 클릭 위치의 유닛을 찾는다.
         private void Update()
         {
@@ -32,11 +35,14 @@ namespace Game.UI
                 return;
             }
 
-            TrySelectUnitAt(mouse.position.ReadValue());
+            HandleClickAt(mouse.position.ReadValue());
         }
 
-        // 화면 좌표에서 카메라 방향으로 광선을 쏴 처음 맞은 유닛을 선택한다.
-        private void TrySelectUnitAt(Vector2 screenPosition)
+        // 화면 좌표에서 카메라 방향으로 광선을 쏴 처음 맞은 것을 처리한다.
+        //  - 상태효과 블럭: 설명 툴팁을 띄운다 (대상 선택은 하지 않음)
+        //  - 유닛: 툴팁을 닫고 대상으로 선택한다
+        //  - 빈 곳: 툴팁만 닫는다
+        private void HandleClickAt(Vector2 screenPosition)
         {
             // ScreenPointToRay: 화면의 픽셀 좌표를 카메라에서 뻗어 나가는 3D 광선으로 변환한다.
             Ray ray = targetCamera.ScreenPointToRay(screenPosition);
@@ -44,14 +50,35 @@ namespace Game.UI
             // Physics.Raycast: 광선이 콜라이더에 닿으면 true를 돌려주고, 맞은 정보를 hit에 담는다 (out 매개변수).
             if (!Physics.Raycast(ray, out RaycastHit hit, maxRayDistance))
             {
+                HideTooltip();
                 return;
             }
+
+            // 상태효과 블럭은 유닛의 자식이라 UnitView보다 먼저 확인해야 한다 (안 그러면 유닛 선택으로 처리됨).
+            StatusIconView icon = hit.collider.GetComponent<StatusIconView>();
+            if (icon != null && icon.Status != null && statusTooltip != null)
+            {
+                statusTooltip.Show(icon.Status, screenPosition);
+                return;
+            }
+
+            HideTooltip();
 
             // GetComponentInParent: 맞은 콜라이더 오브젝트나 그 부모에서 UnitView를 찾는다.
             UnitView view = hit.collider.GetComponentInParent<UnitView>();
             if (view != null)
             {
                 battleManager.SelectTarget(view.Unit);
+            }
+        }
+
+        // 툴팁이 연결돼 있으면 닫는다.
+        private void HideTooltip()
+        {
+            // Unity 오브젝트는 ?. 대신 != null로 확인한다 (파괴된 오브젝트를 == null로 알려 주는 건 이 비교뿐이다).
+            if (statusTooltip != null)
+            {
+                statusTooltip.Hide();
             }
         }
     }

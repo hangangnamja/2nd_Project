@@ -56,14 +56,14 @@ namespace Game.Battle
             actor.ResetDistance();
         }
 
-        // 살아 있는 유닛 중 가장 먼저 도착하는 유닛을 찾는다.
+        // 전장에 있는 유닛 중 가장 먼저 도착하는 유닛을 찾는다. 쓰러졌거나 퇴장한 유닛은 행동하지 않는다.
         private BattleUnit FindNextActor()
         {
             BattleUnit best = null;
 
             foreach (BattleUnit unit in units)
             {
-                if (unit.IsDead)
+                if (!unit.IsOnField)
                 {
                     continue;
                 }
@@ -115,7 +115,8 @@ namespace Game.Battle
         {
             foreach (BattleUnit unit in units)
             {
-                if (!unit.IsDead)
+                // 퇴장한 아군은 전진하지 않는다 → 복귀하면 퇴장 전 게이지 그대로 이어서 달린다 (기획서 4-3).
+                if (unit.IsOnField)
                 {
                     unit.Advance(elapsed);
                 }

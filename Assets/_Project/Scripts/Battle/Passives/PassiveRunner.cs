@@ -24,6 +24,10 @@ namespace Game.Battle
         private readonly Dictionary<(BattleUnit, PassiveData), int> triggerCountsThisTurn =
             new Dictionary<(BattleUnit, PassiveData), int>();
 
+        // 전투 한 판 동안의 발동 횟수 (전투당 횟수 제한용). 턴이 바뀌어도 비우지 않는다.
+        private readonly Dictionary<(BattleUnit, PassiveData), int> triggerCountsThisBattle =
+            new Dictionary<(BattleUnit, PassiveData), int>();
+
         // 전투 공용 도구와 전투 유닛 전체를 받아 사건 구독을 시작한다.
         public PassiveRunner(BattleServices services, IReadOnlyList<BattleUnit> allUnits)
         {
@@ -36,6 +40,7 @@ namespace Game.Battle
             events.BuffGained += HandleBuffGained;
             events.UnitKilled += HandleUnitKilled;
             events.BuffRemoved += HandleBuffRemoved;
+            events.FatalDamageIncoming += HandleFatalDamageIncoming;
         }
 
         // 전투가 끝나 더 이상 반응할 필요가 없을 때 구독을 해제한다.
@@ -47,6 +52,22 @@ namespace Game.Battle
             events.BuffGained -= HandleBuffGained;
             events.UnitKilled -= HandleUnitKilled;
             events.BuffRemoved -= HandleBuffRemoved;
+            events.FatalDamageIncoming -= HandleFatalDamageIncoming;
+        }
+
+        // 치명적인 피해 직전: 맞는 유닛 본인의 "치명적인 피해 시" 패시브가 발동하면 사망을 막는다 (하이퍼캐리 버티기).
+        // 패시브 효과(보호막 등)는 즉시 실행되고, HP 1로 버티는 처리는 피해를 넣는 StatusApplier가 한다.
+        private void HandleFatalDamageIncoming(FatalDamageArgs args)
+        {
+            BattleUnit target = args.Target;
+
+            foreach (PassiveData passive in target.Data.Passives)
+            {
+                if (passive.Trigger == PassiveTrigger.OnFatalDamage && Activate(target, passive, target))
+                {
+                    args.Prevent();
+                }
+            }
         }
 
         // 버프가 지워짐: 그 버프를 건 유닛(부여자)의 "자신이 건 버프가 지워질 때" 패시브를 자신에게 실행한다 (곰인형 버퍼).
@@ -188,8 +209,8 @@ namespace Game.Battle
 
             foreach (BattleUnit unit in allUnits)
             {
-                // 같은 편이면서, 공격자 본인이 아니고, 살아 있는 유닛만 반응한다.
-                bool isOtherAlly = unit.IsAlly == attacker.IsAlly && unit != attacker && !unit.IsDead;
+                // 같은 편이면서, 공격자 본인이 아니고, 전장에 있는(살아 있고 퇴장하지 않은) 유닛만 반응한다.
+                bool isOtherAlly = unit.IsAlly == attacker.IsAlly && unit != attacker && unit.IsOnField;
                 if (!isOtherAlly)
                 {
                     continue;
@@ -241,12 +262,13 @@ namespace Game.Battle
             return candidate.FormationIndex < current.FormationIndex;
         }
 
-        // 패시브 1회 발동: 턴당 횟수와 스택을 확인한 뒤, 실행 방식에 따라 즉시 실행하거나 추가 공격으로 예약한다.
-        private void Activate(BattleUnit owner, PassiveData passive, BattleUnit target)
+        // 패시브 1회 발동: 횟수·스택·조건을 확인한 뒤, 실행 방식에 따라 즉시 실행하거나 예약한다.
+        // 실제로 발동했으면 true (치명적인 피해 반응처럼 발동 여부가 결과를 바꾸는 경우에 쓴다).
+        private bool Activate(BattleUnit owner, PassiveData passive, BattleUnit target)
         {
             if (!CanTrigger(owner, passive))
             {
-                return;
+                return false;
             }
 
             ConsumeTrigger(owner, passive);
@@ -255,7 +277,7 @@ namespace Game.Battle
             {
                 actions.EnqueueFollowUp(new FollowUpAttack(owner, passive, target));
                 log($"  [패시브] {owner.Name}: {passive.PassiveName} → 추가 공격 예약");
-                return;
+                return true;
             }
 
             // 턴 종료형: 지금 실행하지 않고 이번 턴의 종료 단계로 미룬다.
@@ -264,7 +286,7 @@ namespace Game.Battle
             {
                 actions.EnqueueTurnEndEffect(new TurnEndEffect(owner, passive));
                 log($"  [패시브] {owner.Name}: {passive.PassiveName} → 턴 종료 시 적용 예약");
-                return;
+                return true;
             }
 
             log($"  [패시브] {owner.Name}: {passive.PassiveName}");
@@ -275,12 +297,18 @@ namespace Game.Battle
                 primaryTarget: null,
                 services,
                 ActionSource.PassiveEffect);
+            return true;
         }
 
-        // 지금 발동할 수 있는지: 이번 턴 발동 횟수가 남아 있고, 스택형이면 소모할 스택이 충분해야 한다.
-        // 두 조건을 모두 확인한 뒤에만 소모해야, 한쪽만 깎이고 발동은 안 되는 일이 없다.
+        // 지금 발동할 수 있는지: 변신 조건, 턴당·전투당 횟수, 스택을 모두 확인한다.
+        // 모든 조건을 확인한 뒤에만 소모해야, 한쪽만 깎이고 발동은 안 되는 일이 없다.
         private bool CanTrigger(BattleUnit owner, PassiveData passive)
         {
+            if (passive.InactiveWhileTransformed && owner.IsTransformed)
+            {
+                return false;
+            }
+
             // TryGetValue: 키가 있으면 값을 count에 담고, 없으면 count = 0이다.
             triggerCountsThisTurn.TryGetValue((owner, passive), out int count);
 
@@ -290,15 +318,26 @@ namespace Game.Battle
                 return false;
             }
 
+            triggerCountsThisBattle.TryGetValue((owner, passive), out int battleCount);
+
+            bool hasBattleLimit = passive.MaxTriggersPerBattle > 0;
+            if (hasBattleLimit && battleCount >= passive.MaxTriggersPerBattle)
+            {
+                return false;
+            }
+
             return !passive.UsesStacks || owner.GetPassiveStacks(passive) >= passive.StackCostPerTrigger;
         }
 
-        // 발동 1회를 기록한다: 이번 턴 발동 횟수 +1, 스택형이면 스택 소모.
+        // 발동 1회를 기록한다: 이번 턴·이번 전투 발동 횟수 +1, 스택형이면 스택 소모.
         private void ConsumeTrigger(BattleUnit owner, PassiveData passive)
         {
             var key = (owner, passive);
             triggerCountsThisTurn.TryGetValue(key, out int count);
             triggerCountsThisTurn[key] = count + 1;
+
+            triggerCountsThisBattle.TryGetValue(key, out int battleCount);
+            triggerCountsThisBattle[key] = battleCount + 1;
 
             if (passive.UsesStacks)
             {

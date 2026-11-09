@@ -74,6 +74,18 @@ namespace Game.Battle.Status
             return removed;
         }
 
+        // 특정 효과 하나를 칸에서 뺀다 (반격 태세처럼 쓰고 나면 사라지는 효과). 실제로 있었으면 true.
+        public bool RemoveInstance(StatusInstance instance)
+        {
+            return GetSlots(instance.Data.Category).Remove(instance);
+        }
+
+        // 같은 정의(같은 에셋)의 효과를 찾는다. 없으면 null.
+        public StatusInstance Find(StatusEffectData data)
+        {
+            return FindByData(GetSlots(data.Category), data);
+        }
+
         // 같은 효과를 다시 걸면 갱신만 하는지.
         // 같은 버프는 중첩되지 않는다 (기획서 3-7): 버프는 데이터 설정과 관계없이 항상 갱신형으로 처리한다.
         // 디버프만 데이터의 중첩 방식(중첩 / 갱신)을 따른다.

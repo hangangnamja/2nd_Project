@@ -18,11 +18,21 @@ namespace Game.Battle.Effects
         [Tooltip("기준 스탯 대비 회복 비율 (100% = 1.0)")]
         [SerializeField, Min(0f)] private float ratio = 1f;
 
+        // 공격 스킬에 붙여 "공격하고 자신도 회복"을 만들 때 쓴다 (하이퍼캐리 변신 스킬의 HP 20% 회복).
+        // 이때 대상 최대 HP 기준이면 시전자 자신의 최대 HP가 기준이 된다.
+        [Tooltip("체크하면 스킬 대상 대신 시전자 자신을 회복한다")]
+        [SerializeField] private bool healCaster;
+
         // 대상마다 회복량을 계산해 적용한다. HP가 0인 대상은 회복하지 않는다 (게임에 부활 없음).
         // 사망 확정 전(같은 공격 안에서 HP 0)이라도 회복하면 사실상 부활이 되므로 IsDown으로 막는다.
         public override void Apply(SkillContext context)
         {
-            foreach (BattleUnit target in context.Targets)
+            // healCaster면 시전자 한 명만 담은 배열, 아니면 스킬 대상 목록을 그대로 회복 대상으로 쓴다.
+            System.Collections.Generic.IReadOnlyList<BattleUnit> targets = healCaster
+                ? new[] { context.Caster }
+                : context.Targets;
+
+            foreach (BattleUnit target in targets)
             {
                 if (target.IsDown)
                 {

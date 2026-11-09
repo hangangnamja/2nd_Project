@@ -30,7 +30,7 @@ MonoBehaviour:
   skill2:
     skillName: "\uAC15\uD0C8"
     targetType: 0
-    cooldown: 3
+    cooldown: 2
     startCooldown: 0
     effects:
     - rid: 7605779530016096340
@@ -38,7 +38,7 @@ MonoBehaviour:
   skill3:
     skillName: "\uC77C\uACA9"
     targetType: 0
-    cooldown: 4
+    cooldown: 3
     startCooldown: 0
     effects:
     - rid: 7605779530016096342
@@ -48,6 +48,9 @@ MonoBehaviour:
     trigger: 3
     execution: 0
     maxTriggersPerTurn: 0
+    turnLimitScope: 0
+    maxTriggersPerBattle: 0
+    inactiveWhileTransformed: 0
     maxStacks: 0
     stacksPerOwnAction: 0
     stackCostPerTrigger: 0
@@ -58,12 +61,45 @@ MonoBehaviour:
     trigger: 4
     execution: 2
     maxTriggersPerTurn: 1
+    turnLimitScope: 0
+    maxTriggersPerBattle: 0
+    inactiveWhileTransformed: 0
     maxStacks: 0
     stacksPerOwnAction: 0
     stackCostPerTrigger: 0
     auraModifiers: []
     effects:
     - rid: 7605779530016096345
+  hasTransformation: 0
+  transformation:
+    transformName: "\uBCC0\uC2E0"
+    statModifiers: []
+    turnLimit: 5
+    forcedReleaseHpRatio: 0.25
+    skill1:
+      skillName: "\uC0C8 \uC2A4\uD0AC"
+      targetType: 0
+      cooldown: 0
+      startCooldown: 0
+      effects: []
+    skill2:
+      skillName: "\uC0C8 \uC2A4\uD0AC"
+      targetType: 0
+      cooldown: 0
+      startCooldown: 0
+      effects: []
+    skill3:
+      skillName: "\uC0C8 \uC2A4\uD0AC"
+      targetType: 0
+      cooldown: 0
+      startCooldown: 0
+      effects: []
+    finisher:
+      skillName: "\uC0C8 \uC2A4\uD0AC"
+      targetType: 0
+      cooldown: 0
+      startCooldown: 0
+      effects: []
   references:
     version: 2
     RefIds:
@@ -84,7 +120,7 @@ MonoBehaviour:
       type: {class: BuffScalingDamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         baseMultiplier: 1.5
-        multiplierPerBuff: 0.5
+        multiplierPerBuff: 0.8
     - rid: 7605779530016096343
       type: {class: ConsumeAllBuffsEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data: 

@@ -62,7 +62,7 @@ BattleManager            전투 흐름 상태 머신
  ├─ 행동 결정자           같은 인터페이스: PlayerInput / RandomAI / BehaviorGraph(보스)
  └─ BattlePresenter      연출 재생, 재생이 끝나면 BattleManager에 완료를 알림
 
-BattleServices            전투 공용 도구 묶음 (로그, BattleEvents, ActionQueue, 난수, BattleRulesData)
+BattleServices            전투 공용 도구 묶음 (로그, BattleEvents, ActionQueue, 난수, BattleRulesData, 전투 유닛 전원)
                           효과 블록·패시브·스킬 실행에 하나로 전달. 난수 시드를 고정하면 전투를 그대로 재현
 
 BattleUnit (순수 C#)      값과 규칙
@@ -92,6 +92,17 @@ UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
 - 상태효과의 추가·제거(만료, 소모, 보호막 깨짐, 밀려남)와 피해 적용(보호막 흡수)은 모두 `StatusApplier`를 거친다
   - "버프 획득"·"버프 지워짐" 사건과 지연 버프 변환 예약이 한 곳에서 빠짐없이 나가도록 하기 위함
 - 같은 턴에 같은 유닛의 추가 턴이 여러 번 예약되면 큐에 등록할 때 1회로 합친다 (현재 기획상 겹치는 캐릭터는 없지만 안전장치로 유지)
+- 추가 공격(임시 턴)은 패시브 전용이 아니다: "누가, 효과 목록, 대상 규칙, 노리는 대상"으로 큐에 들어간다
+  - 패시브 추가 공격, 반격 태세의 적 강제 공격·반격, 변신 종결기가 모두 같은 큐를 먼저 들어온 순서대로 쓴다
+  - 그래서 "적 공격 예약 → 반격 예약 → (턴 제한이면) 종결기 예약" 순서가 코드 분기 없이 지켜진다
+- 치명적인 피해(남은 HP 이상)는 `StatusApplier.DealDamage`에서 HP에 넣기 직전에 처리한다
+  - 변신 중이면 강제 해제(HP 고정 + 종결기 예약), 아니면 `FatalDamageIncoming` 사건 → 버티기 패시브가 막으면 HP 1
+
+### 전장 상태 (퇴장·변신)
+- `IsDead`(쓰러짐)와 `IsOnField`(살아 있고 퇴장하지 않음)를 나눈다
+  - 행동 순서·게이지 전진·대상 선택·반응 패시브·오라는 `IsOnField`, 승패 판정은 `IsDead`
+- 변신은 `BattleUnit.Transformation`(런타임 상태)이 들고, 스킬·쿨타임은 항상 `BattleUnit.GetSkill` 등 유닛을 거쳐 읽어 변신 스킬로 자동 교체된다
+- 변신 스탯 보정은 상태효과 칸이 아니라 변신 설정에 있어 강탈·소모·만료 대상이 아니다
 
 ---
 

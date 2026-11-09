@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e7ea1fe386d9a7468a3d5897f0a5561, type: 3}
+  m_Name: Endurance
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StatusEffectData
+  displayName: "\uBD88\uAD74"
+  category: 0
+  stackMode: 1
+  duration: 2
+  damageAttackRatio: 0
+  damageTargetMaxHpRatio: 0
+  maxHpDamageAttackCap: 0
+  statModifiers: []
+  icon: {fileID: 2800000, guid: db7389568acd4d4ca5b8e87591c609ac, type: 3}
+  isPersonal: 1
+  convertsTo: {fileID: 0}
+  recordsDamageTaken: 0

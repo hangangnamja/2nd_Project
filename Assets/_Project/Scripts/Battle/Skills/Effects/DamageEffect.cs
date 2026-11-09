@@ -27,14 +27,32 @@ namespace Game.Battle.Effects
         // 피해를 준 직후 "공격 판정" 사건을 알려, 공격 시 발동 패시브(화상 부여 등)가 같은 판정 안에서 붙게 한다.
         public static void ApplyDamage(SkillContext context, Func<BattleUnit, float> multiplierFor)
         {
+            ApplyDamageWith(context, target => DamageCalculator.CalculateAttackDamage(
+                context.Caster,
+                target,
+                multiplierFor(target),
+                context.Services.Random,
+                context.Services.Rules));
+        }
+
+        // 기본 피해를 직접 정해 대상 전원에게 피해를 준다 (공격력 배율 대신 받은 피해 비례 등).
+        public static void ApplyBaseDamage(SkillContext context, double baseDamage)
+        {
+            ApplyDamageWith(context, target => DamageCalculator.CalculateAttackDamageFromBase(
+                context.Caster,
+                target,
+                baseDamage,
+                context.Services.Random,
+                context.Services.Rules));
+        }
+
+        // 피해 적용 공통 흐름: 대상마다 calculate로 피해를 구하고 → 보호막·HP에 적용 → 로그 → 공격 판정 사건.
+        // calculate: 대상 하나를 받아 피해 결과를 돌려주는 함수 (배율 방식 / 기본 피해 방식에 따라 다르게 넘긴다).
+        private static void ApplyDamageWith(SkillContext context, Func<BattleUnit, DamageResult> calculate)
+        {
             foreach (BattleUnit target in context.Targets)
             {
-                DamageResult result = DamageCalculator.CalculateAttackDamage(
-                    context.Caster,
-                    target,
-                    multiplierFor(target),
-                    context.Services.Random,
-                    context.Services.Rules);
+                DamageResult result = calculate(target);
 
                 // 보호막이 있으면 먼저 흡수하고, 남은 피해만 HP에 들어간다.
                 // out absorbed: 함수가 피해와 별도로 "보호막이 흡수한 양"을 하나 더 돌려준다 (로그용).

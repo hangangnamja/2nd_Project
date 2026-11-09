@@ -71,6 +71,9 @@ namespace Game.Battle
         // 지금 행동이 추가 턴인지 (HUD 표시용).
         public bool IsExtraTurn { get; private set; }
 
+        // 지금 행동이 하이퍼캐리 변신 중의 엑스트라 턴인지. 이 턴이 끝날 때는 버프·디버프 남은 턴이 줄지 않는다.
+        public bool IsTransformTurn { get; private set; }
+
         // 플레이어가 지금 고른 스킬 슬롯 (0 = 1스). 고른 스킬이 없으면 NoSkillSelected.
         public int SelectedSkillSlot { get; private set; } = NoSkillSelected;
 
@@ -143,7 +146,9 @@ namespace Game.Battle
         public bool IsValidTarget(BattleUnit unit)
         {
             SkillData skill = GetSelectedSkill();
-            if (skill == null || unit == null || unit.IsDead)
+
+            // 쓰러졌거나 퇴장한 유닛은 고를 수 없다.
+            if (skill == null || unit == null || !unit.IsOnField)
             {
                 return false;
             }
@@ -174,7 +179,8 @@ namespace Game.Battle
                 return null;
             }
 
-            return CurrentActor.Data.GetSkill(SelectedSkillSlot);
+            // 변신 중이면 변신 스킬이 나오도록 유닛을 거쳐 꺼낸다.
+            return CurrentActor.GetSkill(SelectedSkillSlot);
         }
 
         // 대상을 직접 하나 골라야 하는 스킬인지 (적 단일·아군 단일·확산의 메인 대상).
@@ -237,6 +243,16 @@ namespace Game.Battle
             // 자기 턴 표시: 이 턴 중에 얻은 행동 당기기는 턴 종료 리셋 뒤로 미뤄진다 (기획서 4-3 강탈 딜러 패시브 1).
             CurrentActor.BeginOwnTurn();
 
+            // 변신 중인 유닛이 속도로 차례를 얻으면, 그 턴은 정규 턴이 아니라 엑스트라 턴이다 (기획서 4-3).
+            // 엑스트라 턴을 1 세고, 턴 종료 때 버프·디버프 남은 턴을 줄이지 않는다.
+            // 변신 3스를 쓴 턴은 변신 전에 시작했으므로 세지 않는다 → 변신 후 엑스트라 턴을 제한 횟수만큼 온전히 쓴다.
+            IsTransformTurn = !hasExtraTurn && CurrentActor.IsTransformed;
+            if (IsTransformTurn)
+            {
+                CurrentActor.Transformation.CountTurn();
+                Log($"[엑스트라 턴 {CurrentActor.Transformation.TurnsTaken}/{CurrentActor.Transformation.Data.TurnLimit}] {CurrentActor.Name}");
+            }
+
             if (hasExtraTurn)
             {
                 Log($"[추가 턴] {CurrentActor.Name}");
@@ -252,24 +268,38 @@ namespace Game.Battle
         {
             while (!IsBattleDecided() && actionQueue.TryDequeueFollowUp(out FollowUpAttack followUp))
             {
-                if (followUp.Owner.IsDead)
+                // 쓰러졌거나 퇴장한 유닛의 추가 공격은 나가지 않는다.
+                if (!followUp.Owner.IsOnField)
                 {
                     continue;
                 }
 
-                BattleUnit target = PickFollowUpTarget(followUp);
-                Log($"[추가 공격] {followUp.Owner.Name}: {followUp.Passive.PassiveName} → {target.Name}");
+                List<BattleUnit> targets = ResolveFollowUpTargets(followUp);
+                if (targets.Count == 0)
+                {
+                    continue;
+                }
+
+                // string.Join + ConvertAll: 대상 목록을 "이름, 이름" 형태의 한 줄로 만든다 (로그용).
+                string targetNames = string.Join(", ", targets.ConvertAll(unit => unit.Name));
+                Log($"[추가 공격] {followUp.Owner.Name}: {followUp.Name} → {targetNames}");
 
                 SkillExecutor.ExecuteEffects(
                     followUp.Owner,
-                    followUp.Passive.Effects,
-                    new List<BattleUnit> { target },
+                    followUp.Effects,
+                    targets,
                     primaryTarget: null,
                     services,
                     ActionSource.FollowUpAttack);
 
                 // 추가 공격도 하나의 공격이므로, 끝날 때 HP 0인 유닛의 사망을 확정한다.
                 ConfirmDeaths();
+
+                // 변신 종결기였으면 변신을 해제하고 퇴장한 아군을 복귀시킨다.
+                if (followUp.EndsTransformation)
+                {
+                    EndTransformation(followUp.Owner);
+                }
 
                 // 임시 턴의 종료 단계: 이 추가 공격의 처치로 예약된 효과를 남의 턴으로 미루지 않고 여기서 적용한다.
                 ProcessTurnEndEffects();
@@ -296,12 +326,47 @@ namespace Game.Battle
             }
         }
 
+        // 변신을 해제한다: 스킬 세트·스탯이 원래대로 돌아가고, 퇴장했던 아군이 퇴장 전 게이지 그대로 복귀한다.
+        private void EndTransformation(BattleUnit unit)
+        {
+            if (!unit.IsTransformed)
+            {
+                return;
+            }
+
+            IReadOnlyList<BattleUnit> returned = unit.EndTransformation();
+            Log($"  {unit.Name}: 변신 해제 (HP {unit.CurrentHp}/{unit.MaxHp})");
+
+            foreach (BattleUnit ally in returned)
+            {
+                Log($"  {ally.Name} 복귀");
+            }
+        }
+
+        // 추가 공격의 대상 목록을 정한다.
+        // 단일·확산은 노리던 대상(쓰러졌으면 다시 고른 대상)을 기준으로, 광역·자신·아군은 대상 규칙 그대로 정한다.
+        private List<BattleUnit> ResolveFollowUpTargets(FollowUpAttack followUp)
+        {
+            bool aimsSingleEnemy = followUp.TargetType == SkillTargetType.EnemySingle
+                || followUp.TargetType == SkillTargetType.EnemyBlast;
+
+            if (!aimsSingleEnemy)
+            {
+                return ResolveTargets(followUp.Owner, followUp.TargetType, followUp.PreferredTarget);
+            }
+
+            BattleUnit target = PickFollowUpTarget(followUp);
+            return target == null
+                ? new List<BattleUnit>()
+                : ResolveTargets(followUp.Owner, followUp.TargetType, target);
+        }
+
         // 추가 공격 대상: 원래 대상이 살아 있으면 그대로, 쓰러졌으면 살아 있는 상대 중에서 다시 고른다.
         // 다시 고를 때는 현재 HP가 가장 높은 적 → 같으면 편성 순서 (기획서 4-3 격발 딜러 패시브 2 규칙).
         // 보스 우선 규칙은 보스 개념이 들어올 때 추가한다.
         private BattleUnit PickFollowUpTarget(FollowUpAttack followUp)
         {
-            if (followUp.PreferredTarget != null && !followUp.PreferredTarget.IsDead)
+            if (followUp.PreferredTarget != null && followUp.PreferredTarget.IsOnField)
             {
                 return followUp.PreferredTarget;
             }
@@ -309,7 +374,7 @@ namespace Game.Battle
             BattleUnit best = null;
             foreach (BattleUnit unit in followUp.Owner.IsAlly ? enemies : allies)
             {
-                if (unit.IsDead)
+                if (!unit.IsOnField)
                 {
                     continue;
                 }
@@ -363,7 +428,7 @@ namespace Game.Battle
         private void UseSkill(BattleUnit caster, int slot, BattleUnit chosenTarget)
         {
             actionCount++;
-            SkillData skill = caster.Data.GetSkill(slot);
+            SkillData skill = caster.GetSkill(slot);
             List<BattleUnit> targets = ResolveTargets(caster, skill.TargetType, chosenTarget);
 
             // 확산 스킬은 대상 목록의 첫 번째가 메인 대상이다. 나머지 스킬은 메인 대상 구분이 없다.
@@ -380,7 +445,11 @@ namespace Game.Battle
         // 상태효과(지속피해 → 남은 턴 감소) → 쿨타임 감소 → 출발점 복귀 → 미뤄둔 행동 당기기 → 턴 종료 단계 패시브.
         private void EndTurn(BattleUnit actor)
         {
-            StatusTurnProcessor.ProcessTurnEnd(actor, services);
+            // 변신 상태로 끝나는 턴은 지속피해만 발동하고 버프·디버프 남은 턴은 그대로 둔다.
+            // 엑스트라 턴뿐 아니라 변신 3스를 쓴 턴도 포함한다: 변신하는 즉시 엑스트라 턴 상태가 되기 때문이다.
+            // (변신 해제는 종결기가 끝난 뒤라, 마지막 엑스트라 턴도 여기서는 아직 변신 상태다.)
+            // 쿨타임 감소와 게이지 리셋은 그대로 진행된다 → 변신 스킬 쿨타임이 돌고, 다음 차례는 속도로 다시 얻는다.
+            StatusTurnProcessor.ProcessTurnEnd(actor, services, decreaseDurations: !actor.IsTransformed);
 
             // 지속피해로 HP가 0이 됐으면 턴 종료 처리가 끝난 뒤 사망을 확정한다.
             ConfirmDeaths();
@@ -390,7 +459,25 @@ namespace Game.Battle
             // 게이지가 출발점(10000)으로 돌아간 뒤에 이번 턴 중 얻은 당기기를 적용해야 효과가 사라지지 않는다.
             actor.EndOwnTurn();
             ProcessTurnEndEffects();
+            QueueFinisherIfTurnLimitReached(actor);
             StateChanged?.Invoke();
+        }
+
+        // 변신 턴 제한에 도달했으면 종결기를 추가 공격으로 예약한다 (기획서 4-3 변신 종료).
+        // 이번 턴에 예약된 추가 공격(반격 태세의 강제 공격·반격)보다 뒤에 들어가므로, 그것들이 모두 끝난 뒤 종결기가 나간다.
+        // 강제 해제로 이미 종결기가 예약됐으면 TryMarkFinisherQueued가 false라 다시 넣지 않는다.
+        private void QueueFinisherIfTurnLimitReached(BattleUnit actor)
+        {
+            if (actor.IsDead || !actor.IsTransformed || !actor.Transformation.HasReachedTurnLimit)
+            {
+                return;
+            }
+
+            if (actor.Transformation.TryMarkFinisherQueued())
+            {
+                Log($"  {actor.Name}: 변신 턴 종료 → 종결기 예약");
+                StatusApplier.QueueFinisher(actor, services);
+            }
         }
 
         // 턴 종료 단계(정규 턴·임시 턴 공통): 예약된 버프를 받고 → 예약된 패시브 효과를 실행한다 (기획서 3-9).
@@ -453,9 +540,9 @@ namespace Game.Battle
             switch (targetType)
             {
                 case SkillTargetType.EnemyAll:
-                    return GetAliveUnits(opponents);
+                    return GetOnFieldUnits(opponents);
                 case SkillTargetType.AllyAll:
-                    return GetAliveUnits(friends);
+                    return GetOnFieldUnits(friends);
                 case SkillTargetType.Self:
                     return new List<BattleUnit> { caster };
                 case SkillTargetType.AllySingle:
@@ -474,7 +561,7 @@ namespace Game.Battle
         // 반환 목록의 첫 번째가 메인 대상이다.
         private static List<BattleUnit> GetBlastTargets(List<BattleUnit> opponents, BattleUnit main)
         {
-            List<BattleUnit> alive = GetAliveUnits(opponents);
+            List<BattleUnit> alive = GetOnFieldUnits(opponents);
             int mainIndex = alive.IndexOf(main);
             var targets = new List<BattleUnit> { main };
 
@@ -494,7 +581,7 @@ namespace Game.Battle
         // 살아 있는 유닛 중 무작위 1명을 고른다 (적 AI의 단일 대상).
         private BattleUnit PickRandomAlive(List<BattleUnit> units)
         {
-            List<BattleUnit> alive = GetAliveUnits(units);
+            List<BattleUnit> alive = GetOnFieldUnits(units);
 
             // Next(n): 0 이상 n 미만의 정수를 무작위로 뽑는다. 전투 난수를 써서 시드 고정 시 같은 대상이 나온다.
             return alive[services.Random.Next(alive.Count)];
@@ -540,7 +627,7 @@ namespace Game.Battle
             // new System.Random(): 시드 없이 만들면 매번 다른 순서의 난수가 나온다.
             // new System.Random(seed): 같은 시드면 항상 같은 순서의 난수가 나와 전투를 그대로 재현할 수 있다.
             System.Random random = randomSeed == 0 ? new System.Random() : new System.Random(randomSeed);
-            services = new BattleServices(Log, new BattleEvents(), new ActionQueue(), random, rules);
+            services = new BattleServices(Log, new BattleEvents(), new ActionQueue(), random, rules, allUnits);
         }
 
         // 편성 리스트가 비어 있지 않고, 연결이 빠진(null) 슬롯이 없는지 검사한다.
@@ -629,6 +716,23 @@ namespace Game.Battle
             }
 
             return alive;
+        }
+
+        // 전장에 있는(살아 있고 퇴장하지 않은) 유닛만 모은 새 리스트를 돌려준다. 대상 선택에 쓴다.
+        // 승패 판정(GetAliveUnits)과 나눈 이유: 퇴장한 아군은 공격받지 않지만 쓰러진 것은 아니기 때문이다.
+        private static List<BattleUnit> GetOnFieldUnits(List<BattleUnit> units)
+        {
+            var onField = new List<BattleUnit>();
+
+            foreach (BattleUnit unit in units)
+            {
+                if (unit.IsOnField)
+                {
+                    onField.Add(unit);
+                }
+            }
+
+            return onField;
         }
     }
 }

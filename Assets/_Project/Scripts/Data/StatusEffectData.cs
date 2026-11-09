@@ -26,6 +26,11 @@ namespace Game.Data
     public class StatusEffectData : ScriptableObject
     {
         [SerializeField] private string displayName = "새 상태효과";
+
+        // 툴팁 맨 위에 붙는 짧은 설명. 수치(공격력 +30% 등)는 아래 설정에서 자동으로 만들어지므로,
+        // 수치로 드러나지 않는 의미만 적는다. 예: "적 전용 버프. 강탈하면 아군 공격력 증가와 따로 쌓인다"
+        [Tooltip("툴팁에 표시할 짧은 설명 (선택). 수치는 자동으로 표시된다")]
+        [SerializeField, TextArea(1, 3)] private string description;
         [SerializeField] private StatusCategory category = StatusCategory.Debuff;
         [Tooltip("디버프 전용. 버프는 같은 버프끼리 중첩되지 않으므로 이 값과 관계없이 항상 갱신형이다")]
         [SerializeField] private StatusStackMode stackMode = StatusStackMode.Stack;
@@ -64,7 +69,15 @@ namespace Game.Data
         [Tooltip("지워지면 대신 받을 효과. 비우면 일반 효과")]
         [SerializeField] private StatusEffectData convertsTo;
 
+        // 피해 기록: 이 효과가 걸려 있는 동안 보유자가 받은 피해를 인스턴스에 누적한다.
+        // 예: 하이퍼캐리 반격 태세 → 태세 중 받은 피해에 비례해 반격한다.
+        [Header("피해 기록")]
+        [Tooltip("체크하면 걸려 있는 동안 보유자가 받은 피해를 누적한다 (반격 태세 등)")]
+        [SerializeField] private bool recordsDamageTaken;
+
         public string DisplayName => displayName;
+        public string Description => description;
+        public bool RecordsDamageTaken => recordsDamageTaken;
         public bool IsPersonal => isPersonal;
         public StatusEffectData ConvertsTo => convertsTo;
         public StatusCategory Category => category;

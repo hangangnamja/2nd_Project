@@ -36,12 +36,23 @@ namespace Game.Battle
             System.Random random,
             BattleRulesData rules)
         {
+            return CalculateAttackDamageFromBase(attacker, target, attacker.Attack * (double)skillMultiplier, random, rules);
+        }
+
+        // 기본 피해("공격력 × 배율" 자리)를 직접 받아 공격 피해를 계산한다. 나머지 보정(피해 증가, 치명, 방어, 대상 쪽)은 같다.
+        // 예: 하이퍼캐리 반격은 공격력 대신 "태세 중 받은 피해 × 배율"을 기본 피해로 쓴다.
+        public static DamageResult CalculateAttackDamageFromBase(
+            BattleUnit attacker,
+            BattleUnit target,
+            double baseDamage,
+            System.Random random,
+            BattleRulesData rules)
+        {
             // NextDouble(): 0 이상 1 미만의 무작위 실수. 치명확률보다 작으면 치명 (예: 확률 0.8 → 80%).
             bool isCritical = random.NextDouble() < attacker.CritRate;
             double critMultiplier = isCritical ? 1d + attacker.CritDamage : 1d;
 
-            double damage = attacker.Attack
-                * skillMultiplier
+            double damage = baseDamage
                 * (1d + attacker.DamageBonus)
                 * critMultiplier
                 * GetDefenseMultiplier(attacker.Level, target, rules)

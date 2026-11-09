@@ -1,0 +1,187 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ea7e9821befe0114cabf858e7dd1cbbb, type: 3}
+  m_Name: HyperCarry
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.TransformingCharacterData
+  displayName: HyperCarry
+  role: 1
+  maxHp: 1000
+  attack: 130
+  defense: 50
+  baseSpeed: 110
+  critRate: 0.8
+  critDamage: 1
+  skill1:
+    skillName: "\uC77C\uACA9"
+    targetType: 0
+    cooldown: 0
+    startCooldown: 0
+    effects:
+    - rid: 7605779530016096421
+  skill2:
+    skillName: "\uAC00\uC18D \uBCA0\uAE30"
+    targetType: 1
+    cooldown: 2
+    startCooldown: 0
+    effects:
+    - rid: 7605779530016096422
+    - rid: 7605779530016096423
+  skill3:
+    skillName: "\uAC01\uC131"
+    targetType: 2
+    cooldown: 5
+    startCooldown: 2
+    effects:
+    - rid: 7605779530016096424
+  passives:
+  - passiveName: "\uBD88\uAD74"
+    trigger: 6
+    execution: 0
+    maxTriggersPerTurn: 0
+    turnLimitScope: 0
+    maxTriggersPerBattle: 1
+    inactiveWhileTransformed: 1
+    maxStacks: 0
+    stacksPerOwnAction: 0
+    stackCostPerTrigger: 1
+    auraModifiers: []
+    effects:
+    - rid: 7605779530016096425
+  transformation:
+    transformName: "\uAC01\uC131 \uBCC0\uC2E0"
+    statModifiers:
+    - stat: 0
+      percent: 0.3
+      flat: 0
+    - stat: 1
+      percent: 0.3
+      flat: 0
+    - stat: 9
+      percent: 0.3
+      flat: 0
+    turnLimit: 5
+    forcedReleaseHpRatio: 0.25
+    skill1:
+      skillName: "\uD30C\uC1C4"
+      targetType: 0
+      cooldown: 0
+      startCooldown: 0
+      effects:
+      - rid: 7605779530016096426
+      - rid: 7605779530016096427
+    skill2:
+      skillName: "\uBC18\uACA9 \uD0DC\uC138"
+      targetType: 2
+      cooldown: 3
+      startCooldown: 0
+      effects:
+      - rid: 7605779530016096428
+      - rid: 7605779530016096429
+      - rid: 7605779530016096430
+      - rid: 7605779530016096431
+    skill3:
+      skillName: "\uC12C\uBA78"
+      targetType: 1
+      cooldown: 2
+      startCooldown: 0
+      effects:
+      - rid: 7605779530016096432
+      - rid: 7605779530016096433
+    finisher:
+      skillName: "\uC885\uACB0"
+      targetType: 1
+      cooldown: 0
+      startCooldown: 0
+      effects:
+      - rid: 7605779530016096434
+  references:
+    version: 2
+    RefIds:
+    - rid: 7605779530016096421
+      type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        multiplier: 1
+        secondaryTargetRatio: 1
+    - rid: 7605779530016096422
+      type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        multiplier: 1.5
+        secondaryTargetRatio: 1
+    - rid: 7605779530016096423
+      type: {class: ReduceCooldownEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        skillNumbers: 03000000
+        turns: 1
+        targetCaster: 1
+    - rid: 7605779530016096424
+      type: {class: TransformEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        exitAllies: 1
+    - rid: 7605779530016096425
+      type: {class: ShieldEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        shieldStatus: {fileID: 11400000, guid: 1ba278bcd2d9c14438b06d65d5d2bf46, type: 2}
+        scaleStat: 1
+        maxHpRatio: 2
+    - rid: 7605779530016096426
+      type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        multiplier: 2.5
+        secondaryTargetRatio: 1
+    - rid: 7605779530016096427
+      type: {class: HealEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        scaleStat: 1
+        ratio: 0.2
+        healCaster: 1
+    - rid: 7605779530016096428
+      type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        status: {fileID: 11400000, guid: e6b482ee0a98058459ebfbdf5c99e764, type: 2}
+        count: 1
+    - rid: 7605779530016096429
+      type: {class: ForceOpponentsAttackEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data: 
+    - rid: 7605779530016096430
+      type: {class: QueueFollowUpEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        followUpName: "\uBC18\uACA9"
+        targetType: 1
+        effects:
+        - rid: 7605779530016096435
+    - rid: 7605779530016096431
+      type: {class: HealEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        scaleStat: 1
+        ratio: 0.2
+        healCaster: 1
+    - rid: 7605779530016096432
+      type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        multiplier: 4
+        secondaryTargetRatio: 1
+    - rid: 7605779530016096433
+      type: {class: HealEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        scaleStat: 1
+        ratio: 0.2
+        healCaster: 1
+    - rid: 7605779530016096434
+      type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        multiplier: 4
+        secondaryTargetRatio: 1
+    - rid: 7605779530016096435
+      type: {class: RecordedDamageCounterEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        recordStatus: {fileID: 11400000, guid: e6b482ee0a98058459ebfbdf5c99e764, type: 2}
+        ratio: 4

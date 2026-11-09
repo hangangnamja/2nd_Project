@@ -18,11 +18,14 @@ namespace Game.Battle
             BattleUnit primaryTarget,
             BattleServices services)
         {
-            SkillData skill = caster.Data.GetSkill(slot);
+            // 스킬을 쓰기 전의 변신 여부를 기억해 둔다. 변신 3스는 쓰는 도중 변신하므로,
+            // 쿨타임은 "쓰기 시작할 때의 스킬 세트"(원래 3스)에 걸어야 한다.
+            bool usedTransformedSkill = caster.IsTransformed;
+            SkillData skill = caster.GetSkill(slot);
             services.Log($"{caster.Name}: {skill.SkillName}");
 
             ExecuteEffects(caster, skill.Effects, targets, primaryTarget, services, ActionSource.Skill);
-            caster.StartCooldown(slot);
+            caster.StartCooldown(slot, usedTransformedSkill);
 
             // 스킬이 끝난 뒤 "자기 행동" 사건을 알린다. 이번 행동으로 쌓인 스택은 다음 아군 행동부터 쓸 수 있다.
             services.Events.RaiseSkillUsed(caster);

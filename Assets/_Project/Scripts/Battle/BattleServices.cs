@@ -17,14 +17,25 @@ namespace Game.Battle
 
         public BattleRulesData Rules { get; }
 
+        // 전투 유닛 전원 (아군 + 적). 반격 태세처럼 "상대 전원에게 행동을 시키는" 효과가 대상 목록 밖의 유닛을 찾을 때 쓴다.
+        public System.Collections.Generic.IReadOnlyList<BattleUnit> Units { get; }
+
         // 전투 시작 시 BattleManager가 한 번 만든다.
-        public BattleServices(Action<string> log, BattleEvents events, ActionQueue actions, Random random, BattleRulesData rules)
+        // units는 BattleManager의 유닛 목록을 그대로 참조하므로, 유닛을 나중에 채워 넣어도 최신 목록을 본다.
+        public BattleServices(
+            Action<string> log,
+            BattleEvents events,
+            ActionQueue actions,
+            Random random,
+            BattleRulesData rules,
+            System.Collections.Generic.IReadOnlyList<BattleUnit> units)
         {
             Log = log;
             Events = events;
             Actions = actions;
             Random = random;
             Rules = rules;
+            Units = units;
         }
     }
 }

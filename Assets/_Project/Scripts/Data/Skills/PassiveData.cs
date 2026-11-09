@@ -27,6 +27,10 @@ namespace Game.Data
 
         // 이 캐릭터가 건 버프가 누구에게서든 지워졌을 때 (만료, 소모, 보호막 깨짐, 밀려남. 사망·강탈 제외). 효과 대상 = 자신
         OnOwnBuffRemoved,
+
+        // 이 캐릭터가 치명적인 피해(남은 HP 이상)를 받기 직전. 발동하면 HP 1로 버틴다. 효과 대상 = 자신
+        // 피해 결과를 바꾸는 즉시 개입형이므로 실행 방식은 Immediate로 둔다 (하이퍼캐리 버티기).
+        OnFatalDamage,
     }
 
     // 턴당 횟수 제한을 어느 턴 기준으로 세는지.
@@ -71,6 +75,12 @@ namespace Game.Data
         [Tooltip("턴당 횟수를 다시 채우는 기준. AnyTurn = 매 턴, OwnTurn = 이 캐릭터의 턴이 시작될 때만")]
         [SerializeField] private PassiveTurnLimitScope turnLimitScope = PassiveTurnLimitScope.AnyTurn;
 
+        [Tooltip("전투 한 판에 발동할 수 있는 최대 횟수. 0이면 제한 없음 (하이퍼캐리 버티기 = 1)")]
+        [SerializeField, Min(0)] private int maxTriggersPerBattle;
+
+        [Tooltip("체크하면 변신 중에는 발동하지 않는다 (하이퍼캐리 버티기: 변신 전에만)")]
+        [SerializeField] private bool inactiveWhileTransformed;
+
         // 스택: 정해진 때에 쌓이고, 발동할 때 소모된다. 스택이 모자라면 발동하지 않는다.
         // 예: 격발 딜러 패시브 2 = 자기 행동마다 1개(최대 2개), 발동 시 1개 소모
         [Header("스택 (0이면 스택 없이 발동)")]
@@ -96,6 +106,8 @@ namespace Game.Data
         public PassiveExecution Execution => execution;
         public int MaxTriggersPerTurn => maxTriggersPerTurn;
         public PassiveTurnLimitScope TurnLimitScope => turnLimitScope;
+        public int MaxTriggersPerBattle => maxTriggersPerBattle;
+        public bool InactiveWhileTransformed => inactiveWhileTransformed;
         public bool UsesStacks => maxStacks > 0;
         public int MaxStacks => maxStacks;
         public int StacksPerOwnAction => stacksPerOwnAction;
