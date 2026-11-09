@@ -18,17 +18,18 @@ namespace Game.Battle
         // "동시 도착"으로 보기 위해 사용한다 (예: 100.0000000001과 100은 같은 시간으로 취급).
         private const double Epsilon = 1e-6;
 
-        private readonly List<BattleUnit> units;
+        private readonly IReadOnlyList<BattleUnit> units;
 
-        // 전투 시작부터 흐른 총 시간(행동수치 누적). 사이클 계산에만 사용한다.
+        // 전투 시작부터 흐른 총 시간(행동수치 누적). 사이클 계산에만 사용한다. 웨이브가 바뀌어도 이어서 센다.
         public double ElapsedTime { get; private set; }
 
         public int CurrentCycle => CalculateCycle(ElapsedTime);
 
-        // 순서를 계산할 유닛 목록을 받는다. 바깥 리스트가 바뀌어도 영향받지 않도록 복사해 둔다.
-        public TurnScheduler(IEnumerable<BattleUnit> battleUnits)
+        // 순서를 계산할 유닛 목록을 받는다. 복사하지 않고 BattleManager의 목록을 그대로 참조하므로,
+        // 웨이브가 바뀌어 적이 교체되면 다음 행동자 계산에 새 적이 바로 반영된다 (교체는 턴 사이에만 일어난다).
+        public TurnScheduler(IReadOnlyList<BattleUnit> battleUnits)
         {
-            units = new List<BattleUnit>(battleUnits);
+            units = battleUnits;
         }
 
         // 다음에 행동할 유닛을 찾고, 그 유닛이 도착할 때까지 살아 있는 모든 유닛을 전진시킨다.
