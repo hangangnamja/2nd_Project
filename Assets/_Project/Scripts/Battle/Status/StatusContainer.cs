@@ -21,34 +21,83 @@ namespace Game.Battle.Status
 
         // 상태효과를 하나 추가한다.
         // 갱신형이면 같은 효과의 남은 턴만 되돌리고, 칸이 가득 찼으면 가장 빨리 끝날 효과를 밀어낸다.
-        // 밀려난 효과가 있으면 돌려준다 (로그용, 없으면 null).
-        public StatusInstance Add(StatusEffectData data, BattleUnit source)
+        // 결과에는 "새로 들어갔는지(갱신이 아닌지)"와 밀려난 효과가 담긴다 (새 버프 획득 패시브·로그용).
+        public StatusAddResult Add(StatusEffectData data, BattleUnit source)
         {
             List<StatusInstance> slots = GetSlots(data.Category);
 
-            // 같은 버프는 중첩되지 않는다 (기획서 3-7): 버프는 데이터 설정과 관계없이 항상 갱신형으로 처리한다.
-            // 디버프만 데이터의 중첩 방식(중첩 / 갱신)을 따른다.
-            bool refreshOnly = data.Category == StatusCategory.Buff || data.StackMode == StatusStackMode.Refresh;
-
-            if (refreshOnly)
+            if (IsRefreshOnly(data))
             {
                 StatusInstance existing = FindByData(slots, data);
                 if (existing != null)
                 {
                     existing.Refresh(nextAppliedOrder++);
-                    return null;
+                    return new StatusAddResult(existing, isNew: false, pushedOut: null);
                 }
             }
 
-            StatusInstance pushedOut = null;
-            if (slots.Count >= SlotsPerCategory)
-            {
-                pushedOut = FindPushOutTarget(slots);
-                slots.Remove(pushedOut);
-            }
+            StatusInstance pushedOut = MakeRoom(slots);
 
             // nextAppliedOrder++: 현재 값을 넘겨준 뒤 1 증가시킨다 (다음 효과는 더 큰 순번을 받는다).
-            slots.Add(new StatusInstance(data, source, nextAppliedOrder++));
+            var added = new StatusInstance(data, source, nextAppliedOrder++);
+            slots.Add(added);
+            return new StatusAddResult(added, isNew: true, pushedOut);
+        }
+
+        // 다른 유닛에게서 빼앗아 온 효과를 남은 턴 그대로 받는다 (버프 강탈, 기획서 4-3).
+        // 같은 버프를 이미 가지고 있으면 남은 턴이 긴 쪽으로 맞추고 하나만 남긴다 (갱신이므로 isNew = false).
+        public StatusAddResult Receive(StatusInstance incoming)
+        {
+            List<StatusInstance> slots = GetSlots(incoming.Data.Category);
+
+            if (IsRefreshOnly(incoming.Data))
+            {
+                StatusInstance existing = FindByData(slots, incoming.Data);
+                if (existing != null)
+                {
+                    existing.KeepLongerRemaining(incoming.RemainingTurns, nextAppliedOrder++);
+                    return new StatusAddResult(existing, isNew: false, pushedOut: null);
+                }
+            }
+
+            StatusInstance pushedOut = MakeRoom(slots);
+            incoming.ResetAppliedOrder(nextAppliedOrder++);
+            slots.Add(incoming);
+            return new StatusAddResult(incoming, isNew: true, pushedOut);
+        }
+
+        // 효과 하나를 칸에서 뺀다 (강탈로 빼앗길 때).
+        public void Remove(StatusInstance instance)
+        {
+            GetSlots(instance.Data.Category).Remove(instance);
+        }
+
+        // 버프를 전부 비우고, 비운 버프 목록을 돌려준다 (강탈 딜러 3스의 버프 소모, 강탈 대상).
+        public List<StatusInstance> RemoveAllBuffs()
+        {
+            var removed = new List<StatusInstance>(buffs);
+            buffs.Clear();
+            return removed;
+        }
+
+        // 같은 효과를 다시 걸면 갱신만 하는지.
+        // 같은 버프는 중첩되지 않는다 (기획서 3-7): 버프는 데이터 설정과 관계없이 항상 갱신형으로 처리한다.
+        // 디버프만 데이터의 중첩 방식(중첩 / 갱신)을 따른다.
+        private static bool IsRefreshOnly(StatusEffectData data)
+        {
+            return data.Category == StatusCategory.Buff || data.StackMode == StatusStackMode.Refresh;
+        }
+
+        // 칸이 가득 찼으면 가장 빨리 끝날 효과를 밀어내 자리를 만들고, 밀려난 효과를 돌려준다 (없으면 null).
+        private static StatusInstance MakeRoom(List<StatusInstance> slots)
+        {
+            if (slots.Count < SlotsPerCategory)
+            {
+                return null;
+            }
+
+            StatusInstance pushedOut = FindPushOutTarget(slots);
+            slots.Remove(pushedOut);
             return pushedOut;
         }
 

@@ -32,6 +32,8 @@ namespace Game.Battle
             events.SkillUsed += HandleSkillUsed;
             events.AttackHit += HandleAttackHit;
             events.AttackPerformed += HandleAttackPerformed;
+            events.BuffGained += HandleBuffGained;
+            events.UnitKilled += HandleUnitKilled;
         }
 
         // 전투가 끝나 더 이상 반응할 필요가 없을 때 구독을 해제한다.
@@ -40,6 +42,58 @@ namespace Game.Battle
             events.SkillUsed -= HandleSkillUsed;
             events.AttackHit -= HandleAttackHit;
             events.AttackPerformed -= HandleAttackPerformed;
+            events.BuffGained -= HandleBuffGained;
+            events.UnitKilled -= HandleUnitKilled;
+        }
+
+        // 새 버프를 얻음: 받은 유닛 본인의 "버프 획득 시" 패시브를 자신에게 실행한다 (강탈 딜러 버프 가속).
+        // 버프 1개마다 사건이 1번 오므로, 버프 4개를 강탈하면 4번 발동한다. 갱신은 사건 자체가 오지 않는다.
+        private void HandleBuffGained(BattleUnit receiver, string buffName)
+        {
+            if (receiver.IsDead)
+            {
+                return;
+            }
+
+            ActivateOwnPassives(receiver, PassiveTrigger.OnBuffGained);
+        }
+
+        // 사망 확정: 처치한 유닛의 "처치 시" 패시브를 자신에게 실행한다 (강탈 딜러 추격).
+        // killer가 null이면(피해 없이 쓰러짐) 반응할 유닛이 없다. 처치자가 이미 쓰러졌어도 반응하지 않는다.
+        private void HandleUnitKilled(BattleUnit victim, BattleUnit killer)
+        {
+            if (killer == null || killer.IsDead)
+            {
+                return;
+            }
+
+            ActivateOwnPassives(killer, PassiveTrigger.OnKill);
+        }
+
+        // owner가 가진 패시브 중 trigger와 맞는 것을 자기 자신을 대상으로 발동한다.
+        private void ActivateOwnPassives(BattleUnit owner, PassiveTrigger trigger)
+        {
+            foreach (PassiveData passive in owner.Data.Passives)
+            {
+                if (passive.Trigger == trigger)
+                {
+                    Activate(owner, passive, owner);
+                }
+            }
+        }
+
+        // 턴 종료 단계로 예약된 패시브 효과를 실행한다 (BattleManager가 턴 종료 처리 뒤에 호출).
+        // 대상은 패시브 주인 자신이고, 공격 행동이 아니므로 다른 패시브의 공격 반응을 깨우지 않는다.
+        public void ExecuteTurnEndEffect(TurnEndEffect effect)
+        {
+            log($"  [패시브] {effect.Owner.Name}: {effect.Passive.PassiveName} (턴 종료)");
+            SkillExecutor.ExecuteEffects(
+                effect.Owner,
+                effect.Passive.Effects,
+                new List<BattleUnit> { effect.Owner },
+                primaryTarget: null,
+                services,
+                ActionSource.PassiveEffect);
         }
 
         // 자기 행동(스킬)을 마쳤을 때: 행동마다 스택이 쌓이는 패시브에 스택을 더한다.
@@ -166,6 +220,15 @@ namespace Game.Battle
             {
                 actions.EnqueueFollowUp(new FollowUpAttack(owner, passive, target));
                 log($"  [패시브] {owner.Name}: {passive.PassiveName} → 추가 공격 예약");
+                return;
+            }
+
+            // 턴 종료형: 지금 실행하지 않고 이번 턴의 종료 단계로 미룬다.
+            // 횟수는 발동 시점에 이미 소모했으므로, 같은 턴에 여러 번 처치해도 턴당 1회 제한이 지켜진다.
+            if (passive.Execution == PassiveExecution.TurnEnd)
+            {
+                actions.EnqueueTurnEndEffect(new TurnEndEffect(owner, passive));
+                log($"  [패시브] {owner.Name}: {passive.PassiveName} → 턴 종료 시 적용 예약");
                 return;
             }
 

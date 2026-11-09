@@ -18,6 +18,24 @@ namespace Game.Battle
         // Action<공격자, 맞은 대상 목록, 메인 대상(확산만, 없으면 null), 발생 원인>
         public event Action<BattleUnit, IReadOnlyList<BattleUnit>, BattleUnit, ActionSource> AttackPerformed;
 
+        // 유닛이 새 버프를 얻었을 때 (갱신은 제외). Action<받은 유닛, 받은 버프 이름>
+        public event Action<BattleUnit, string> BuffGained;
+
+        // 유닛의 사망이 확정됐을 때. Action<쓰러진 유닛, 처치한 유닛(마지막으로 피해를 준 유닛, 없으면 null)>
+        public event Action<BattleUnit, BattleUnit> UnitKilled;
+
+        // 새 버프를 얻었음을 알린다. 버프 획득 시 발동 패시브(강탈 딜러 가속)가 여기에 반응한다.
+        public void RaiseBuffGained(BattleUnit receiver, string buffName)
+        {
+            BuffGained?.Invoke(receiver, buffName);
+        }
+
+        // 사망 확정을 알린다. 처치 시 발동 패시브(강탈 딜러 추격 등)가 여기에 반응한다.
+        public void RaiseUnitKilled(BattleUnit victim, BattleUnit killer)
+        {
+            UnitKilled?.Invoke(victim, killer);
+        }
+
         // 유닛이 스킬을 사용했음을 알린다. 행동마다 스택이 쌓이는 패시브가 여기에 반응한다.
         public void RaiseSkillUsed(BattleUnit caster)
         {

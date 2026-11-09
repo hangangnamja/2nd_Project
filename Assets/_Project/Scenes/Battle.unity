@@ -307,13 +307,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game.Battle.BattleManager
   allyParty:
-  - {fileID: 11400000, guid: 4cb9afbd1657ffa458f53baa27eef1dc, type: 2}
+  - {fileID: 11400000, guid: 033421e72036eea4a8c6c907397e96ea, type: 2}
   - {fileID: 11400000, guid: 2f677f8251338f548b38f185b10f804a, type: 2}
   - {fileID: 11400000, guid: cf08d855ce8b3234c83826a75e404fef, type: 2}
   enemyParty:
-  - {fileID: 11400000, guid: fa5db8d986b4b66428761a8da3d67530, type: 2}
+  - {fileID: 11400000, guid: d0130fc9089396e44999e8180a20caea, type: 2}
   - {fileID: 11400000, guid: 81d6e306125c13b4b83d00623fe05ecd, type: 2}
-  - {fileID: 11400000, guid: fa5db8d986b4b66428761a8da3d67530, type: 2}
+  - {fileID: 11400000, guid: d0130fc9089396e44999e8180a20caea, type: 2}
   testLevel: 1
   rules: {fileID: 11400000, guid: 578a03459990c304aae4e2558428a676, type: 2}
   randomSeed: 0

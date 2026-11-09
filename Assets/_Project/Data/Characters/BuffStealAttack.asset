@@ -1,0 +1,99 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0cf10047d4cbc1d4a9d1cde009aa4d18, type: 3}
+  m_Name: BuffStealAttack
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.CharacterData
+  displayName: BuffStealAttack
+  role: 1
+  maxHp: 1000
+  attack: 120
+  defense: 50
+  baseSpeed: 115
+  critRate: 0.8
+  critDamage: 1
+  skill1:
+    skillName: "\uD3C9\uD0C0"
+    targetType: 0
+    cooldown: 0
+    startCooldown: 0
+    effects:
+    - rid: 7605779530016096339
+  skill2:
+    skillName: "\uAC15\uD0C8"
+    targetType: 0
+    cooldown: 3
+    startCooldown: 0
+    effects:
+    - rid: 7605779530016096340
+    - rid: 7605779530016096341
+  skill3:
+    skillName: "\uC77C\uACA9"
+    targetType: 0
+    cooldown: 4
+    startCooldown: 0
+    effects:
+    - rid: 7605779530016096342
+    - rid: 7605779530016096343
+  passives:
+  - passiveName: "\uBC84\uD504 \uAC00\uC18D"
+    trigger: 3
+    execution: 0
+    maxTriggersPerTurn: 0
+    maxStacks: 0
+    stacksPerOwnAction: 0
+    stackCostPerTrigger: 0
+    auraModifiers: []
+    effects:
+    - rid: 7605779530016096344
+  - passiveName: "\uCD94\uACA9"
+    trigger: 4
+    execution: 2
+    maxTriggersPerTurn: 1
+    maxStacks: 0
+    stacksPerOwnAction: 0
+    stackCostPerTrigger: 0
+    auraModifiers: []
+    effects:
+    - rid: 7605779530016096345
+  references:
+    version: 2
+    RefIds:
+    - rid: 7605779530016096339
+      type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        multiplier: 1
+        secondaryTargetRatio: 1
+    - rid: 7605779530016096340
+      type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        multiplier: 1.2
+        secondaryTargetRatio: 1
+    - rid: 7605779530016096341
+      type: {class: StealBuffsEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data: 
+    - rid: 7605779530016096342
+      type: {class: BuffScalingDamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        baseMultiplier: 1.5
+        multiplierPerBuff: 0.5
+    - rid: 7605779530016096343
+      type: {class: ConsumeAllBuffsEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data: 
+    - rid: 7605779530016096344
+      type: {class: ActionAdvanceEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        ratio: 0.3
+    - rid: 7605779530016096345
+      type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        status: {fileID: 11400000, guid: 16f47f7ec3b41064692a6ffba791443b, type: 2}
+        count: 1

@@ -13,20 +13,29 @@ namespace Game.Battle.Effects
         [Tooltip("확산 스킬에서 메인 대상이 아닌 주변 대상이 받는 비율 (0.5 = 메인 배율의 50%). 메인 대상이 없는 스킬에서는 쓰지 않는다")]
         [SerializeField, Range(0f, 1f)] private float secondaryTargetRatio = 1f;
 
-        // 대상마다 피해를 계산해 적용한다. 이미 쓰러진 대상도 같은 공격 안에서는 효과를 받는다 (기획서 3-9).
-        // 피해를 준 직후 "공격 판정" 사건을 알려, 공격 시 발동 패시브(화상 부여 등)가 같은 판정 안에서 붙게 한다.
+        // 대상마다 배율을 정해 피해를 준다 (확산이면 주변 대상은 비율만큼 줄어든다).
         public override void Apply(SkillContext context)
+        {
+            // 람다식 target => ...: 대상 하나를 받아 그 대상에게 쓸 배율을 돌려주는 함수를 넘긴다.
+            ApplyDamage(context, target => GetMultiplierFor(target, context));
+        }
+
+        // 피해 처리 공용 함수 (일반 피해, 버프 비례 피해 등 피해 블록이 함께 쓴다).
+        // multiplierFor: 대상별 배율을 구하는 함수. Func<BattleUnit, float> = "유닛을 받아 실수를 돌려주는 함수"를 담는 델리게이트.
+        // 대상마다 피해를 계산해 적용한다. 이미 HP가 0인 대상도 같은 공격 안에서는 효과를 받는다 (기획서 3-9).
+        // 피해를 준 직후 "공격 판정" 사건을 알려, 공격 시 발동 패시브(화상 부여 등)가 같은 판정 안에서 붙게 한다.
+        public static void ApplyDamage(SkillContext context, Func<BattleUnit, float> multiplierFor)
         {
             foreach (BattleUnit target in context.Targets)
             {
                 DamageResult result = DamageCalculator.CalculateAttackDamage(
                     context.Caster,
                     target,
-                    GetMultiplierFor(target, context),
+                    multiplierFor(target),
                     context.Services.Random,
                     context.Services.Rules);
 
-                int dealt = target.TakeDamage(result.Amount);
+                int dealt = target.TakeDamage(result.Amount, context.Caster);
                 string critText = result.IsCritical ? " (치명!)" : string.Empty;
                 context.Log($"  {target.Name}에게 {dealt} 피해{critText} (HP {target.CurrentHp}/{target.MaxHp})");
 

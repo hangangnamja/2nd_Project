@@ -14,7 +14,7 @@ namespace Game.Battle.Effects
         [Tooltip("한 번에 거는 개수. 중첩형 효과는 개수만큼 칸을 차지한다")]
         [SerializeField, Min(1)] private int count = 1;
 
-        // 대상마다 상태효과를 count개 건다. 칸이 가득 차 밀려난 효과가 있으면 로그로 알린다.
+        // 대상마다 상태효과를 count개 건다. 밀려난 효과 로그와 "새 버프 획득" 사건은 StatusApplier가 처리한다.
         public override void Apply(SkillContext context)
         {
             if (status == null)
@@ -25,17 +25,12 @@ namespace Game.Battle.Effects
 
             foreach (BattleUnit target in context.Targets)
             {
+                context.Log($"  {target.Name}에게 {status.DisplayName} {count}개 부여");
+
                 for (int i = 0; i < count; i++)
                 {
-                    StatusInstance pushedOut = target.Statuses.Add(status, context.Caster);
-
-                    if (pushedOut != null)
-                    {
-                        context.Log($"  {target.Name}: 칸이 가득 차 {pushedOut.Data.DisplayName}(남은 {pushedOut.RemainingTurns}턴) 밀려남");
-                    }
+                    StatusApplier.Apply(target, status, context.Caster, context.Services);
                 }
-
-                context.Log($"  {target.Name}에게 {status.DisplayName} {count}개 부여");
             }
         }
     }

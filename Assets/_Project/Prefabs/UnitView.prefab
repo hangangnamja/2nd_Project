@@ -49,10 +49,12 @@ MonoBehaviour:
   font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
   buffColor: {r: 0.2, g: 0.45, b: 0.95, a: 1}
   debuffColor: {r: 0.9, g: 0.15, b: 0.1, a: 1}
-  iconSize: 0.3
-  iconSpacing: 0.38
+  iconSize: 0.45
+  iconSpacing: 0.5
+  iconsPerRow: 5
+  rowSpacing: 0.85
   glyphScale: 0.8
-  turnTextSize: 0.05
+  turnTextSize: 0.07
 --- !u!1 &4663243773613344490
 GameObject:
   m_ObjectHideFlags: 0
