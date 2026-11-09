@@ -14,6 +14,9 @@ namespace Game.Battle.Effects
         {
             List<StatusInstance> consumed = context.Caster.Statuses.RemoveAllBuffs();
             context.Log($"  {context.Caster.Name}: 버프 {consumed.Count}개 소모");
+
+            // 소모도 "지워짐"이다 → 지연 버프는 턴 종료 단계에 바뀐 효과로 돌아오고, 부여자의 패시브가 반응한다.
+            StatusApplier.ReportRemoved(context.Caster, consumed, context.Services);
         }
     }
 }

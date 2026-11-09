@@ -232,7 +232,7 @@ namespace Game.Battle
             IsExtraTurn = hasExtraTurn;
             CurrentActor = hasExtraTurn ? extraTurnUnit : scheduler.AdvanceToNextActor();
             hasPendingAction = false;
-            passiveRunner.ResetTurnCounters();
+            passiveRunner.ResetTurnCounters(CurrentActor);
 
             // 자기 턴 표시: 이 턴 중에 얻은 행동 당기기는 턴 종료 리셋 뒤로 미뤄진다 (기획서 4-3 강탈 딜러 패시브 1).
             CurrentActor.BeginOwnTurn();
@@ -406,7 +406,15 @@ namespace Game.Battle
                     continue;
                 }
 
-                // Receive: 남은 턴 그대로 넣는다. 새 버프면 "버프 획득" 사건 → 강탈 딜러 가속 패시브가 반응한다.
+                // 지연 버프가 바뀐 효과: 정의로 새로 건다 (부여자 = 지연 버프를 건 유닛).
+                if (buff.Instance == null)
+                {
+                    Log($"  {buff.Receiver.Name}: {buff.Data.DisplayName} 획득");
+                    StatusApplier.Apply(buff.Receiver, buff.Data, buff.Source, services);
+                    continue;
+                }
+
+                // 강탈한 버프 Receive: 남은 턴 그대로 넣는다. 새 버프면 "버프 획득" 사건 → 강탈 딜러 가속 패시브가 반응한다.
                 Log($"  {buff.Receiver.Name}: 강탈한 {buff.Instance.Data.DisplayName} 획득 (남은 {buff.Instance.RemainingTurns}턴)");
                 StatusApplier.Receive(buff.Receiver, buff.Instance, services);
             }

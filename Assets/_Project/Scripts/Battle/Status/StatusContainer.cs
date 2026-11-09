@@ -66,12 +66,6 @@ namespace Game.Battle.Status
             return new StatusAddResult(incoming, isNew: true, pushedOut);
         }
 
-        // 효과 하나를 칸에서 뺀다 (강탈로 빼앗길 때).
-        public void Remove(StatusInstance instance)
-        {
-            GetSlots(instance.Data.Category).Remove(instance);
-        }
-
         // 버프를 전부 비우고, 비운 버프 목록을 돌려준다 (강탈 딜러 3스의 버프 소모, 강탈 대상).
         public List<StatusInstance> RemoveAllBuffs()
         {
@@ -109,11 +103,46 @@ namespace Game.Battle.Status
             return all;
         }
 
-        // 자기 턴이 끝날 때 모든 효과의 남은 턴을 1 줄이고, 끝난 효과를 제거한다.
-        public void DecreaseTurnsAndRemoveExpired()
+        // 자기 턴이 끝날 때 모든 효과의 남은 턴을 1 줄이고, 끝난 효과를 제거해 목록으로 돌려준다.
+        // 돌려준 목록으로 "효과가 지워짐" 알림(지연 버프 변환, 곰인형 버퍼 패시브)을 보낸다.
+        public List<StatusInstance> DecreaseTurnsAndRemoveExpired()
         {
-            DecreaseAndRemove(buffs);
-            DecreaseAndRemove(debuffs);
+            var expired = new List<StatusInstance>();
+            DecreaseAndRemove(buffs, expired);
+            DecreaseAndRemove(debuffs, expired);
+            return expired;
+        }
+
+        // 피해를 보호막 버프로 먼저 흡수하고, 남은 피해를 돌려준다. 다 깨진 보호막은 칸에서 빼고 broken에 담는다.
+        // 보호막이 여럿이면 먼저 걸린 것부터 깎는다 (버프 목록은 들어온 순서대로 쌓인다).
+        public int AbsorbWithShields(int damage, List<StatusInstance> broken)
+        {
+            foreach (StatusInstance buff in buffs)
+            {
+                if (damage <= 0)
+                {
+                    break;
+                }
+
+                if (!buff.HasShield)
+                {
+                    continue;
+                }
+
+                damage = buff.Absorb(damage);
+                if (!buff.HasShield)
+                {
+                    broken.Add(buff);
+                }
+            }
+
+            // 순회가 끝난 뒤에 지운다 (foreach 도중 목록을 바꾸면 오류가 난다).
+            foreach (StatusInstance shield in broken)
+            {
+                buffs.Remove(shield);
+            }
+
+            return damage;
         }
 
         // 분류에 맞는 칸 목록을 고른다.
@@ -157,12 +186,17 @@ namespace Game.Battle.Status
             return null;
         }
 
-        // 목록의 효과를 1턴씩 줄이고 만료된 것을 지운다.
-        private static void DecreaseAndRemove(List<StatusInstance> slots)
+        // 목록의 효과를 1턴씩 줄이고 만료된 것을 지워 expired에 모은다.
+        private static void DecreaseAndRemove(List<StatusInstance> slots, List<StatusInstance> expired)
         {
             foreach (StatusInstance instance in slots)
             {
                 instance.DecreaseTurn();
+
+                if (instance.IsExpired)
+                {
+                    expired.Add(instance);
+                }
             }
 
             // RemoveAll: 조건(람다식)이 true인 원소를 한 번에 모두 지운다. 여기서는 남은 턴이 0 이하인 효과.

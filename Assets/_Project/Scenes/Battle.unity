@@ -308,8 +308,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game.Battle.BattleManager
   allyParty:
   - {fileID: 11400000, guid: 033421e72036eea4a8c6c907397e96ea, type: 2}
+  - {fileID: 11400000, guid: 3ac05b34f6b0d6844bb9fbff35d5dbfb, type: 2}
   - {fileID: 11400000, guid: 2f677f8251338f548b38f185b10f804a, type: 2}
-  - {fileID: 11400000, guid: cf08d855ce8b3234c83826a75e404fef, type: 2}
   enemyParty:
   - {fileID: 11400000, guid: d0130fc9089396e44999e8180a20caea, type: 2}
   - {fileID: 11400000, guid: 81d6e306125c13b4b83d00623fe05ecd, type: 2}

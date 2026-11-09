@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Game.Battle.Status;
 
 namespace Game.Battle
 {
@@ -23,6 +24,16 @@ namespace Game.Battle
 
         // 유닛의 사망이 확정됐을 때. Action<쓰러진 유닛, 처치한 유닛(마지막으로 피해를 준 유닛, 없으면 null)>
         public event Action<BattleUnit, BattleUnit> UnitKilled;
+
+        // 유닛에게 걸린 버프가 지워졌을 때 (만료, 소모, 보호막 깨짐, 밀려남 등. 사망·강탈 제외).
+        // Action<버프를 가졌던 유닛, 지워진 버프 인스턴스(부여자 = Source)>
+        public event Action<BattleUnit, StatusInstance> BuffRemoved;
+
+        // 버프가 지워졌음을 알린다. "자신이 건 버프가 지워질 때" 패시브(곰인형 버퍼)가 여기에 반응한다.
+        public void RaiseBuffRemoved(BattleUnit holder, StatusInstance buff)
+        {
+            BuffRemoved?.Invoke(holder, buff);
+        }
 
         // 새 버프를 얻었음을 알린다. 버프 획득 시 발동 패시브(강탈 딜러 가속)가 여기에 반응한다.
         public void RaiseBuffGained(BattleUnit receiver, string buffName)

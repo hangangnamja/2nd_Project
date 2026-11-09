@@ -58,8 +58,15 @@ namespace Game.Data
         [Tooltip("개인 버프(자기 패시브로만 얻는 버프)면 체크. 머리 위 그림이 흰색 대신 검은색으로 표시된다")]
         [SerializeField] private bool isPersonal;
 
+        // 지연 버프: 걸려 있는 동안은 효과가 없고, 어떤 방식으로든 지워지면(만료, 해제, 소모, 밀려남) 이 효과로 바뀐다 (기획서 3-7).
+        // 바뀐 효과는 그 턴의 종료 단계에 받는다. 사망으로 사라질 때는 바뀌지 않는다.
+        [Header("지연 버프")]
+        [Tooltip("지워지면 대신 받을 효과. 비우면 일반 효과")]
+        [SerializeField] private StatusEffectData convertsTo;
+
         public string DisplayName => displayName;
         public bool IsPersonal => isPersonal;
+        public StatusEffectData ConvertsTo => convertsTo;
         public StatusCategory Category => category;
         public StatusStackMode StackMode => stackMode;
         public int Duration => duration;

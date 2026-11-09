@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Game.Data;
 
 namespace Game.Battle.Status
@@ -12,7 +13,10 @@ namespace Game.Battle.Status
         public static void ProcessTurnEnd(BattleUnit unit, BattleServices services)
         {
             TriggerDamageOverTime(unit, services, logPrefix: string.Empty);
-            unit.Statuses.DecreaseTurnsAndRemoveExpired();
+
+            // 만료된 효과도 "지워짐"으로 알린다 → 지연 버프는 바뀐 효과를 이번 턴 종료 단계에 받는다.
+            List<StatusInstance> expired = unit.Statuses.DecreaseTurnsAndRemoveExpired();
+            StatusApplier.ReportRemoved(unit, expired, services);
         }
 
         // 걸려 있는 지속피해 효과를 하나씩 1회 발동시키고, 발동한 개수를 돌려준다.
@@ -44,10 +48,11 @@ namespace Game.Battle.Status
                     unit,
                     services.Rules);
 
-                // 지속피해의 처치자는 그 효과를 건 유닛으로 본다.
-                int dealt = unit.TakeDamage(damage, instance.Source);
+                // 지속피해의 처치자는 그 효과를 건 유닛으로 본다. 보호막이 있으면 먼저 흡수한다.
+                int dealt = StatusApplier.DealDamage(unit, damage, instance.Source, services, out int absorbed);
                 triggeredCount++;
-                services.Log($"  {logPrefix}{unit.Name}: {data.DisplayName} {dealt} 피해 (HP {unit.CurrentHp}/{unit.MaxHp})");
+                string shieldText = absorbed > 0 ? $" (보호막 {absorbed} 흡수)" : string.Empty;
+                services.Log($"  {logPrefix}{unit.Name}: {data.DisplayName} {dealt} 피해{shieldText} (HP {unit.CurrentHp}/{unit.MaxHp})");
             }
 
             return triggeredCount;

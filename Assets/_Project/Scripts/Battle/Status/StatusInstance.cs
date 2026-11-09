@@ -28,6 +28,25 @@ namespace Game.Battle.Status
 
         public bool IsExpired => RemainingTurns <= 0;
 
+        // 남은 보호막 양. 보호막 효과 블록이 건 버프에만 0보다 크다. 피해를 이만큼 먼저 흡수하고, 0이 되면 버프가 깨진다.
+        public int ShieldAmount { get; private set; }
+        public bool HasShield => ShieldAmount > 0;
+
+        // 보호막 양을 정한다. 같은 보호막을 다시 걸면(갱신) 남은 양과 새 양 중 큰 쪽을 남긴다 → 약한 보호막으로 덮어써 손해 보지 않는다.
+        public void SetShieldAtLeast(int amount)
+        {
+            ShieldAmount = System.Math.Max(ShieldAmount, amount);
+        }
+
+        // 피해를 보호막으로 흡수하고, 흡수하지 못한 나머지 피해를 돌려준다.
+        // Math.Min: 피해와 남은 보호막 중 작은 값만큼 흡수한다. 예: 보호막 200, 피해 350 → 200 흡수, 나머지 150
+        public int Absorb(int damage)
+        {
+            int absorbed = System.Math.Min(ShieldAmount, damage);
+            ShieldAmount -= absorbed;
+            return damage - absorbed;
+        }
+
         // 효과를 가진 유닛의 턴이 끝날 때 남은 턴을 1 줄인다.
         public void DecreaseTurn()
         {
