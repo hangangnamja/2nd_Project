@@ -1,0 +1,83 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e992233e7e3770a46b319cf2760de460, type: 3}
+  m_Name: Boss1_Guardian
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.EnemyCharacterData
+  displayName: "\uCD95\uC801\uC758 \uC218\uD638\uC790"
+  role: 1
+  maxHp: 4986
+  attack: 296
+  defense: 48
+  baseSpeed: 110
+  critRate: 0.05
+  critDamage: 0.5
+  skill1:
+    skillName: "\uAC15\uD0C0"
+    targetType: 0
+    cooldown: 0
+    startCooldown: 0
+    effects:
+    - rid: 7605779530016096610
+  skill2:
+    skillName: "\uAC15\uD0C0"
+    targetType: 0
+    cooldown: 0
+    startCooldown: 0
+    effects:
+    - rid: 7605779530016096611
+  skill3:
+    skillName: "\uCD95\uC801 \uD574\uBC29"
+    targetType: 1
+    cooldown: 0
+    startCooldown: 0
+    effects:
+    - rid: 7605779530016096612
+    - rid: 7605779530016096613
+    - rid: 7605779530016096614
+  passives: []
+  patterns:
+  - patternName: "\uBC84\uD504 4\uAC1C \u2192 \uCD95\uC801 \uD574\uBC29"
+    condition: 1
+    threshold: 4
+    skillNumber: 3
+    target: 0
+  - patternName: "\uD3C9\uC18C \uB2E8\uC77C \uACF5\uACA9"
+    condition: 0
+    threshold: 0
+    skillNumber: 1
+    target: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 7605779530016096610
+      type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        multiplier: 1
+        secondaryTargetRatio: 1
+    - rid: 7605779530016096611
+      type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        multiplier: 1
+        secondaryTargetRatio: 1
+    - rid: 7605779530016096612
+      type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        multiplier: 5
+        secondaryTargetRatio: 1
+    - rid: 7605779530016096613
+      type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        status: {fileID: 11400000, guid: f1fa4cf29ade1b34e899309dd9fcb892, type: 2}
+        count: 1
+    - rid: 7605779530016096614
+      type: {class: ConsumeAllBuffsEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data: 

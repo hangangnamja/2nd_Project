@@ -105,6 +105,33 @@ namespace Game.Battle
         // 승패 판정은 IsDead로 한다 → 퇴장한 아군은 쓰러진 것이 아니다.
         public bool IsOnField => !IsDead && !IsExited;
 
+        // 기절 등 행동 불가 효과가 걸려 있는지. 자기 차례가 와도 스킬을 쓰지 못하고 턴을 넘긴다.
+        public bool IsStunned
+        {
+            get
+            {
+                foreach (StatusInstance status in Statuses.GetAll())
+                {
+                    if (status.Data.SkipsTurn)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+        }
+
+        // 무적: 피해를 받지 않는다 (보스 스테이지의 버프몹). 스테이지 설정으로 정해지고 전투 중 바뀌지 않는다.
+        // 무적인 적은 승리 조건(적 전멸)에서도 빠진다 → 보스만 쓰러뜨리면 클리어.
+        public bool IsInvulnerable { get; private set; }
+
+        // 무적으로 만든다. 전투 시작 때 스테이지 설정을 보고 BattleManager가 호출한다.
+        public void MakeInvulnerable()
+        {
+            IsInvulnerable = true;
+        }
+
         // 퇴장시키거나(true) 복귀시킨다(false). 하이퍼캐리 변신·해제 때 호출된다.
         public void SetExited(bool exited)
         {

@@ -49,6 +49,8 @@ MonoBehaviour:
   font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
   buffColor: {r: 0.2, g: 0.45, b: 0.95, a: 1}
   debuffColor: {r: 0.9, g: 0.15, b: 0.1, a: 1}
+  glyphColor: {r: 1, g: 1, b: 1, a: 1}
+  personalGlyphColor: {r: 0, g: 0, b: 0, a: 1}
   iconSize: 0.45
   iconSpacing: 0.5
   iconsPerRow: 5
@@ -191,6 +193,8 @@ MonoBehaviour:
   enemyColor: {r: 1, g: 0.4, b: 0.35, a: 1}
   actingColor: {r: 1, g: 0.85, b: 0.2, a: 1}
   deadColor: {r: 0.3, g: 0.3, b: 0.3, a: 1}
+  exitedColor: {r: 0.65, g: 0.65, b: 0.7, a: 1}
+  invulnerableDisplay: {fileID: 11400000, guid: 76359af582667564c96372d58db34258, type: 2}
 --- !u!1 &6852188391903565548
 GameObject:
   m_ObjectHideFlags: 0

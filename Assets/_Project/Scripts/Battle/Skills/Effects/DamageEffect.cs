@@ -58,7 +58,9 @@ namespace Game.Battle.Effects
                 // out absorbed: 함수가 피해와 별도로 "보호막이 흡수한 양"을 하나 더 돌려준다 (로그용).
                 int dealt = StatusApplier.DealDamage(target, result.Amount, context.Caster, context.Services, out int absorbed);
                 string critText = result.IsCritical ? " (치명!)" : string.Empty;
-                string shieldText = absorbed > 0 ? $" (보호막 {absorbed} 흡수)" : string.Empty;
+                string shieldText = absorbed > 0 ? $" (보호막 {absorbed} 흡수)"
+                    : target.IsInvulnerable ? " (무적)"
+                    : string.Empty;
                 context.Log($"  {target.Name}에게 {dealt} 피해{critText}{shieldText} (HP {target.CurrentHp}/{target.MaxHp})");
 
                 // 공격 행동(스킬, 추가 공격)에서 나간 피해만 공격 판정 사건을 알린다.

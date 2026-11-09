@@ -57,6 +57,12 @@ namespace Game.Data
         [Tooltip("턴 종료 시 회복량 = 부여 당시 시전자 최대 HP × 이 비율 (소생 = 0.05). 0이면 사용 안 함")]
         [SerializeField, Min(0f)] private float healSourceMaxHpRatio;
 
+        // 행동 불가(기절): 걸려 있으면 자기 차례가 와도 스킬을 쓰지 못하고 바로 턴을 마친다.
+        // 턴 종료 처리는 그대로 진행되므로 1턴짜리 기절은 그 턴이 끝나며 풀린다.
+        [Header("행동 불가")]
+        [Tooltip("체크하면 걸려 있는 동안 자기 턴에 행동하지 못한다 (기절)")]
+        [SerializeField] private bool skipsTurn;
+
         [Header("스탯 보정")]
         [Tooltip("이 효과가 걸려 있는 동안 적용되는 스탯 보정 (공격력 증가 등)")]
         [SerializeField] private List<StatModifier> statModifiers = new List<StatModifier>();
@@ -68,6 +74,11 @@ namespace Game.Data
         // 개인 버프: 자기 패시브로만 얻는 버프 (강탈 딜러 추격 등). 남이 걸어준 버프와 구분되도록 그림을 검은색으로 그린다.
         [Tooltip("개인 버프(자기 패시브로만 얻는 버프)면 체크. 머리 위 그림이 흰색 대신 검은색으로 표시된다")]
         [SerializeField] private bool isPersonal;
+
+        // 영구 표시: 상태효과 칸에 걸리는 효과가 아니라 유닛의 고정 상태(무적 등)를 아이콘으로 보여줄 때 쓴다.
+        // 남은 턴 숫자 대신 아무것도 표시하지 않고, 툴팁에는 "영구"로 나온다.
+        [Tooltip("유닛의 고정 상태를 보여주는 표시 전용 효과면 체크 (남은 턴을 표시하지 않음)")]
+        [SerializeField] private bool isPermanent;
 
         // 지연 버프: 걸려 있는 동안은 효과가 없고, 어떤 방식으로든 지워지면(만료, 해제, 소모, 밀려남) 이 효과로 바뀐다 (기획서 3-7).
         // 바뀐 효과는 그 턴의 종료 단계에 받는다. 사망으로 사라질 때는 바뀌지 않는다.
@@ -85,6 +96,7 @@ namespace Game.Data
         public string Description => description;
         public bool RecordsDamageTaken => recordsDamageTaken;
         public bool IsPersonal => isPersonal;
+        public bool IsPermanent => isPermanent;
         public StatusEffectData ConvertsTo => convertsTo;
         public StatusCategory Category => category;
         public StatusStackMode StackMode => stackMode;
@@ -95,6 +107,7 @@ namespace Game.Data
         public bool DealsDamageOverTime => damageAttackRatio > 0f || damageTargetMaxHpRatio > 0f;
         public float HealSourceMaxHpRatio => healSourceMaxHpRatio;
         public bool HealsOverTime => healSourceMaxHpRatio > 0f;
+        public bool SkipsTurn => skipsTurn;
 
         // 지속피해 1회의 기본 피해 (방어력·대상 쪽 보정을 적용하기 전 값).
         // snapshotAttack: 부여 당시 시전자 공격력, targetMaxHp: 대상 최대 HP

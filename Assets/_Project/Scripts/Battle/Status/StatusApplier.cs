@@ -59,6 +59,13 @@ namespace Game.Battle.Status
         // absorbed: 보호막이 흡수한 양 (로그용)
         public static int DealDamage(BattleUnit target, int amount, BattleUnit attacker, BattleServices services, out int absorbed)
         {
+            // 무적(보스 스테이지 버프몹)은 어떤 피해도 받지 않는다. 보호막·피해 기록도 건드리지 않는다.
+            if (target.IsInvulnerable)
+            {
+                absorbed = 0;
+                return 0;
+            }
+
             RecordDamageTaken(target, amount);
 
             var broken = new List<StatusInstance>();

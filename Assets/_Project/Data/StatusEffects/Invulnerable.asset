@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e7ea1fe386d9a7468a3d5897f0a5561, type: 3}
+  m_Name: Invulnerable
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StatusEffectData
+  displayName: "\uBB34\uC801"
+  description: "\uD53C\uD574\uB97C \uBC1B\uC9C0 \uC54A\uB294\uB2E4. \uC4F0\uB7EC\uB728\uB9AC\uC9C0
+    \uC54A\uC544\uB3C4 \uD074\uB9AC\uC5B4\uD560 \uC218 \uC788\uB2E4"
+  category: 0
+  stackMode: 1
+  duration: 2
+  damageAttackRatio: 0
+  damageTargetMaxHpRatio: 0
+  maxHpDamageAttackCap: 0
+  healSourceMaxHpRatio: 0
+  skipsTurn: 0
+  statModifiers: []
+  icon: {fileID: 2800000, guid: 79deaf4f62564f7c91f5cb28bc74b39b, type: 3}
+  isPersonal: 0
+  isPermanent: 1
+  convertsTo: {fileID: 0}
+  recordsDamageTaken: 0
