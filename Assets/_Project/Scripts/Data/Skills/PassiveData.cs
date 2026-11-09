@@ -24,6 +24,21 @@ namespace Game.Data
 
         // 이 캐릭터가 적을 처치했을 때 (사망 확정 시점에 마지막으로 피해를 준 유닛 기준). 효과 대상 = 자신
         OnKill,
+
+        // 이 캐릭터가 건 버프가 누구에게서든 지워졌을 때 (만료, 소모, 보호막 깨짐, 밀려남. 사망·강탈 제외). 효과 대상 = 자신
+        OnOwnBuffRemoved,
+    }
+
+    // 턴당 횟수 제한을 어느 턴 기준으로 세는지.
+    // 에셋에는 숫자 순서로 저장되므로 새 항목은 반드시 맨 뒤에 추가한다.
+    public enum PassiveTurnLimitScope
+    {
+        // 누구의 턴이든 턴이 바뀔 때마다 다시 채운다.
+        AnyTurn,
+
+        // 이 캐릭터의 턴이 시작될 때만 다시 채운다 → "자기 턴 사이에 N회".
+        // 예: 곰인형 버퍼 패시브는 아군 4명의 턴마다 버프가 만료돼도, 자기 턴 사이에 1번만 쿨타임을 줄인다.
+        OwnTurn,
     }
 
     // 패시브가 발동했을 때 효과를 언제 실행하는지.
@@ -53,6 +68,9 @@ namespace Game.Data
         [Tooltip("한 턴(누구의 턴이든)에 발동할 수 있는 최대 횟수. 0이면 제한 없음")]
         [SerializeField, Min(0)] private int maxTriggersPerTurn;
 
+        [Tooltip("턴당 횟수를 다시 채우는 기준. AnyTurn = 매 턴, OwnTurn = 이 캐릭터의 턴이 시작될 때만")]
+        [SerializeField] private PassiveTurnLimitScope turnLimitScope = PassiveTurnLimitScope.AnyTurn;
+
         // 스택: 정해진 때에 쌓이고, 발동할 때 소모된다. 스택이 모자라면 발동하지 않는다.
         // 예: 격발 딜러 패시브 2 = 자기 행동마다 1개(최대 2개), 발동 시 1개 소모
         [Header("스택 (0이면 스택 없이 발동)")]
@@ -77,6 +95,7 @@ namespace Game.Data
         public PassiveTrigger Trigger => trigger;
         public PassiveExecution Execution => execution;
         public int MaxTriggersPerTurn => maxTriggersPerTurn;
+        public PassiveTurnLimitScope TurnLimitScope => turnLimitScope;
         public bool UsesStacks => maxStacks > 0;
         public int MaxStacks => maxStacks;
         public int StacksPerOwnAction => stacksPerOwnAction;

@@ -178,6 +178,17 @@ namespace Game.Battle
             }
         }
 
+        // 해당 슬롯의 남은 쿨타임을 turns만큼 줄인다 (쿨타임 감소 효과). 0 아래로는 내려가지 않는다.
+        public void ReduceCooldown(int slot, int turns)
+        {
+            if (slot < 0 || slot >= remainingCooldowns.Length)
+            {
+                return;
+            }
+
+            remainingCooldowns[slot] = Math.Max(0, remainingCooldowns[slot] - turns);
+        }
+
         // 원본 값에 상태효과의 스탯 보정을 적용한다.
         // 같은 스탯의 % 보정은 모두 더한 뒤 한 번에 곱한다 (같은 종류는 합연산, 기획서 3-5).
         // 예: 공격력 120, 공증 30% + 공증 10% → 120 × (1 + 0.4) = 168

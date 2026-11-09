@@ -18,6 +18,7 @@ namespace Game.Battle.Effects
         {
             foreach (BattleUnit target in context.Targets)
             {
+                // 강탈은 효과가 지워지는 게 아니라 그대로 옮겨가는 것이므로 "지워짐"(지연 버프 변환, 부여자 패시브)으로 알리지 않는다.
                 List<StatusInstance> stolen = target.Statuses.RemoveAllBuffs();
 
                 if (stolen.Count == 0)

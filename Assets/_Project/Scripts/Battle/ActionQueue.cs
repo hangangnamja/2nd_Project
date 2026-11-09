@@ -100,16 +100,29 @@ namespace Game.Battle
         }
     }
 
-    // 턴 종료 단계에 받을 버프 하나: 누가, 어떤 효과 인스턴스를(남은 턴 그대로) 받는지.
+    // 턴 종료 단계에 받을 버프 하나. 두 종류가 있다.
+    //  - 강탈한 버프: 이미 있는 효과 인스턴스를 남은 턴 그대로 받는다 (Instance)
+    //  - 지연 버프가 바뀐 효과: 효과 정의로 새로 건다 (Data + Source)
     public class TurnEndBuff
     {
         public BattleUnit Receiver { get; }
         public StatusInstance Instance { get; }
+        public StatusEffectData Data { get; }
+        public BattleUnit Source { get; }
 
+        // 강탈한 버프를 그대로 받는 경우.
         public TurnEndBuff(BattleUnit receiver, StatusInstance instance)
         {
             Receiver = receiver;
             Instance = instance;
+        }
+
+        // 지연 버프가 지워져 새 효과를 받는 경우. source = 지연 버프를 건 유닛.
+        public TurnEndBuff(BattleUnit receiver, StatusEffectData data, BattleUnit source)
+        {
+            Receiver = receiver;
+            Data = data;
+            Source = source;
         }
     }
 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Game.Battle.Status;
 using Game.Data;
 
 namespace Game.Battle
@@ -17,7 +18,7 @@ namespace Game.Battle
         private ActionQueue actions => services.Actions;
         private Action<string> log => services.Log;
 
-        // 이번 턴에 패시브가 몇 번 발동했는지. 턴마다 비우고, 패시브별 최대 횟수와 비교한다.
+        // 패시브가 몇 번 발동했는지. 패시브의 횟수 기준(매 턴 / 자기 턴)에 맞춰 비우고, 패시브별 최대 횟수와 비교한다.
         // Dictionary<키, 값>: 키로 값을 빠르게 찾는 자료구조.
         // 키 (BattleUnit, PassiveData)는 두 값을 묶은 튜플로, 같은 캐릭터 에셋을 쓰는 유닛이 둘이어도 횟수를 따로 센다.
         private readonly Dictionary<(BattleUnit, PassiveData), int> triggerCountsThisTurn =
@@ -34,6 +35,7 @@ namespace Game.Battle
             events.AttackPerformed += HandleAttackPerformed;
             events.BuffGained += HandleBuffGained;
             events.UnitKilled += HandleUnitKilled;
+            events.BuffRemoved += HandleBuffRemoved;
         }
 
         // 전투가 끝나 더 이상 반응할 필요가 없을 때 구독을 해제한다.
@@ -44,6 +46,20 @@ namespace Game.Battle
             events.AttackPerformed -= HandleAttackPerformed;
             events.BuffGained -= HandleBuffGained;
             events.UnitKilled -= HandleUnitKilled;
+            events.BuffRemoved -= HandleBuffRemoved;
+        }
+
+        // 버프가 지워짐: 그 버프를 건 유닛(부여자)의 "자신이 건 버프가 지워질 때" 패시브를 자신에게 실행한다 (곰인형 버퍼).
+        // 버프 3개가 한꺼번에 지워지면 사건이 3번 오지만, 횟수 제한(자기 턴 사이 1회)으로 1번만 발동한다.
+        private void HandleBuffRemoved(BattleUnit holder, StatusInstance buff)
+        {
+            BattleUnit caster = buff.Source;
+            if (caster == null || caster.IsDead)
+            {
+                return;
+            }
+
+            ActivateOwnPassives(caster, PassiveTrigger.OnOwnBuffRemoved);
         }
 
         // 새 버프를 얻음: 받은 유닛 본인의 "버프 획득 시" 패시브를 자신에게 실행한다 (강탈 딜러 버프 가속).
@@ -114,10 +130,29 @@ namespace Game.Battle
             }
         }
 
-        // 새 턴이 시작될 때(추가 턴 포함) 패시브 발동 횟수를 초기화한다.
-        public void ResetTurnCounters()
+        // 새 턴이 시작될 때(추가 턴 포함) 패시브 발동 횟수를 초기화한다. actor = 이번 턴에 행동하는 유닛.
+        //  - 매 턴 기준(AnyTurn) 패시브: 누구의 턴이든 비운다
+        //  - 자기 턴 기준(OwnTurn) 패시브: 행동하는 유닛 본인의 것만 비운다
+        // 추가 공격(임시 턴)은 이 함수를 부르지 않으므로 횟수가 다시 채워지지 않는다.
+        public void ResetTurnCounters(BattleUnit actor)
         {
-            triggerCountsThisTurn.Clear();
+            var keysToClear = new List<(BattleUnit, PassiveData)>();
+
+            // 튜플 분해 (unit, passive): 키에 묶인 두 값을 각각 이름 붙여 꺼낸다.
+            foreach ((BattleUnit unit, PassiveData passive) in triggerCountsThisTurn.Keys)
+            {
+                bool isOwnTurnScope = passive.TurnLimitScope == PassiveTurnLimitScope.OwnTurn;
+                if (!isOwnTurnScope || unit == actor)
+                {
+                    keysToClear.Add((unit, passive));
+                }
+            }
+
+            // 순회가 끝난 뒤에 지운다 (foreach 도중 Dictionary를 바꾸면 오류가 난다).
+            foreach (var key in keysToClear)
+            {
+                triggerCountsThisTurn.Remove(key);
+            }
         }
 
         // 공격 판정 1회: 공격자 본인의 "공격 판정 시" 패시브를 맞은 대상에게 실행한다.

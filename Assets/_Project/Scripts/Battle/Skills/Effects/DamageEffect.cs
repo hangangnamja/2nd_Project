@@ -1,4 +1,5 @@
 using System;
+using Game.Battle.Status;
 using UnityEngine;
 
 namespace Game.Battle.Effects
@@ -35,9 +36,12 @@ namespace Game.Battle.Effects
                     context.Services.Random,
                     context.Services.Rules);
 
-                int dealt = target.TakeDamage(result.Amount, context.Caster);
+                // 보호막이 있으면 먼저 흡수하고, 남은 피해만 HP에 들어간다.
+                // out absorbed: 함수가 피해와 별도로 "보호막이 흡수한 양"을 하나 더 돌려준다 (로그용).
+                int dealt = StatusApplier.DealDamage(target, result.Amount, context.Caster, context.Services, out int absorbed);
                 string critText = result.IsCritical ? " (치명!)" : string.Empty;
-                context.Log($"  {target.Name}에게 {dealt} 피해{critText} (HP {target.CurrentHp}/{target.MaxHp})");
+                string shieldText = absorbed > 0 ? $" (보호막 {absorbed} 흡수)" : string.Empty;
+                context.Log($"  {target.Name}에게 {dealt} 피해{critText}{shieldText} (HP {target.CurrentHp}/{target.MaxHp})");
 
                 // 공격 행동(스킬, 추가 공격)에서 나간 피해만 공격 판정 사건을 알린다.
                 // 패시브에 붙은 피해 효과는 공격이 아니므로 다른 패시브를 깨우지 않는다.
