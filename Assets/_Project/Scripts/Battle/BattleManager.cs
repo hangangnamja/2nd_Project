@@ -189,7 +189,7 @@ namespace Game.Battle
         // ---------- 전투 흐름 ----------
 
         // 한쪽 편이 전멸할 때까지 턴을 반복하는 전투 루프. 턴 하나의 처리 순서 (Architecture.md 3장):
-        // 행동자 결정(추가 턴이면 같은 유닛) → 스킬·대상 선택 → 스킬 실행 → 대기 중인 추가 공격 실행 → 턴 종료 → 추가 턴 확인
+        // 행동자 결정(추가 턴이면 같은 유닛) → 스킬·대상 선택 → 스킬 실행 → 턴 종료 → 추가 공격(임시 턴) 실행 → 추가 턴 확인
         private IEnumerator RunBattle()
         {
             Log($"전투 시작: 아군 {allies.Count}명 vs 적 {enemies.Count}명");
@@ -211,8 +211,10 @@ namespace Game.Battle
                 }
 
                 UseSkill(CurrentActor, pendingSkillSlot, pendingTarget);
-                ProcessFollowUpAttacks();
+
+                // 추가 공격은 행동자의 턴이 완전히 끝난 뒤, 각자의 임시 턴으로 실행한다 (기획서 3-4).
                 EndTurn(CurrentActor);
+                ProcessFollowUpAttacks();
 
                 // 이번 턴에 추가 턴을 얻었으면, 다음 반복에서 스케줄러를 거치지 않고 같은 유닛이 바로 행동한다.
                 extraTurnUnit = actionQueue.ConsumeExtraTurn();
@@ -232,6 +234,9 @@ namespace Game.Battle
             hasPendingAction = false;
             passiveRunner.ResetTurnCounters();
 
+            // 자기 턴 표시: 이 턴 중에 얻은 행동 당기기는 턴 종료 리셋 뒤로 미뤄진다 (기획서 4-3 강탈 딜러 패시브 1).
+            CurrentActor.BeginOwnTurn();
+
             if (hasExtraTurn)
             {
                 Log($"[추가 턴] {CurrentActor.Name}");
@@ -240,8 +245,9 @@ namespace Game.Battle
             StateChanged?.Invoke();
         }
 
-        // 대기열에 쌓인 추가 공격을 들어온 순서대로 모두 실행한다.
-        // 추가 공격이 또 다른 추가 공격을 예약할 수 있지만, 패시브 횟수 제한 덕분에 반드시 끝난다.
+        // 대기열에 쌓인 추가 공격을 들어온 순서대로 모두 실행한다. 추가 공격 하나 = 조작할 수 없는 임시 턴 하나 (기획서 3-4).
+        // 임시 턴: 공격 → 사망 확정 → 턴 종료 단계 효과. 정규 턴 종료 처리(지속피해, 남은 턴·쿨타임 감소, 게이지)는 없다.
+        // 패시브 턴당 횟수도 초기화하지 않는다 → 횟수는 추가 공격을 일으킨 정규 턴에 묶여, 연쇄가 반드시 끝난다.
         private void ProcessFollowUpAttacks()
         {
             while (!IsBattleDecided() && actionQueue.TryDequeueFollowUp(out FollowUpAttack followUp))
@@ -264,7 +270,13 @@ namespace Game.Battle
 
                 // 추가 공격도 하나의 공격이므로, 끝날 때 HP 0인 유닛의 사망을 확정한다.
                 ConfirmDeaths();
+
+                // 임시 턴의 종료 단계: 이 추가 공격의 처치로 예약된 효과를 남의 턴으로 미루지 않고 여기서 적용한다.
+                ProcessTurnEndEffects();
             }
+
+            // 추가 공격은 정규 턴 종료 알림 이후에 실행되므로, 바뀐 HP 등을 화면에 다시 알린다.
+            StateChanged?.Invoke();
         }
 
         // 공격이나 턴 종료 처리가 끝난 시점에 HP가 0인 유닛의 사망을 확정한다 (기획서 3-9).
@@ -276,6 +288,10 @@ namespace Game.Battle
                 if (unit.ConfirmDeathIfDown())
                 {
                     Log($"  {unit.Name} 쓰러짐");
+
+                    // 처치 사건은 사망이 확정된 뒤에 알린다 → 처치 시 패시브가 확정된 결과를 기준으로 반응한다.
+                    // LastAttacker: 마지막으로 피해를 준 유닛(지속피해면 그 효과의 부여자)을 처치자로 본다.
+                    services.Events.RaiseUnitKilled(unit, unit.LastAttacker);
                 }
             }
         }
@@ -360,7 +376,8 @@ namespace Game.Battle
             ConfirmDeaths();
         }
 
-        // 행동을 마친 유닛의 턴 종료 처리: 상태효과(지속피해 → 남은 턴 감소) → 쿨타임 감소 → 출발점 복귀.
+        // 행동을 마친 유닛의 턴 종료 처리:
+        // 상태효과(지속피해 → 남은 턴 감소) → 쿨타임 감소 → 출발점 복귀 → 미뤄둔 행동 당기기 → 턴 종료 단계 패시브.
         private void EndTurn(BattleUnit actor)
         {
             StatusTurnProcessor.ProcessTurnEnd(actor, services);
@@ -369,7 +386,40 @@ namespace Game.Battle
             ConfirmDeaths();
             actor.TickCooldowns();
             scheduler.EndTurn(actor);
+
+            // 게이지가 출발점(10000)으로 돌아간 뒤에 이번 턴 중 얻은 당기기를 적용해야 효과가 사라지지 않는다.
+            actor.EndOwnTurn();
+            ProcessTurnEndEffects();
             StateChanged?.Invoke();
+        }
+
+        // 턴 종료 단계(정규 턴·임시 턴 공통): 예약된 버프를 받고 → 예약된 패시브 효과를 실행한다 (기획서 3-9).
+        // 버프 소모 같은 스킬 처리와 턴 종료 상태효과 감소가 모두 끝난 뒤라, 새로 얻은 버프가 바로 깎이거나 소모되지 않는다.
+        // 여기서 얻은 버프의 행동 당기기는 게이지 리셋 이후이므로 즉시 적용된다.
+        // 받는 쪽이 이미 쓰러졌으면 그 버프·효과는 사라진다.
+        private void ProcessTurnEndEffects()
+        {
+            while (actionQueue.TryDequeueTurnEndBuff(out TurnEndBuff buff))
+            {
+                if (buff.Receiver.IsDead)
+                {
+                    continue;
+                }
+
+                // Receive: 남은 턴 그대로 넣는다. 새 버프면 "버프 획득" 사건 → 강탈 딜러 가속 패시브가 반응한다.
+                Log($"  {buff.Receiver.Name}: 강탈한 {buff.Instance.Data.DisplayName} 획득 (남은 {buff.Instance.RemainingTurns}턴)");
+                StatusApplier.Receive(buff.Receiver, buff.Instance, services);
+            }
+
+            while (actionQueue.TryDequeueTurnEndEffect(out TurnEndEffect effect))
+            {
+                if (effect.Owner.IsDead)
+                {
+                    continue;
+                }
+
+                passiveRunner.ExecuteTurnEndEffect(effect);
+            }
         }
 
         // 전투가 끝났을 때 승패를 기록하고 화면에 알린다.

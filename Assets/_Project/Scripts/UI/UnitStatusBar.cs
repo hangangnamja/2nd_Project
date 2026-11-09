@@ -23,9 +23,21 @@ namespace Game.UI
         [SerializeField] private Color buffColor = new Color(0.2f, 0.45f, 0.95f);
         [SerializeField] private Color debuffColor = new Color(0.9f, 0.15f, 0.1f);
 
+        [Header("그림 색")]
+        [SerializeField] private Color glyphColor = Color.white;
+
+        [Tooltip("개인 버프(StatusEffectData.IsPersonal)의 그림 색")]
+        [SerializeField] private Color personalGlyphColor = Color.black;
+
         [Header("배치")]
-        [SerializeField, Min(0.01f)] private float iconSize = 0.22f;
-        [SerializeField, Min(0.01f)] private float iconSpacing = 0.28f;
+        [SerializeField, Min(0.01f)] private float iconSize = 0.45f;
+        [SerializeField, Min(0.01f)] private float iconSpacing = 0.5f;
+
+        [Tooltip("한 줄에 놓을 최대 블럭 수. 넘치면 위쪽에 새 줄을 만든다")]
+        [SerializeField, Min(1)] private int iconsPerRow = 5;
+
+        [Tooltip("줄 사이 세로 간격 (블럭 + 턴 숫자 높이)")]
+        [SerializeField, Min(0.01f)] private float rowSpacing = 0.7f;
 
         [Tooltip("블럭 대비 그림 크기 비율")]
         [SerializeField, Range(0.1f, 1f)] private float glyphScale = 0.8f;
@@ -44,14 +56,11 @@ namespace Game.UI
 
         private readonly List<StatusIcon> icons = new List<StatusIcon>();
 
-        // 상태효과 목록을 받아 블럭을 가운데 정렬로 늘어놓고, 색·그림·남은 턴을 갱신한다.
+        // 상태효과 목록을 받아 블럭을 줄마다 가운데 정렬로 늘어놓고, 색·그림·남은 턴을 갱신한다.
+        // 블럭이 커서 한 줄에 다 놓으면 옆 유닛과 겹치므로, 한 줄 최대 개수를 넘으면 위로 줄을 쌓는다.
         public void Show(IReadOnlyList<StatusInstance> statuses)
         {
             EnsureIconCount(statuses.Count);
-
-            // 블럭 묶음 전체의 가운데가 x = 0에 오도록 첫 블럭 위치를 왼쪽으로 당긴다.
-            // 예: 3개, 간격 0.28 → 시작 x = -0.28 → -0.28, 0, 0.28
-            float startX = -(statuses.Count - 1) * iconSpacing * 0.5f;
 
             for (int i = 0; i < icons.Count; i++)
             {
@@ -60,9 +69,24 @@ namespace Game.UI
 
                 if (isUsed)
                 {
-                    ApplyIcon(icons[i], statuses[i], new Vector3(startX + i * iconSpacing, 0f, 0f));
+                    ApplyIcon(icons[i], statuses[i], GetIconPosition(i, statuses.Count));
                 }
             }
+        }
+
+        // index번째 블럭의 위치. 줄 번호 = index / 한 줄 개수, 줄 안 순서 = index % 한 줄 개수.
+        // 각 줄은 그 줄에 놓인 개수 기준으로 가운데 정렬한다.
+        // 예: 7개, 한 줄 5개, 간격 0.5 → 0줄 5개(x = -1.0 ~ 1.0), 1줄 2개(x = -0.25, 0.25, 위로 rowSpacing만큼)
+        private Vector3 GetIconPosition(int index, int totalCount)
+        {
+            int row = index / iconsPerRow;
+            int column = index % iconsPerRow;
+
+            // Mathf.Min: 마지막 줄은 남은 개수만큼만 놓이므로, 한 줄 최대 개수와 남은 개수 중 작은 값이 그 줄의 개수다.
+            int countInRow = Mathf.Min(iconsPerRow, totalCount - row * iconsPerRow);
+            float startX = -(countInRow - 1) * iconSpacing * 0.5f;
+
+            return new Vector3(startX + column * iconSpacing, row * rowSpacing, 0f);
         }
 
         // 블럭 하나의 위치, 배경색, 그림, 턴 숫자를 상태효과에 맞춘다.
@@ -79,6 +103,10 @@ namespace Game.UI
             if (glyphTexture != null)
             {
                 icon.Glyph.material.mainTexture = glyphTexture;
+
+                // 그림은 흰색으로 그려져 있어, material.color(_BaseColor)를 곱하면 원하는 색이 된다.
+                // 개인 버프는 검은색, 그 외는 흰색으로 그려 남이 걸어준 버프와 구분한다.
+                icon.Glyph.material.color = status.Data.IsPersonal ? personalGlyphColor : glyphColor;
             }
 
             icon.TurnText.text = status.RemainingTurns.ToString();

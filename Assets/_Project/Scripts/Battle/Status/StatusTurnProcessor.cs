@@ -44,7 +44,8 @@ namespace Game.Battle.Status
                     unit,
                     services.Rules);
 
-                int dealt = unit.TakeDamage(damage);
+                // 지속피해의 처치자는 그 효과를 건 유닛으로 본다.
+                int dealt = unit.TakeDamage(damage, instance.Source);
                 triggeredCount++;
                 services.Log($"  {logPrefix}{unit.Name}: {data.DisplayName} {dealt} 피해 (HP {unit.CurrentHp}/{unit.MaxHp})");
             }

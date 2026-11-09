@@ -54,7 +54,12 @@ namespace Game.Data
         [Tooltip("머리 위 블럭에 겹쳐 그릴 그림 (흰색 그림 + 투명 배경). 비우면 색 블럭만 표시")]
         [SerializeField] private Texture2D icon;
 
+        // 개인 버프: 자기 패시브로만 얻는 버프 (강탈 딜러 추격 등). 남이 걸어준 버프와 구분되도록 그림을 검은색으로 그린다.
+        [Tooltip("개인 버프(자기 패시브로만 얻는 버프)면 체크. 머리 위 그림이 흰색 대신 검은색으로 표시된다")]
+        [SerializeField] private bool isPersonal;
+
         public string DisplayName => displayName;
+        public bool IsPersonal => isPersonal;
         public StatusCategory Category => category;
         public StatusStackMode StackMode => stackMode;
         public int Duration => duration;

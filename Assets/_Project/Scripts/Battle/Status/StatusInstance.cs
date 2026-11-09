@@ -34,6 +34,20 @@ namespace Game.Battle.Status
             RemainingTurns--;
         }
 
+        // 강탈로 같은 버프를 또 받았을 때: 남은 턴이 더 긴 쪽으로 맞춘다 (기획서 4-3).
+        // Math.Max: 둘 중 큰 값. 예: 내 버프 1턴, 뺏은 버프 2턴 → 2턴
+        public void KeepLongerRemaining(int otherRemainingTurns, long appliedOrder)
+        {
+            RemainingTurns = System.Math.Max(RemainingTurns, otherRemainingTurns);
+            AppliedOrder = appliedOrder;
+        }
+
+        // 다른 유닛에게서 넘어왔을 때 "새 칸에 들어온 효과"로 순번만 새로 매긴다. 남은 턴은 그대로 계승한다.
+        public void ResetAppliedOrder(long appliedOrder)
+        {
+            AppliedOrder = appliedOrder;
+        }
+
         // 갱신형 효과를 다시 걸었을 때 남은 턴을 처음 값으로 되돌린다.
         // 부여 순서도 새로 매겨, 밀어내기 판정에서 "방금 걸린 효과"로 취급되게 한다.
         public void Refresh(long appliedOrder)

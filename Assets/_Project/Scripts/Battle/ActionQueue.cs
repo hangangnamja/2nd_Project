@@ -1,9 +1,10 @@
 using System.Collections.Generic;
+using Game.Battle.Status;
 using Game.Data;
 
 namespace Game.Battle
 {
-    // 현재 행동이 끝난 뒤 실행할 후속 행동(추가 공격)과, 이번 턴이 끝난 뒤 받을 추가 턴을 모아 둔다.
+    // 턴이 끝난 뒤 실행할 후속 행동(추가 공격 = 임시 턴, 추가 턴)과, 턴 종료 단계에 받을 버프·패시브 효과를 모아 둔다.
     // 이 클래스는 "다음에 무엇을 실행할지"만 관리하고, 실제 실행은 BattleManager가 한다 (Architecture.md 3장).
     public class ActionQueue
     {
@@ -52,6 +53,76 @@ namespace Game.Battle
             BattleUnit unit = extraTurnUnit;
             extraTurnUnit = null;
             return unit;
+        }
+
+        // 턴 종료 단계에 받을 버프 (강탈한 버프). 패시브 효과보다 먼저 들어간다.
+        private readonly Queue<TurnEndBuff> turnEndBuffs = new Queue<TurnEndBuff>();
+
+        // 턴 종료 단계에 받을 버프 하나를 예약한다.
+        public void EnqueueTurnEndBuff(TurnEndBuff buff)
+        {
+            turnEndBuffs.Enqueue(buff);
+        }
+
+        // 예약된 턴 종료 버프를 하나 꺼낸다. 없으면 false.
+        public bool TryDequeueTurnEndBuff(out TurnEndBuff buff)
+        {
+            if (turnEndBuffs.Count > 0)
+            {
+                buff = turnEndBuffs.Dequeue();
+                return true;
+            }
+
+            buff = null;
+            return false;
+        }
+
+        // 턴 종료 단계에 실행할 패시브 효과 (강탈 딜러 추격 등). 발동한 순서대로 실행된다.
+        private readonly Queue<TurnEndEffect> turnEndEffects = new Queue<TurnEndEffect>();
+
+        // 턴 종료 단계에 실행할 패시브 효과 하나를 예약한다.
+        public void EnqueueTurnEndEffect(TurnEndEffect effect)
+        {
+            turnEndEffects.Enqueue(effect);
+        }
+
+        // 예약된 턴 종료 효과를 하나 꺼낸다. 없으면 false.
+        public bool TryDequeueTurnEndEffect(out TurnEndEffect effect)
+        {
+            if (turnEndEffects.Count > 0)
+            {
+                effect = turnEndEffects.Dequeue();
+                return true;
+            }
+
+            effect = null;
+            return false;
+        }
+    }
+
+    // 턴 종료 단계에 받을 버프 하나: 누가, 어떤 효과 인스턴스를(남은 턴 그대로) 받는지.
+    public class TurnEndBuff
+    {
+        public BattleUnit Receiver { get; }
+        public StatusInstance Instance { get; }
+
+        public TurnEndBuff(BattleUnit receiver, StatusInstance instance)
+        {
+            Receiver = receiver;
+            Instance = instance;
+        }
+    }
+
+    // 턴 종료 단계에 실행할 패시브 효과 하나:누가, 어떤 패시브를 실행하는지. 효과 대상은 패시브 주인 자신이다.
+    public class TurnEndEffect
+    {
+        public BattleUnit Owner { get; }
+        public PassiveData Passive { get; }
+
+        public TurnEndEffect(BattleUnit owner, PassiveData passive)
+        {
+            Owner = owner;
+            Passive = passive;
         }
     }
 

@@ -275,17 +275,35 @@ namespace Game.Battle
             return CurrentHp - hpBefore;
         }
 
+        // 마지막으로 이 유닛에게 피해를 준 유닛. 사망이 확정될 때 "누가 처치했는지" 판단에 쓴다.
+        public BattleUnit LastAttacker { get; private set; }
+
         // 피해를 받아 HP를 줄이고, 실제로 줄어든 양을 돌려준다 (로그·연출용).
-        public int TakeDamage(int amount)
+        // attacker: 피해를 준 유닛 (지속피해는 그 효과를 건 유닛). 처치자 판정에 기록한다.
+        public int TakeDamage(int amount, BattleUnit attacker)
         {
             int hpBefore = CurrentHp;
 
             // Math.Max(0, ...): 남은 HP가 음수가 되지 않도록 0 아래로 내려가면 0으로 고정한다.
             CurrentHp = Math.Max(0, CurrentHp - amount);
 
+            int dealt = hpBefore - CurrentHp;
+            if (dealt > 0)
+            {
+                LastAttacker = attacker;
+            }
+
             // 남은 HP보다 큰 피해가 들어와도 실제로 깎인 만큼만 돌려준다 (예: HP 30에 100 피해 → 30).
-            return hpBefore - CurrentHp;
+            return dealt;
         }
+
+        // ---------- 행동 게이지 ----------
+
+        // 지금 자기 턴을 진행 중인지. 자기 턴 중에 얻은 행동 당기기는 턴 종료 리셋 뒤에 적용해야 한다.
+        public bool IsTakingTurn { get; private set; }
+
+        // 자기 턴 중에 쌓인 행동 당기기 비율 (1.0 = 100%). 턴이 끝나 게이지가 리셋된 뒤 한꺼번에 적용한다.
+        private double pendingAdvanceRatio;
 
         // elapsedTime만큼 시간이 흐를 때 그동안 이동한 거리(속도 × 시간)만큼 도착점에 가까워진다.
         // 부동소수점 오차로 음수가 되지 않도록 0 아래는 0으로 고정한다.
@@ -298,6 +316,43 @@ namespace Game.Battle
         public void ResetDistance()
         {
             RemainingDistance = TurnScheduler.TrackLength;
+        }
+
+        // 자기 턴 시작을 표시한다. 이때부터 얻는 행동 당기기는 턴이 끝날 때까지 보류된다.
+        public void BeginOwnTurn()
+        {
+            IsTakingTurn = true;
+        }
+
+        // 자기 턴 종료(게이지 리셋 이후)를 표시하고, 보류해 둔 행동 당기기를 적용한다.
+        public void EndOwnTurn()
+        {
+            IsTakingTurn = false;
+
+            if (pendingAdvanceRatio > 0d)
+            {
+                ApplyActionAdvance(pendingAdvanceRatio);
+                pendingAdvanceRatio = 0d;
+            }
+        }
+
+        // 행동 게이지를 ratio만큼 당긴다 (기획서 3-3: 남은 거리 -= 10000 × 비율).
+        // 자기 턴 중이면 턴 종료 리셋에 지워지지 않도록 보류해 두었다가 턴이 끝난 뒤 적용한다.
+        public void AddActionAdvance(double ratio)
+        {
+            if (IsTakingTurn)
+            {
+                pendingAdvanceRatio += ratio;
+                return;
+            }
+
+            ApplyActionAdvance(ratio);
+        }
+
+        // 남은 거리를 실제로 줄인다. 0(바로 다음 행동) 아래로는 내려가지 않는다.
+        private void ApplyActionAdvance(double ratio)
+        {
+            RemainingDistance = Math.Max(0d, RemainingDistance - TurnScheduler.TrackLength * ratio);
         }
     }
 }
