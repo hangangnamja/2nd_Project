@@ -391,9 +391,10 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 3ac05b34f6b0d6844bb9fbff35d5dbfb, type: 2}
   enemyParty:
   - {fileID: 11400000, guid: d0130fc9089396e44999e8180a20caea, type: 2}
-  - {fileID: 11400000, guid: 81d6e306125c13b4b83d00623fe05ecd, type: 2}
-  - {fileID: 11400000, guid: fa5db8d986b4b66428761a8da3d67530, type: 2}
-  testLevel: 1
+  - {fileID: 11400000, guid: 1bb45f7a54428b6409569af9e61548c3, type: 2}
+  - {fileID: 11400000, guid: d0130fc9089396e44999e8180a20caea, type: 2}
+  allyLevel: 60
+  enemyLevel: 60
   rules: {fileID: 11400000, guid: 578a03459990c304aae4e2558428a676, type: 2}
   randomSeed: 0
   enemyActionDelay: 0.6

@@ -28,13 +28,19 @@ namespace Game.Battle
 
         public string Name => Data.DisplayName;
 
+        // 레벨이 반영된 기본 스탯 = 캐릭터 데이터(Lv1 기준) × 레벨 배율. 전투 시작 때 정해지고 전투 중에는 바뀌지 않는다.
+        // 버프·변신 보정은 이 값을 기준으로 붙는다.
+        public double BaseMaxHp { get; }
+        public double BaseAttack { get; }
+        public double BaseDefense { get; }
+
         // 최대 HP도 최종 스탯이다: 변신 HP 증가 같은 보정이 붙으면 늘어나고, 보정이 사라지면 원래대로 돌아온다.
-        public int MaxHp => (int)CalculateFinalStat(StatType.MaxHp, Data.MaxHp);
+        public int MaxHp => (int)CalculateFinalStat(StatType.MaxHp, BaseMaxHp);
         public CharacterRole Role => Data.Role;
 
-        // 최종 스탯: 원본 스탯에 걸려 있는 버프·디버프 보정을 더한 값. 전투 계산은 항상 이 값을 쓴다.
-        public int Attack => (int)CalculateFinalStat(StatType.Attack, Data.Attack);
-        public int Defense => (int)CalculateFinalStat(StatType.Defense, Data.Defense);
+        // 최종 스탯: 기본 스탯에 걸려 있는 버프·디버프 보정을 더한 값. 전투 계산은 항상 이 값을 쓴다.
+        public int Attack => (int)CalculateFinalStat(StatType.Attack, BaseAttack);
+        public int Defense => (int)CalculateFinalStat(StatType.Defense, BaseDefense);
 
         // 최종 속도 = 기초 속도 × (1 + 속도 %) + 고정 속도 (기획서 3-3).
         // 속도가 바뀌어도 남은 거리는 그대로이고, 행동수치(도착 시간)만 이 값으로 다시 계산된다.
@@ -125,16 +131,23 @@ namespace Game.Battle
         private readonly System.Collections.Generic.Dictionary<PassiveData, int> passiveStacks =
             new System.Collections.Generic.Dictionary<PassiveData, int>();
 
-        // 원본 데이터, 소속(아군/적), 편성 순서, 레벨을 받아 전투용 유닛을 만든다.
+        // 원본 데이터, 소속(아군/적), 편성 순서, 레벨, 레벨 배율을 받아 전투용 유닛을 만든다.
+        // scaling: 레벨에 따른 HP·공격력·방어력 배율 (BattleRulesData가 아군/적 성장 곡선으로 계산해 넘겨준다).
         // 시작 HP는 최대 HP, 시작 거리는 트랙 길이 (기획서: 전투 시작 시 전원 10000).
         // 쿨타임은 스킬마다 설정한 시작 쿨타임으로 채운다 (기본 0 = 첫 턴부터 사용 가능).
-        public BattleUnit(CharacterData data, bool isAlly, int formationIndex, int level)
+        public BattleUnit(CharacterData data, bool isAlly, int formationIndex, int level, StatScaling scaling)
         {
             Data = data;
             IsAlly = isAlly;
             FormationIndex = formationIndex;
             Level = level;
-            CurrentHp = data.MaxHp;
+
+            // 데이터 스탯을 Lv1 값으로 보고 레벨 배율을 곱한다. 예: 공격력 120, Lv60 아군 배율 6.15 → 738
+            BaseMaxHp = data.MaxHp * (double)scaling.Hp;
+            BaseAttack = data.Attack * (double)scaling.Attack;
+            BaseDefense = data.Defense * (double)scaling.Defense;
+
+            CurrentHp = MaxHp;
             RemainingDistance = TurnScheduler.TrackLength;
 
             for (int slot = 0; slot < CharacterData.SkillCount; slot++)
