@@ -23,6 +23,7 @@ namespace Game.UI
         private void OnEnable()
         {
             battleManager.BattleStarted += HandleBattleStarted;
+            battleManager.WaveStarted += HandleWaveStarted;
             battleManager.StateChanged += RefreshAll;
         }
 
@@ -30,6 +31,7 @@ namespace Game.UI
         private void OnDisable()
         {
             battleManager.BattleStarted -= HandleBattleStarted;
+            battleManager.WaveStarted -= HandleWaveStarted;
             battleManager.StateChanged -= RefreshAll;
         }
 
@@ -37,6 +39,25 @@ namespace Game.UI
         private void HandleBattleStarted()
         {
             SpawnSide(battleManager.Allies, direction: -1f);
+            SpawnSide(battleManager.Enemies, direction: 1f);
+            RefreshAll();
+        }
+
+        // 다음 웨이브가 시작되면 이전 웨이브의 적 캡슐을 지우고 새 적 캡슐을 세운다. 아군 캡슐은 그대로 둔다.
+        private void HandleWaveStarted()
+        {
+            // RemoveAll(조건): 조건이 true인 원소를 목록에서 모두 지운다. 지우기 전에 그 캡슐 오브젝트를 파괴한다.
+            views.RemoveAll(view =>
+            {
+                if (view.Unit.IsAlly)
+                {
+                    return false;
+                }
+
+                Destroy(view.gameObject);
+                return true;
+            });
+
             SpawnSide(battleManager.Enemies, direction: 1f);
             RefreshAll();
         }

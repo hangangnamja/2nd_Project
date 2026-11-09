@@ -14,10 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StageData
   stageName: "\uBCF4\uC2A4 1: \uCD95\uC801\uC758 \uC218\uD638\uC790"
   enemyLevel: 60
-  enemies:
-  - character: {fileID: 11400000, guid: 580e8412b08ccb442a39cc831c018dfa, type: 2}
-    invulnerable: 1
-  - character: {fileID: 11400000, guid: 62e5dbe00f5ec034986f2b0d4a3ea3b2, type: 2}
-    invulnerable: 0
-  - character: {fileID: 11400000, guid: bed0a34fe4b62ad4b8fdc97627c63e83, type: 2}
-    invulnerable: 1
+  waves:
+  - enemies:
+    - character: {fileID: 11400000, guid: 580e8412b08ccb442a39cc831c018dfa, type: 2}
+      invulnerable: 1
+    - character: {fileID: 11400000, guid: 62e5dbe00f5ec034986f2b0d4a3ea3b2, type: 2}
+      invulnerable: 0
+    - character: {fileID: 11400000, guid: bed0a34fe4b62ad4b8fdc97627c63e83, type: 2}
+      invulnerable: 1

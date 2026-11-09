@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 52c6d535481284a4fbf605667ddd6848, type: 3}
+  m_Name: BattleSetup_Test
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.BattleSetup
+  allyParty:
+  - {fileID: 11400000, guid: 033421e72036eea4a8c6c907397e96ea, type: 2}
+  - {fileID: 11400000, guid: 2f677f8251338f548b38f185b10f804a, type: 2}
+  - {fileID: 11400000, guid: 3ac05b34f6b0d6844bb9fbff35d5dbfb, type: 2}
+  allyLevel: 60
+  stage: {fileID: 11400000, guid: 7de1e41aa274baa49bc9d6623f21b631, type: 2}

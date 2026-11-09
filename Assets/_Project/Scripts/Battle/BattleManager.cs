@@ -20,26 +20,9 @@ namespace Game.Battle
         // 선택된 스킬이 없음을 나타내는 슬롯 번호.
         public const int NoSkillSelected = -1;
 
-        [Header("테스트 편성 (리스트 순서 = 편성 순서)")]
-        [SerializeField] private List<CharacterData> allyParty = new List<CharacterData>();
-        [SerializeField] private List<CharacterData> enemyParty = new List<CharacterData>();
-
-        // 테스트 레벨 (성장 시스템 전까지 임시). 캐릭터 데이터의 스탯을 Lv1 값으로 보고 레벨만큼 키운다.
-        // FormerlySerializedAs: 예전 이름(testLevel)으로 씬에 저장된 값을 아군 레벨로 이어받는다.
-        [Header("테스트 레벨 (플레이 전에 설정)")]
-        [Tooltip("아군 전원 레벨. 진급은 그 레벨까지 마친 것으로 본다 (Lv10 → 1회)")]
-        [UnityEngine.Serialization.FormerlySerializedAs("testLevel")]
-        [SerializeField, Range(1, 60)] private int allyLevel = 1;
-
-        [Tooltip("적 전원 레벨 (스테이지를 지정하면 스테이지의 적 레벨을 쓴다)")]
-        [SerializeField, Range(1, 60)] private int enemyLevel = 1;
-
-        [Header("스테이지 (선택)")]
-        [Tooltip("지정하면 위 적 편성·적 레벨 대신 이 스테이지의 적 구성과 규칙(무적 등)으로 전투한다")]
-        [SerializeField] private StageData stage;
-
-        // 이번 전투에서 실제로 쓰는 적 레벨 (스테이지가 있으면 스테이지 값, 없으면 테스트 적 레벨).
-        private int ActiveEnemyLevel { get; set; }
+        // 이번 전투에 무엇을 넣을지 (아군 편성·레벨, 스테이지). 지금은 씬에서 바로 실행할 때 쓰는 테스트 설정 에셋이다.
+        [Header("전투 설정 (아군 편성·레벨, 스테이지)")]
+        [SerializeField] private BattleSetup setup;
 
         [Header("전투 규칙")]
         [SerializeField] private BattleRulesData rules;
@@ -57,7 +40,11 @@ namespace Game.Battle
         private int actionCount;
 
         // 아군 + 적 전원 (행동 순서, 패시브 반응 대상 탐색용).
+        // 스케줄러·패시브 처리기·공용 도구가 이 리스트를 그대로 참조하므로, 웨이브가 바뀌면 이 리스트의 내용만 교체한다.
         private readonly List<BattleUnit> allUnits = new List<BattleUnit>();
+
+        // 웨이브 순서 관리 (지금 몇 번째 웨이브인지, 다음 웨이브가 있는지).
+        private StageRunner stageRunner;
 
         // 전투 공용 도구(로그, 사건, 대기열, 난수, 규칙)와 사건에 반응하는 패시브 처리기. 전투 시작 시 만든다.
         private BattleServices services;
@@ -75,6 +62,14 @@ namespace Game.Battle
         public event Action BattleStarted;
         public event Action StateChanged;
         public event Action<string> LogAdded;
+
+        // 다음 웨이브의 적이 들어왔을 때 (첫 웨이브는 BattleStarted로 알린다). 화면은 적 캡슐을 새 적으로 교체한다.
+        public event Action WaveStarted;
+
+        // 웨이브 표시용 (1부터). 전투 시작 전에는 1/1로 보인다.
+        // ?. / ??: stageRunner가 아직 없으면(null) 읽지 않고 기본값을 쓴다.
+        public int CurrentWaveNumber => (stageRunner?.WaveIndex ?? 0) + 1;
+        public int WaveCount => stageRunner?.WaveCount ?? 1;
 
         public IReadOnlyList<BattleUnit> Allies => allies;
         public IReadOnlyList<BattleUnit> Enemies => enemies;
@@ -104,8 +99,10 @@ namespace Game.Battle
             }
 
             CreateServices();
-            CreateUnits();
-            CreateScheduler();
+            stageRunner = new StageRunner(setup.Stage);
+            CreateAllies();
+            SpawnCurrentWave();
+            scheduler = new TurnScheduler(allUnits);
             passiveRunner = new PassiveRunner(services, allUnits);
 
             // ?.Invoke: 구독자가 하나도 없으면(null) 호출하지 않고 넘어간다. 화면이 없는 씬에서도 안전하게 동작한다.
@@ -208,11 +205,13 @@ namespace Game.Battle
 
         // ---------- 전투 흐름 ----------
 
-        // 한쪽 편이 전멸할 때까지 턴을 반복하는 전투 루프. 턴 하나의 처리 순서 (Architecture.md 3장):
+        // 승패가 정해질 때까지 턴을 반복하는 전투 루프. 턴 하나의 처리 순서 (Architecture.md 3장):
         // 행동자 결정(추가 턴이면 같은 유닛) → 스킬·대상 선택 → 스킬 실행 → 턴 종료 → 추가 공격(임시 턴) 실행 → 추가 턴 확인
+        // → 웨이브를 정리했고 다음 웨이브가 있으면 다음 웨이브 시작
         private IEnumerator RunBattle()
         {
-            Log($"전투 시작: 아군 {allies.Count}명 (Lv{allyLevel}) vs 적 {enemies.Count}명 (Lv{ActiveEnemyLevel})");
+            Log($"전투 시작: {stageRunner.Stage.StageName} (아군 Lv{setup.AllyLevel} vs 적 Lv{stageRunner.Stage.EnemyLevel})");
+            Log($"--- 웨이브 {CurrentWaveNumber}/{WaveCount} ---");
             LogUnitStats();
             BattleUnit extraTurnUnit = null;
 
@@ -246,6 +245,12 @@ namespace Game.Battle
 
                 // 이번 턴에 추가 턴을 얻었으면, 다음 반복에서 스케줄러를 거치지 않고 같은 유닛이 바로 행동한다.
                 extraTurnUnit = actionQueue.ConsumeExtraTurn();
+
+                // 웨이브 전환은 추가 공격까지 모두 끝난 뒤(턴 사이)에만 한다 → 반격·종결기가 남은 채 적이 바뀌지 않는다.
+                if (!IsAllDead(allies) && StageRunner.IsWaveCleared(enemies) && stageRunner.HasNextWave)
+                {
+                    StartNextWave();
+                }
             }
 
             FinishBattle();
@@ -299,6 +304,13 @@ namespace Game.Battle
                 List<BattleUnit> targets = ResolveFollowUpTargets(followUp);
                 if (targets.Count == 0)
                 {
+                    // 칠 대상이 없어도(웨이브의 적을 이미 다 잡음) 변신 종결기였다면 변신은 해제해야 한다.
+                    // 안 그러면 다음 웨이브까지 변신이 풀리지 않고 아군이 퇴장한 채로 남는다.
+                    if (followUp.EndsTransformation)
+                    {
+                        EndTransformation(followUp.Owner);
+                    }
+
                     continue;
                 }
 
@@ -411,25 +423,17 @@ namespace Game.Battle
             return best;
         }
 
-        // 승패가 정해졌는지: 아군 전멸(패배) 또는 쓰러뜨려야 하는 적 전멸(승리).
+        // 승패가 정해졌는지: 아군 전멸(패배) 또는 승리.
         private bool IsBattleDecided()
         {
-            return IsAllDead(allies) || AreTargetEnemiesDefeated();
+            return IsAllDead(allies) || IsStageCleared();
         }
 
-        // 쓰러뜨려야 하는 적(무적이 아닌 적)이 모두 쓰러졌는지.
-        // 무적인 적(보스 스테이지의 버프몹)은 죽일 수 없으므로 승리 조건에서 뺀다 → 보스만 쓰러뜨리면 클리어.
-        private bool AreTargetEnemiesDefeated()
+        // 승리: 마지막 웨이브에서 쓰러뜨려야 하는 적(무적 제외)을 모두 잡았을 때 (기획서 3-9).
+        // 마지막이 아닌 웨이브를 정리한 것은 승리가 아니라 웨이브 전환이다 (RunBattle에서 처리).
+        private bool IsStageCleared()
         {
-            foreach (BattleUnit enemy in enemies)
-            {
-                if (!enemy.IsInvulnerable && !enemy.IsDead)
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            return !stageRunner.HasNextWave && StageRunner.IsWaveCleared(enemies);
         }
 
         // 아군 차례에 플레이어가 스킬과 대상을 확정할 때까지 기다린다. 시작할 때 1스(평타)를 미리 선택해 둔다.
@@ -615,7 +619,7 @@ namespace Game.Battle
             IsBattleOver = true;
             CurrentActor = null;
 
-            string result = AreTargetEnemiesDefeated() ? "승리" : "패배";
+            string result = IsStageCleared() ? "승리" : "패배";
             Log($"전투 종료: {result} (총 {actionCount}회 행동, {CurrentCycle}사이클)");
             StateChanged?.Invoke();
         }
@@ -704,14 +708,18 @@ namespace Game.Battle
                 return false;
             }
 
-            // 스테이지가 지정돼 있으면 적 편성은 스테이지 설정을 쓰므로 enemyParty는 비어 있어도 된다.
-            bool hasEnemies = stage != null ? IsValidStage(stage) : IsValidParty(enemyParty);
-            if (IsValidParty(allyParty) && hasEnemies)
+            if (setup == null)
+            {
+                Debug.LogError("[Battle] 전투 설정(BattleSetup)이 연결되지 않았습니다.", this);
+                return false;
+            }
+
+            if (IsValidParty(setup.AllyParty) && IsValidStage(setup.Stage))
             {
                 return true;
             }
 
-            Debug.LogError("[Battle] 아군 또는 적 편성이 비어 있거나 빈 슬롯이 있습니다.", this);
+            Debug.LogError("[Battle] 아군 편성 또는 스테이지 웨이브가 비어 있거나 빈 칸이 있습니다.", this);
             return false;
         }
 
@@ -725,7 +733,7 @@ namespace Game.Battle
         }
 
         // 편성 리스트가 비어 있지 않고, 연결이 빠진(null) 슬롯이 없는지 검사한다.
-        private static bool IsValidParty(List<CharacterData> party)
+        private static bool IsValidParty(IReadOnlyList<CharacterData> party)
         {
             if (party == null || party.Count == 0)
             {
@@ -743,19 +751,27 @@ namespace Game.Battle
             return true;
         }
 
-        // 스테이지에 적이 한 명 이상 있고, 캐릭터가 빠진 자리가 없는지 검사한다.
+        // 스테이지에 웨이브가 하나 이상 있고, 모든 웨이브에 적이 있으며 캐릭터가 빠진 자리가 없는지 검사한다.
         private static bool IsValidStage(StageData stageData)
         {
-            if (stageData.Enemies.Count == 0)
+            if (stageData == null || stageData.Waves.Count == 0)
             {
                 return false;
             }
 
-            foreach (StageEnemy enemy in stageData.Enemies)
+            foreach (StageWave wave in stageData.Waves)
             {
-                if (enemy == null || enemy.Character == null)
+                if (wave == null || wave.Enemies.Count == 0)
                 {
                     return false;
+                }
+
+                foreach (StageEnemy enemy in wave.Enemies)
+                {
+                    if (enemy == null || enemy.Character == null)
+                    {
+                        return false;
+                    }
                 }
             }
 
@@ -771,27 +787,18 @@ namespace Game.Battle
             }
         }
 
-        // 원본 데이터(SO)로 전투용 유닛을 만든다. 리스트 위치가 곧 편성 순서(FormationIndex)가 된다.
-        private void CreateUnits()
+        // 전투 설정의 아군 편성으로 아군 유닛을 만든다. 리스트 위치가 곧 편성 순서(FormationIndex)가 된다.
+        // 아군은 전투 내내 그대로이고, 웨이브가 바뀌어도 다시 만들지 않는다.
+        private void CreateAllies()
         {
             allies.Clear();
-            enemies.Clear();
             actionCount = 0;
 
             // 아군과 적은 레벨 성장 곡선이 다르다: 적 HP는 아군 공격력 성장을, 적 공격력은 아군 HP 성장을 따라간다 (BattleRulesData).
-            StatScaling allyScaling = rules.GetAllyScaling(allyLevel);
-            for (int i = 0; i < allyParty.Count; i++)
+            StatScaling allyScaling = rules.GetAllyScaling(setup.AllyLevel);
+            for (int i = 0; i < setup.AllyParty.Count; i++)
             {
-                allies.Add(new BattleUnit(allyParty[i], isAlly: true, formationIndex: i, level: allyLevel, allyScaling));
-            }
-
-            if (stage != null)
-            {
-                CreateStageEnemies();
-            }
-            else
-            {
-                CreateTestEnemies();
+                allies.Add(new BattleUnit(setup.AllyParty[i], isAlly: true, formationIndex: i, level: setup.AllyLevel, allyScaling));
             }
 
             // 각 유닛에 같은 편 목록을 연결해, 살아 있는 아군의 오라 패시브가 스탯 계산에 반영되게 한다.
@@ -799,52 +806,59 @@ namespace Game.Battle
             {
                 ally.SetTeam(allies);
             }
-
-            foreach (BattleUnit enemy in enemies)
-            {
-                enemy.SetTeam(enemies);
-            }
         }
 
-        // 테스트 편성(enemyParty)과 테스트 적 레벨로 적을 만든다.
-        private void CreateTestEnemies()
+        // 현재 웨이브의 적을 만들어 적 목록과 전투 유닛 전체 목록을 교체한다.
+        // 적 레벨은 스테이지 값을 쓰고, 무적 자리의 적은 무적으로 만든다.
+        // allUnits는 스케줄러·패시브 처리기가 참조하는 같은 리스트라, 내용만 바꾸면 모두에게 새 적이 반영된다.
+        private void SpawnCurrentWave()
         {
-            ActiveEnemyLevel = enemyLevel;
-            StatScaling enemyScaling = rules.GetEnemyScaling(ActiveEnemyLevel);
+            StageData stage = stageRunner.Stage;
+            StatScaling enemyScaling = rules.GetEnemyScaling(stage.EnemyLevel);
+            IReadOnlyList<StageEnemy> slots = stageRunner.CurrentWave.Enemies;
 
-            for (int i = 0; i < enemyParty.Count; i++)
+            enemies.Clear();
+            for (int i = 0; i < slots.Count; i++)
             {
-                enemies.Add(new BattleUnit(enemyParty[i], isAlly: false, formationIndex: i, level: ActiveEnemyLevel, enemyScaling));
-            }
-        }
+                var unit = new BattleUnit(slots[i].Character, isAlly: false, formationIndex: i, level: stage.EnemyLevel, enemyScaling);
 
-        // 스테이지 설정으로 적을 만든다: 스테이지의 적 레벨을 쓰고, 무적 자리의 적은 무적으로 만든다.
-        private void CreateStageEnemies()
-        {
-            ActiveEnemyLevel = stage.EnemyLevel;
-            StatScaling enemyScaling = rules.GetEnemyScaling(ActiveEnemyLevel);
-
-            for (int i = 0; i < stage.Enemies.Count; i++)
-            {
-                StageEnemy slot = stage.Enemies[i];
-                var unit = new BattleUnit(slot.Character, isAlly: false, formationIndex: i, level: ActiveEnemyLevel, enemyScaling);
-
-                if (slot.Invulnerable)
+                if (slots[i].Invulnerable)
                 {
                     unit.MakeInvulnerable();
                 }
 
                 enemies.Add(unit);
             }
-        }
 
-        // 아군과 적 전원을 하나의 트랙에 올려 행동 순서를 계산할 스케줄러를 만든다.
-        private void CreateScheduler()
-        {
+            foreach (BattleUnit enemy in enemies)
+            {
+                enemy.SetTeam(enemies);
+            }
+
             allUnits.Clear();
             allUnits.AddRange(allies);
             allUnits.AddRange(enemies);
-            scheduler = new TurnScheduler(allUnits);
+        }
+
+        // 다음 웨이브로 넘어간다 (기획서 3-9 웨이브 전환).
+        // 아군의 버프·디버프·쿨타임·변신 상태는 그대로 두고, 행동 게이지만 처음(10000)으로 되돌린다.
+        // 새 적은 만들어질 때 이미 게이지가 10000이다.
+        private void StartNextWave()
+        {
+            stageRunner.MoveToNextWave();
+            SpawnCurrentWave();
+
+            foreach (BattleUnit ally in allies)
+            {
+                ally.ResetDistance();
+            }
+
+            Log($"--- 웨이브 {CurrentWaveNumber}/{WaveCount} ---");
+            LogUnitStats();
+
+            // ?.Invoke: 구독자(화면)가 있을 때만 알린다. 화면은 적 캡슐을 새 적으로 교체한다.
+            WaveStarted?.Invoke();
+            StateChanged?.Invoke();
         }
 
         // ---------- 공용 도우미 ----------

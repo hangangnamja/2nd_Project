@@ -83,7 +83,8 @@ namespace Game.UI
             string transform = battleManager.IsTransformTurn && actor.IsTransformed
                 ? $" [엑스트라 턴 {transformation.TurnsTaken}/{transformation.Data.TurnLimit}]"
                 : string.Empty;
-            return $"사이클 {battleManager.CurrentCycle} | {side} {actor.Name} 차례{extraTurn}{transform}{BuildSkillGuide()}";
+            return $"웨이브 {battleManager.CurrentWaveNumber}/{battleManager.WaveCount} | 사이클 {battleManager.CurrentCycle} | "
+                + $"{side} {actor.Name} 차례{extraTurn}{transform}{BuildSkillGuide()}";
         }
 
         // 아군 차례일 때 선택된 스킬과 다음에 할 행동을 안내한다.
