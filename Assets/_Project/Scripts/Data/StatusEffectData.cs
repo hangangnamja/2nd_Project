@@ -109,6 +109,10 @@ namespace Game.Data
         public bool HealsOverTime => healSourceMaxHpRatio > 0f;
         public bool SkipsTurn => skipsTurn;
 
+        // 행동 제어(CC) 효과인지. 지금은 기절(행동 불가)뿐이고, 도발·속박 등이 생기면 여기에 조건을 더한다.
+        // 하이퍼캐리 변신처럼 "행동 제어 면역" 상태인 유닛에게는 걸리지 않는다.
+        public bool IsCrowdControl => skipsTurn;
+
         // 지속피해 1회의 기본 피해 (방어력·대상 쪽 보정을 적용하기 전 값).
         // snapshotAttack: 부여 당시 시전자 공격력, targetMaxHp: 대상 최대 HP
         // 예: 독 6%, 대상 HP 30000, 시전자 공격력 400, 상한 3.0 → min(1800, 1200) = 1200

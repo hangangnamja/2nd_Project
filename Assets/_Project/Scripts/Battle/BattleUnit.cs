@@ -122,6 +122,9 @@ namespace Game.Battle
             }
         }
 
+        // 행동 제어(기절 등) 면역인지. 지금은 "행동 제어 면역" 설정이 켜진 변신 중일 때만 true (하이퍼캐리).
+        public bool IsCrowdControlImmune => IsTransformed && Transformation.Data.CrowdControlImmune;
+
         // 무적: 피해를 받지 않는다 (보스 스테이지의 버프몹). 스테이지 설정으로 정해지고 전투 중 바뀌지 않는다.
         // 무적인 적은 승리 조건(적 전멸)에서도 빠진다 → 보스만 쓰러뜨리면 클리어.
         public bool IsInvulnerable { get; private set; }

@@ -10,8 +10,18 @@ namespace Game.Battle.Status
     public static class StatusApplier
     {
         // target에게 상태효과를 새로 건다. 새 버프면 "버프 획득" 사건을 알린다 (갱신은 알리지 않음).
+        // 행동 제어 면역(변신 중 하이퍼캐리)인 대상에게 행동 제어 효과(기절 등)는 걸리지 않는다.
+        // 이때 결과의 Instance가 null이므로, 결과를 쓰는 쪽은 null을 확인해야 한다 (행동 제어 효과만 해당).
         public static StatusAddResult Apply(BattleUnit target, StatusEffectData data, BattleUnit source, BattleServices services)
         {
+            if (data.IsCrowdControl && target.IsCrowdControlImmune)
+            {
+                services.Log($"  {target.Name}: {data.DisplayName} 면역 (변신 중 행동 제어 면역)");
+
+                // default: 모든 칸이 비어 있는 결과 (Instance = null, 새로 걸리지 않음, 밀려난 효과 없음).
+                return default;
+            }
+
             StatusAddResult result = target.Statuses.Add(data, source);
             ReportResult(target, result, services);
             return result;

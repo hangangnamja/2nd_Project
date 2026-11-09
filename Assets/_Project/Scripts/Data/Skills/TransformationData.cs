@@ -17,6 +17,9 @@ namespace Game.Data
         [Tooltip("변신 중 얻는 엑스트라 턴 수 (속도로 차례를 얻을 때마다 1회, 버프·디버프 남은 턴이 줄지 않음). 다 쓰면 종결기 후 해제")]
         [SerializeField, Min(1)] private int turnLimit = 5;
 
+        [Tooltip("체크하면 변신 중 기절 등 행동 제어 효과에 걸리지 않는다")]
+        [SerializeField] private bool crowdControlImmune = true;
+
         [Tooltip("변신 중 치명적인 피해를 받으면 사망 대신 이 비율(변신 상태 최대 HP 기준)의 HP로 버티고 종결기 후 해제된다")]
         [SerializeField, Range(0f, 1f)] private float forcedReleaseHpRatio = 0.25f;
 
@@ -31,6 +34,7 @@ namespace Game.Data
         public string TransformName => transformName;
         public IReadOnlyList<StatModifier> StatModifiers => statModifiers;
         public int TurnLimit => turnLimit;
+        public bool CrowdControlImmune => crowdControlImmune;
         public float ForcedReleaseHpRatio => forcedReleaseHpRatio;
         public SkillData Finisher => finisher;
 
