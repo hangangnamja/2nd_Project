@@ -60,13 +60,13 @@ MonoBehaviour:
     transformName: "\uAC01\uC131 \uBCC0\uC2E0"
     statModifiers:
     - stat: 0
-      percent: 0.3
+      percent: 0.6
       flat: 0
     - stat: 1
       percent: 0.3
       flat: 0
     - stat: 9
-      percent: 0.3
+      percent: 2
       flat: 0
     turnLimit: 5
     forcedReleaseHpRatio: 0.25

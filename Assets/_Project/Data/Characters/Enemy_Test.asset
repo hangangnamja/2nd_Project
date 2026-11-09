@@ -14,10 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.CharacterData
   displayName: Enemy_Test
   role: 1
-  maxHp: 800
-  attack: 100
-  defense: 40
+  maxHp: 1117
+  attack: 173
+  defense: 48
   baseSpeed: 100
+  critRate: 0.05
+  critDamage: 0.5
   skill1:
     skillName: "\uD3C9\uD0C0"
     targetType: 0
@@ -37,6 +39,7 @@ MonoBehaviour:
     cooldown: 0
     startCooldown: 0
     effects: []
+  passives: []
   references:
     version: 2
     RefIds:
@@ -44,3 +47,4 @@ MonoBehaviour:
       type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         multiplier: 1
+        secondaryTargetRatio: 1

@@ -24,8 +24,15 @@ namespace Game.Battle
         [SerializeField] private List<CharacterData> allyParty = new List<CharacterData>();
         [SerializeField] private List<CharacterData> enemyParty = new List<CharacterData>();
 
-        [Tooltip("편성 전원에게 적용할 테스트 레벨 (성장 시스템 전까지 임시)")]
-        [SerializeField, Range(1, 60)] private int testLevel = 1;
+        // 테스트 레벨 (성장 시스템 전까지 임시). 캐릭터 데이터의 스탯을 Lv1 값으로 보고 레벨만큼 키운다.
+        // FormerlySerializedAs: 예전 이름(testLevel)으로 씬에 저장된 값을 아군 레벨로 이어받는다.
+        [Header("테스트 레벨 (플레이 전에 설정)")]
+        [Tooltip("아군 전원 레벨. 진급은 그 레벨까지 마친 것으로 본다 (Lv10 → 1회)")]
+        [UnityEngine.Serialization.FormerlySerializedAs("testLevel")]
+        [SerializeField, Range(1, 60)] private int allyLevel = 1;
+
+        [Tooltip("적 전원 레벨")]
+        [SerializeField, Range(1, 60)] private int enemyLevel = 1;
 
         [Header("전투 규칙")]
         [SerializeField] private BattleRulesData rules;
@@ -198,7 +205,8 @@ namespace Game.Battle
         // 행동자 결정(추가 턴이면 같은 유닛) → 스킬·대상 선택 → 스킬 실행 → 턴 종료 → 추가 공격(임시 턴) 실행 → 추가 턴 확인
         private IEnumerator RunBattle()
         {
-            Log($"전투 시작: 아군 {allies.Count}명 vs 적 {enemies.Count}명");
+            Log($"전투 시작: 아군 {allies.Count}명 (Lv{allyLevel}) vs 적 {enemies.Count}명 (Lv{enemyLevel})");
+            LogUnitStats();
             BattleUnit extraTurnUnit = null;
 
             while (!IsBattleDecided())
@@ -649,6 +657,15 @@ namespace Game.Battle
             return true;
         }
 
+        // 레벨이 반영된 유닛별 스탯을 로그로 남긴다 (밸런스 테스트용, 콘솔에서 확인).
+        private void LogUnitStats()
+        {
+            foreach (BattleUnit unit in allUnits)
+            {
+                Debug.Log($"[Battle] {unit.Name} Lv{unit.Level}: HP {unit.MaxHp} / 공격력 {unit.Attack} / 방어력 {unit.Defense} / 속도 {unit.Speed:0}");
+            }
+        }
+
         // 원본 데이터(SO)로 전투용 유닛을 만든다. 리스트 위치가 곧 편성 순서(FormationIndex)가 된다.
         private void CreateUnits()
         {
@@ -656,14 +673,18 @@ namespace Game.Battle
             enemies.Clear();
             actionCount = 0;
 
+            // 아군과 적은 레벨 성장 곡선이 다르다: 적 HP는 아군 공격력 성장을, 적 공격력은 아군 HP 성장을 따라간다 (BattleRulesData).
+            StatScaling allyScaling = rules.GetAllyScaling(allyLevel);
+            StatScaling enemyScaling = rules.GetEnemyScaling(enemyLevel);
+
             for (int i = 0; i < allyParty.Count; i++)
             {
-                allies.Add(new BattleUnit(allyParty[i], isAlly: true, formationIndex: i, level: testLevel));
+                allies.Add(new BattleUnit(allyParty[i], isAlly: true, formationIndex: i, level: allyLevel, allyScaling));
             }
 
             for (int i = 0; i < enemyParty.Count; i++)
             {
-                enemies.Add(new BattleUnit(enemyParty[i], isAlly: false, formationIndex: i, level: testLevel));
+                enemies.Add(new BattleUnit(enemyParty[i], isAlly: false, formationIndex: i, level: enemyLevel, enemyScaling));
             }
 
             // 각 유닛에 같은 편 목록을 연결해, 살아 있는 아군의 오라 패시브가 스탯 계산에 반영되게 한다.

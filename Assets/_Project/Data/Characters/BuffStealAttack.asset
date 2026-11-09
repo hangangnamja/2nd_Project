@@ -70,36 +70,6 @@ MonoBehaviour:
     auraModifiers: []
     effects:
     - rid: 7605779530016096345
-  hasTransformation: 0
-  transformation:
-    transformName: "\uBCC0\uC2E0"
-    statModifiers: []
-    turnLimit: 5
-    forcedReleaseHpRatio: 0.25
-    skill1:
-      skillName: "\uC0C8 \uC2A4\uD0AC"
-      targetType: 0
-      cooldown: 0
-      startCooldown: 0
-      effects: []
-    skill2:
-      skillName: "\uC0C8 \uC2A4\uD0AC"
-      targetType: 0
-      cooldown: 0
-      startCooldown: 0
-      effects: []
-    skill3:
-      skillName: "\uC0C8 \uC2A4\uD0AC"
-      targetType: 0
-      cooldown: 0
-      startCooldown: 0
-      effects: []
-    finisher:
-      skillName: "\uC0C8 \uC2A4\uD0AC"
-      targetType: 0
-      cooldown: 0
-      startCooldown: 0
-      effects: []
   references:
     version: 2
     RefIds:
@@ -119,8 +89,8 @@ MonoBehaviour:
     - rid: 7605779530016096342
       type: {class: BuffScalingDamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
-        baseMultiplier: 1.5
-        multiplierPerBuff: 0.8
+        baseMultiplier: 2
+        multiplierPerBuff: 1
     - rid: 7605779530016096343
       type: {class: ConsumeAllBuffsEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data: 

@@ -20,6 +20,13 @@ namespace Game.Data
         [Tooltip("진급 1회 점프가 레벨업 몇 회분인지")]
         [SerializeField, Min(0f)] private float ascensionJumpLevels = 5f;
 
+        // 레벨 성장 곡선: StatTable.xlsx 파라미터 시트의 "S급 균형형" 값 (무기 제외). 방어력은 위 K 계산과 같은 값을 쓴다.
+        [Header("레벨 성장 (S급 균형형, 무기 제외)")]
+        [SerializeField, Min(1f)] private float balancedHpAtLv1 = 600f;
+        [SerializeField, Min(1f)] private float balancedHpAtLv60 = 7500f;
+        [SerializeField, Min(1f)] private float balancedAttackAtLv1 = 130f;
+        [SerializeField, Min(1f)] private float balancedAttackAtLv60 = 800f;
+
         private const int MaxLevel = 60;
         private const int MaxAscension = 5;
         private const int AscensionInterval = 10;
@@ -30,24 +37,53 @@ namespace Game.Data
         // 예: Lv1 방어력 48, 목표 35% → K = 48 × 0.65 / 0.35 ≈ 89
         public float GetDefenseConstant(int attackerLevel)
         {
-            float defense = GetBalancedDefense(attackerLevel);
+            float defense = GetBalancedStat(balancedDefenseAtLv1, balancedDefenseAtLv60, attackerLevel);
             return defense * (1f - targetDefenseReduction) / targetDefenseReduction;
         }
 
-        // 레벨별 균형형 방어력 = Lv1 값 + 레벨당 증가 × (레벨 - 1) + 진급 점프 × 진급 횟수.
+        // 아군의 레벨 배율: 캐릭터 데이터의 스탯을 Lv1 값으로 보고, 균형형 성장 곡선이 커진 비율만큼 키운다.
+        // 예: Lv60 → HP 7500 / 600 = 12.5배, 공격력 800 / 130 ≈ 6.15배, 방어력 600 / 48 = 12.5배
+        // 그래서 캐릭터마다 다른 스탯(직군·등급 차이)은 레벨이 올라도 같은 비율로 유지된다.
+        public StatScaling GetAllyScaling(int level)
+        {
+            return new StatScaling(
+                GetGrowthRatio(balancedHpAtLv1, balancedHpAtLv60, level),
+                GetGrowthRatio(balancedAttackAtLv1, balancedAttackAtLv60, level),
+                GetGrowthRatio(balancedDefenseAtLv1, balancedDefenseAtLv60, level));
+        }
+
+        // 적의 레벨 배율: StatTable 적 스탯 시트의 역산 기준을 따른다 (기획서 6장).
+        //  - 적 HP는 "아군 공격 몇 방에 죽는지"로 정하므로 아군 공격력 성장을 따라간다
+        //  - 적 공격력은 "아군 HP의 몇 %를 깎는지"로 정하므로 아군 HP 성장을 따라간다
+        //  - 적 방어력은 K 계산과 같은 균형형 방어력 성장을 따라간다
+        // 아군과 같은 곡선을 쓰면 고레벨에서 적 HP가 공격력보다 2배 빨리 커져 전투가 지나치게 길어진다.
+        public StatScaling GetEnemyScaling(int level)
+        {
+            return new StatScaling(
+                GetGrowthRatio(balancedAttackAtLv1, balancedAttackAtLv60, level),
+                GetGrowthRatio(balancedHpAtLv1, balancedHpAtLv60, level),
+                GetGrowthRatio(balancedDefenseAtLv1, balancedDefenseAtLv60, level));
+        }
+
+        // Lv1 대비 그 레벨의 균형형 스탯 비율. 예: 공격력 Lv1 130, Lv10(진급 1회) 241.7 → 약 1.86배
+        private float GetGrowthRatio(float atLv1, float atLv60, int level)
+        {
+            return GetBalancedStat(atLv1, atLv60, level) / atLv1;
+        }
+
+        // 레벨별 균형형 스탯 = Lv1 값 + 레벨당 증가 × (레벨 - 1) + 진급 점프 × 진급 횟수 (StatTable 성장표와 같은 식).
         // 진급 횟수는 그 레벨에서 진급을 마친 상태로 본다 (Lv10 → 1회, Lv60 → 5회).
-        private float GetBalancedDefense(int level)
+        private float GetBalancedStat(float atLv1, float atLv60, int level)
         {
             // Mathf.Clamp: 레벨을 1~60 범위로 제한한다.
             int clampedLevel = Mathf.Clamp(level, 1, MaxLevel);
             int ascension = Mathf.Min(MaxAscension, clampedLevel / AscensionInterval);
 
             // Lv60 값 = Lv1 값 + 레벨당 증가 × (59 + 진급 5회 × 점프 레벨 수) 에서 레벨당 증가를 역산한다.
-            float perLevel = (balancedDefenseAtLv60 - balancedDefenseAtLv1)
-                / (MaxLevel - 1 + MaxAscension * ascensionJumpLevels);
+            float perLevel = (atLv60 - atLv1) / (MaxLevel - 1 + MaxAscension * ascensionJumpLevels);
             float jump = perLevel * ascensionJumpLevels;
 
-            return balancedDefenseAtLv1 + perLevel * (clampedLevel - 1) + jump * ascension;
+            return atLv1 + perLevel * (clampedLevel - 1) + jump * ascension;
         }
     }
 }

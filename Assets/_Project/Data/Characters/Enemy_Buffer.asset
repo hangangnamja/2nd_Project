@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.CharacterData
   displayName: Enemy_Buffer
   role: 0
-  maxHp: 800
-  attack: 80
-  defense: 30
+  maxHp: 248
+  attack: 99
+  defense: 48
   baseSpeed: 110
   critRate: 0.05
   critDamage: 0.5
@@ -41,36 +41,6 @@ MonoBehaviour:
     startCooldown: 0
     effects: []
   passives: []
-  hasTransformation: 0
-  transformation:
-    transformName: "\uBCC0\uC2E0"
-    statModifiers: []
-    turnLimit: 5
-    forcedReleaseHpRatio: 0.25
-    skill1:
-      skillName: "\uC0C8 \uC2A4\uD0AC"
-      targetType: 0
-      cooldown: 0
-      startCooldown: 0
-      effects: []
-    skill2:
-      skillName: "\uC0C8 \uC2A4\uD0AC"
-      targetType: 0
-      cooldown: 0
-      startCooldown: 0
-      effects: []
-    skill3:
-      skillName: "\uC0C8 \uC2A4\uD0AC"
-      targetType: 0
-      cooldown: 0
-      startCooldown: 0
-      effects: []
-    finisher:
-      skillName: "\uC0C8 \uC2A4\uD0AC"
-      targetType: 0
-      cooldown: 0
-      startCooldown: 0
-      effects: []
   references:
     version: 2
     RefIds:
