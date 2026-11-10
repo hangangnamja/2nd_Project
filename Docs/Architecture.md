@@ -13,7 +13,11 @@
 | Lobby | 메인·전투원·인벤토리·편성·가챠·스테이지 선택. 화면마다 씬을 나누지 않고 Canvas 패널 전환으로 처리 |
 | Battle | 전투 전용. Lobby에서 "스테이지 ID + 편성"을 넘겨받아 시작 |
 
-- UI는 uGUI Canvas 사용
+- UI는 uGUI Canvas 사용 (1920×1080 기준, Scale With Screen Size)
+- Lobby 씬: `LobbyCanvas` 아래 화면 패널(`MainScreen`, `StageSelectScreen`, `FormationScreen`, …)을 `LobbyNavigator`가 하나만 켜서 전환. 새 화면은 패널로 추가하고 Navigator에 등록
+- 로비 → 전투: 스테이지 선택(`StageSelectView`) → 편성(`FormationView`) → `BattleSetup.Create`(편성 + 레벨 + 고른 스테이지)를 `BattleLaunch`(static)에 맡기고 Battle 씬을 불러옴 → `BattleManager`가 시작할 때 꺼내 씀. 맡긴 값이 없으면(씬 직접 실행) Inspector의 테스트 설정 사용
+- 보유 캐릭터는 세이브 시스템 전까지 `PlayerRoster`(임시 SO)에서 읽음
+- Build Settings: Lobby(0) → Battle(1)
 - **직접 실행 경로**: Battle 씬을 에디터에서 바로 실행해도 동작해야 한다
   - 공용 매니저가 없으면 자동 생성
   - 넘겨받은 편성이 없으면 테스트용 전투 설정(SO)으로 시작 → `BattleSetup_Test` (BattleManager에는 BattleSetup 하나만 연결)
