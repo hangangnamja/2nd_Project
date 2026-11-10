@@ -56,6 +56,9 @@ namespace Game.Battle
 
         // 이번 차례에 실행하기로 확정된 행동. 확정 전에는 hasPendingAction이 false다.
         // pendingTarget은 단일 대상 스킬일 때만 쓰고, 광역·자신 스킬은 대상 규칙으로 다시 계산한다.
+        // 연출 재생기 (없으면 기다리지 않는다 → 화면 없이도 전투가 돈다).
+        private IBattlePresentation presentation;
+
         private bool hasPendingAction;
         private int pendingSkillSlot;
         private BattleUnit pendingTarget;
@@ -73,6 +76,9 @@ namespace Game.Battle
         // ?. / ??: stageRunner가 아직 없으면(null) 읽지 않고 기본값을 쓴다.
         public int CurrentWaveNumber => (stageRunner?.WaveIndex ?? 0) + 1;
         public int WaveCount => stageRunner?.WaveCount ?? 1;
+
+        // 전투 중 사건 통로. 연출 화면이 BattleStarted 때 구독한다 (전투 시작 전에는 null).
+        public BattleEvents Events => services?.Events;
 
         public IReadOnlyList<BattleUnit> Allies => allies;
         public IReadOnlyList<BattleUnit> Enemies => enemies;
@@ -270,6 +276,10 @@ namespace Game.Battle
                 // 이번 턴에 추가 턴을 얻었으면, 다음 반복에서 스케줄러를 거치지 않고 같은 유닛이 바로 행동한다.
                 extraTurnUnit = actionQueue.ConsumeExtraTurn();
 
+                // 이번 턴에 쌓인 연출(타격·회복·버프)을 다 재생한 뒤에 넘어간다.
+                // 웨이브 전환보다 먼저 기다려야, 쓰러진 적의 이펙트가 적 교체 전에 보인다.
+                yield return WaitForPresentation();
+
                 // 웨이브 전환은 추가 공격까지 모두 끝난 뒤(턴 사이)에만 한다 → 반격·종결기가 남은 채 적이 바뀌지 않는다.
                 if (!IsAllDead(allies) && StageRunner.IsWaveCleared(enemies) && stageRunner.HasNextWave)
                 {
@@ -278,6 +288,24 @@ namespace Game.Battle
             }
 
             FinishBattle();
+        }
+
+        // 연출 재생기를 연결한다. 연출 화면이 전투 시작(BattleStarted) 때 자신을 넘긴다.
+        public void SetPresentation(IBattlePresentation battlePresentation)
+        {
+            presentation = battlePresentation;
+        }
+
+        // 연출 재생이 끝날 때까지 기다린다. 재생기가 없으면 바로 넘어간다.
+        // WaitUntil(조건): 매 프레임 조건(람다식)을 확인해 true가 될 때까지 코루틴을 멈춘다.
+        private IEnumerator WaitForPresentation()
+        {
+            if (presentation == null)
+            {
+                yield break;
+            }
+
+            yield return new WaitUntil(() => !presentation.IsPlaying);
         }
 
         // 턴을 시작한다. 추가 턴이면 같은 유닛이 다시 행동하고, 아니면 스케줄러가 다음 행동자를 정한다.

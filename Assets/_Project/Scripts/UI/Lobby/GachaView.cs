@@ -12,6 +12,7 @@ namespace Game.UI
     //  - 좌우 화살표·상단 점: 배너 넘기기 / 지금 몇 번째 배너인지
     //  - 좌하단: 강조 문구, 배너 이름, 종료 일시, 확률 공시 버튼
     //  - 우하단: 1회 진행 / 10회 진행 → 뽑기(GachaService) 후 연출(GachaPresenter) 재생
+    //           버튼 위에 S 확정·A 확정까지 남은 횟수 (세이브의 가챠 카운터로 계산)
     // 화면 모양은 씬에서 만들고, 이 컴포넌트는 배너 데이터로 내용을 채우고 버튼을 연결한다.
     public class GachaView : MonoBehaviour
     {
@@ -46,6 +47,12 @@ namespace Game.UI
         [SerializeField] private Text tenCostText;
         [SerializeField] private Text gemText;
 
+        [Tooltip("뽑기 버튼 위: S 확정(천장)까지 남은 횟수")]
+        [SerializeField] private Text sGuaranteeText;
+
+        [Tooltip("S 확정 표시 위: A 확정까지 남은 횟수")]
+        [SerializeField] private Text aGuaranteeText;
+
         [Tooltip("뽑기 결과 연출 (기어 → 한 장씩 공개 → 결과 목록)")]
         [SerializeField] private GachaPresenter presenter;
 
@@ -56,12 +63,12 @@ namespace Game.UI
         private int bannerIndex;
         private bool isInitialized;
 
-        // 화면이 켜질 때마다(메인 화면에서 모집을 누를 때) 첫 배너와 보유 보석을 다시 보여준다.
+        // 화면이 켜질 때마다(메인 화면에서 모집을 누를 때) 첫 배너와 보유 보석·확정까지 남은 횟수를 다시 보여준다.
         private void OnEnable()
         {
             InitializeOnce();
             ShowBanner(0);
-            RefreshGems();
+            RefreshPlayerState();
         }
 
         // 버튼 연결은 한 번만 한다 (OnEnable은 화면을 열 때마다 불리므로 중복 연결 방지).
@@ -91,10 +98,25 @@ namespace Game.UI
             return $"보석 {GachaService.Rules.GemsPerPull * count:N0}{free}";
         }
 
-        // 우상단 보석 표시를 세이브 값으로 갱신한다 (화면을 열 때, 뽑기 연출이 끝났을 때).
-        private void RefreshGems()
+        // 세이브에서 바뀌는 표시(보석, 확정까지 남은 횟수)를 갱신한다 (화면을 열 때, 뽑기 연출이 끝났을 때).
+        private void RefreshPlayerState()
         {
             gemText.text = PlayerProfile.GetGems().ToString("N0");
+            RefreshGuaranteeCounts();
+        }
+
+        // 확정까지 남은 횟수 = 확정 간격 - 확정 없이 이미 뽑은 횟수.
+        //  - S: pityCount는 S 없이 뽑은 횟수(0~89) → 천장 90이면 90 - pityCount = 1~90회 남음. "1회"면 다음 뽑기가 S 확정
+        //  - A: aGuaranteeCount는 A 이상 없이 뽑은 횟수(0~9) → 10 - aGuaranteeCount = 1~10회 남음
+        // 카운터는 배너와 상관없이 이월되므로(기획서 7-1) 배너를 넘겨도 다시 계산하지 않는다.
+        private void RefreshGuaranteeCounts()
+        {
+            GachaSave state = PlayerProfile.GachaState;
+            int sRemaining = GachaService.Rules.HardPity - state.pityCount;
+            int aRemaining = GachaService.Rules.AGuaranteeInterval - state.aGuaranteeCount;
+
+            sGuaranteeText.text = $"S 확정까지 <b>{sRemaining}</b>회";
+            aGuaranteeText.text = $"A 확정까지 <b>{aRemaining}</b>회";
         }
 
         // index번 배너를 보여준다. 처음·끝을 넘으면 반대쪽 끝으로 돌아간다.
@@ -133,7 +155,7 @@ namespace Game.UI
             }
         }
 
-        // 뽑기 버튼: 지금 배너로 count회 뽑아 저장하고, 결과 연출을 재생한다. 연출이 끝나면 보석 표시를 갱신한다.
+        // 뽑기 버튼: 지금 배너로 count회 뽑아 저장하고, 결과 연출을 재생한다. 연출이 끝나면 보석·남은 횟수 표시를 갱신한다.
         private void RequestPull(int count)
         {
             List<GachaResult> results = GachaService.Pull(banners[bannerIndex], count);
@@ -143,7 +165,7 @@ namespace Game.UI
                 return;
             }
 
-            presenter.Play(results, RefreshGems);
+            presenter.Play(results, RefreshPlayerState);
         }
 
         // 확률 공시 버튼 (임시): 공시 화면을 만들기 전이라 요청만 기록한다.

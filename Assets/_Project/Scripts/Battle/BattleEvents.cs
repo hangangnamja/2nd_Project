@@ -29,6 +29,33 @@ namespace Game.Battle
         // Action<버프를 가졌던 유닛, 지워진 버프 인스턴스(부여자 = Source)>
         public event Action<BattleUnit, StatusInstance> BuffRemoved;
 
+        // ---------- 연출용 사건: 화면(BattleFxView)만 구독하고, 패시브 등 전투 로직은 반응하지 않는다 ----------
+
+        // 피해가 들어갔을 때 (스킬·추가 공격·지속피해 모두, 무적이라 막힌 경우 포함). 타격 이펙트와 피해 숫자를 띄운다.
+        public event Action<DamageTakenInfo> DamageTaken;
+
+        // 회복을 받았을 때 (회복 스킬, 지속 회복). Action<회복한 유닛, 실제로 오른 HP>
+        public event Action<BattleUnit, int> Healed;
+
+        // 버프가 걸렸을 때 (새로 얻은 것 + 같은 버프의 남은 턴 갱신). Action<받은 유닛, 걸린 버프>
+        // BuffGained와 달리 갱신도 알린다: 패시브에게는 "새 버프"만 의미가 있지만, 화면에는 "버프를 받았다"가 보여야 하기 때문.
+        public event Action<BattleUnit, StatusInstance> BuffApplied;
+
+        public void RaiseDamageTaken(DamageTakenInfo info)
+        {
+            DamageTaken?.Invoke(info);
+        }
+
+        public void RaiseHealed(BattleUnit target, int amount)
+        {
+            Healed?.Invoke(target, amount);
+        }
+
+        public void RaiseBuffApplied(BattleUnit target, StatusInstance buff)
+        {
+            BuffApplied?.Invoke(target, buff);
+        }
+
         // 유닛이 치명적인 피해(남은 HP 이상의 피해)를 받기 직전. 구독자가 사망을 막을지 정한다.
         // 다른 사건과 달리 "결과를 돌려받는" 사건이라, 값을 바꿀 수 있는 FatalDamageArgs를 넘긴다.
         public event Action<FatalDamageArgs> FatalDamageIncoming;
@@ -80,6 +107,35 @@ namespace Game.Battle
             ActionSource source)
         {
             AttackPerformed?.Invoke(attacker, hitTargets, primaryTarget, source);
+        }
+    }
+
+    // 피해 한 번의 연출용 정보 (피해 숫자 색·크기를 고르는 데 쓴다).
+    // readonly struct: 만든 뒤 값이 바뀌지 않는 작은 값 묶음. 사건으로 넘겨도 받는 쪽이 원본을 바꿀 수 없다.
+    public readonly struct DamageTakenInfo
+    {
+        public BattleUnit Target { get; }
+
+        // HP가 실제로 줄어든 양
+        public int Amount { get; }
+
+        // 보호막이 흡수한 양
+        public int Absorbed { get; }
+
+        public bool IsCritical { get; }
+        public bool IsDamageOverTime { get; }
+
+        // 무적이라 피해를 받지 않았는지 (보스 스테이지 버프몹)
+        public bool IsBlocked { get; }
+
+        public DamageTakenInfo(BattleUnit target, int amount, int absorbed, bool isCritical, bool isDamageOverTime, bool isBlocked)
+        {
+            Target = target;
+            Amount = amount;
+            Absorbed = absorbed;
+            IsCritical = isCritical;
+            IsDamageOverTime = isDamageOverTime;
+            IsBlocked = isBlocked;
         }
     }
 
