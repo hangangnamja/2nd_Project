@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 77cd8b030d278164b8b4a2ea0c5d7423, type: 3}
   m_Name: Stage_Boss1
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StageData
+  id: Stage_Boss1
   stageName: "\uBCF4\uC2A4 1: \uCD95\uC801\uC758 \uC218\uD638\uC790"
   enemyLevel: 60
   waves:

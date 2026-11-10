@@ -2287,7 +2287,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8f6876190639cab44b156eb02c72fa49, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game.UI.FormationView
-  roster: {fileID: 11400000, guid: 10469dfb84e4fa94c97c649b262ac233, type: 2}
   battleSceneName: Battle
   navigator: {fileID: 511516712}
   stageText: {fileID: 1450682715}

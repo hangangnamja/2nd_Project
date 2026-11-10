@@ -12,13 +12,10 @@ namespace Game.UI
     //  - 칸을 누르면 오른쪽에 보유 캐릭터 목록 → 고르면 그 칸에 넣는다 (이미 편성된 캐릭터면 두 칸을 맞바꾼다)
     //  - 좌하단 전투 시작: 지금 편성과 고른 스테이지로 Battle 씬을 연다
     // 칸·목록의 모양은 씬에서 만들고, 이 컴포넌트는 편성 상태를 들고 내용을 채운다.
+    // 보유 캐릭터·레벨·편성은 세이브(PlayerProfile)에서 읽고, 편성을 바꾸면 바로 세이브에 저장한다.
     public class FormationView : MonoBehaviour
     {
-        public const int PartySize = 4;
-
-        [Header("데이터")]
-        [Tooltip("보유 캐릭터 목록 (세이브 시스템 전까지 임시 에셋)")]
-        [SerializeField] private PlayerRoster roster;
+        public const int PartySize = PlayerProfile.FormationSize;
 
         [SerializeField] private string battleSceneName = "Battle";
 
@@ -49,7 +46,7 @@ namespace Game.UI
         [SerializeField] private Color healerColor = new Color(0.4f, 0.8f, 0.45f);
         [SerializeField] private Color emptyColor = new Color(1f, 1f, 1f, 0.1f);
 
-        // 지금 편성 (칸 번호 → 캐릭터, 빈 칸은 null). 화면을 닫았다 열어도 유지된다.
+        // 지금 편성 (칸 번호 → 캐릭터, 빈 칸은 null). 세이브에서 읽어 오고, 바뀔 때마다 세이브에 저장한다.
         private readonly CharacterData[] party = new CharacterData[PartySize];
 
         // 보유 목록에서 만든 카드들 (캐릭터와 짝).
@@ -73,7 +70,7 @@ namespace Game.UI
             RefreshSlots();
         }
 
-        // 처음 열 때 한 번만: 기본 편성을 채우고, 버튼과 보유 목록 카드를 만든다.
+        // 처음 열 때 한 번만: 저장된 편성을 채우고, 버튼과 보유 목록 카드를 만든다.
         // (화면이 꺼진 상태로 시작하므로 Awake 대신 첫 Open에서 준비한다.)
         private void InitializeOnce()
         {
@@ -84,9 +81,10 @@ namespace Game.UI
 
             isInitialized = true;
 
-            for (int i = 0; i < PartySize && i < roster.DefaultParty.Count; i++)
+            List<CharacterData> savedParty = PlayerProfile.GetParty();
+            for (int i = 0; i < PartySize && i < savedParty.Count; i++)
             {
-                party[i] = roster.DefaultParty[i];
+                party[i] = savedParty[i];
             }
 
             for (int i = 0; i < slots.Count; i++)
@@ -107,8 +105,9 @@ namespace Game.UI
         // 보유 캐릭터마다 카드를 하나씩 만든다. 누르면 지금 고르는 칸에 그 캐릭터를 넣는다.
         private void CreateCards()
         {
-            foreach (CharacterData character in roster.OwnedCharacters)
+            foreach (OwnedCharacter owned in PlayerProfile.GetOwnedCharacters())
             {
+                CharacterData character = owned.Data;
                 Button card = Instantiate(cardTemplate, listContainer);
                 card.gameObject.SetActive(true);
                 card.name = $"Card_{character.name}";
@@ -150,6 +149,7 @@ namespace Game.UI
             }
 
             party[editingSlot] = character;
+            PlayerProfile.SetParty(party);
             CloseList();
             RefreshSlots();
         }
@@ -160,6 +160,7 @@ namespace Game.UI
             if (editingSlot >= 0)
             {
                 party[editingSlot] = null;
+                PlayerProfile.SetParty(party);
             }
 
             CloseList();
@@ -176,7 +177,7 @@ namespace Game.UI
                 Text label = slots[i].transform.Find("Label").GetComponent<Text>();
 
                 model.color = character != null ? GetRoleColor(character) : emptyColor;
-                label.text = character != null ? $"LV.{roster.Level}  {character.DisplayName}" : "+";
+                label.text = character != null ? $"LV.{PlayerProfile.GetLevel(character)}  {character.DisplayName}" : "+";
             }
 
             startButton.interactable = GetSelectedParty().Count > 0;
@@ -189,7 +190,7 @@ namespace Game.UI
             {
                 bool inParty = System.Array.IndexOf(party, character) >= 0;
                 string mark = inParty ? "\n<b>편성 중</b>" : string.Empty;
-                card.GetComponentInChildren<Text>(true).text = $"{character.DisplayName}\nLV.{roster.Level}{mark}";
+                card.GetComponentInChildren<Text>(true).text = $"{character.DisplayName}\nLV.{PlayerProfile.GetLevel(character)}{mark}";
             }
         }
 
@@ -208,7 +209,7 @@ namespace Game.UI
             return selected;
         }
 
-        // 지금 편성·레벨·스테이지로 전투 설정을 만들어 맡기고 Battle 씬을 연다.
+        // 지금 편성·캐릭터별 보유 레벨·스테이지로 전투 설정을 만들어 맡기고 Battle 씬을 연다.
         private void StartBattle()
         {
             List<CharacterData> selected = GetSelectedParty();
@@ -217,7 +218,13 @@ namespace Game.UI
                 return;
             }
 
-            BattleLaunch.Request(BattleSetup.Create(selected, roster.Level, stage));
+            var levels = new List<int>();
+            foreach (CharacterData character in selected)
+            {
+                levels.Add(PlayerProfile.GetLevel(character));
+            }
+
+            BattleLaunch.Request(BattleSetup.Create(selected, levels, stage));
 
             // LoadScene: 지금 씬을 닫고 이름이 같은 씬을 연다. 씬이 Build Settings에 등록돼 있어야 한다.
             SceneManager.LoadScene(battleSceneName);

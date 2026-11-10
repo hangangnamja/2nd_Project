@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 77cd8b030d278164b8b4a2ea0c5d7423, type: 3}
   m_Name: Stage_1-4
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StageData
+  id: Stage_1-4
   stageName: "\uC2A4\uD14C\uC774\uC9C0 1-4"
   stageCode: 1-4
   description: 

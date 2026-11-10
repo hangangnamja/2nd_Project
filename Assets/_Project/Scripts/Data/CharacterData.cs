@@ -9,6 +9,11 @@ namespace Game.Data
     [CreateAssetMenu(fileName = "NewCharacter", menuName = "Game/Character Data")]
     public class CharacterData : ScriptableObject
     {
+        // 세이브에는 에셋 대신 이 ID만 저장하고, 불러올 때 GameDatabase가 ID로 이 에셋을 찾는다 (기획서 9장).
+        // 에셋 파일 이름과 따로 두어, 파일 이름을 바꿔도 기존 세이브가 깨지지 않게 한다. 적은 저장하지 않으므로 비워 둬도 된다.
+        [Tooltip("세이브에 저장되는 고유 ID. 한 번 정하면 바꾸지 않는다 (바꾸면 기존 세이브에서 이 캐릭터를 찾지 못한다)")]
+        [SerializeField] private string id;
+
         [SerializeField] private string displayName = "새 캐릭터";
         [SerializeField] private CharacterRole role = CharacterRole.Attack;
 
@@ -43,6 +48,7 @@ namespace Game.Data
         public virtual TransformationData Transformation => null;
 
         // => 로 작성한 읽기 전용 프로퍼티: 외부 코드는 값을 읽을 수만 있고 에셋 값을 바꿀 수 없다.
+        public string Id => id;
         public string DisplayName => displayName;
         public CharacterRole Role => role;
         public int MaxHp => maxHp;
