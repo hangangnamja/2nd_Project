@@ -13,11 +13,18 @@ MonoBehaviour:
   m_Name: Burn
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StatusEffectData
   displayName: "\uD654\uC0C1"
+  description: "\uB9E4\uD134 \uC2DC\uC804\uC790\uC758 \uACF5\uACA9\uB825\uC5D0 \uBE44\uB840\uD55C
+    \uD53C\uD574\uB97C \uBC1B\uB294\uB2E4"
   category: 1
   stackMode: 0
   duration: 3
+  features: 2
   damageAttackRatio: 0.6
   damageTargetMaxHpRatio: 0
   maxHpDamageAttackCap: 0
+  healSourceMaxHpRatio: 0
   statModifiers: []
   icon: {fileID: 2800000, guid: 766777b3356653147b557e3f35572737, type: 3}
+  isPersonal: 0
+  isPermanent: 0
+  convertsTo: {fileID: 0}

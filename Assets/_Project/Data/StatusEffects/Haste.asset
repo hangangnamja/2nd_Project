@@ -13,10 +13,11 @@ MonoBehaviour:
   m_Name: Haste
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StatusEffectData
   displayName: "\uAC00\uC18D"
-  description: 
+  description: "\uC18D\uB3C4\uAC00 20% \uC99D\uAC00\uD55C\uB2E4\n"
   category: 0
   stackMode: 1
   duration: 2
+  features: 1
   damageAttackRatio: 0
   damageTargetMaxHpRatio: 0
   maxHpDamageAttackCap: 0
@@ -27,5 +28,5 @@ MonoBehaviour:
     flat: 0
   icon: {fileID: 2800000, guid: 2b2f655a3cb14baeb30877885d4a4160, type: 3}
   isPersonal: 0
+  isPermanent: 0
   convertsTo: {fileID: 0}
-  recordsDamageTaken: 0

@@ -13,17 +13,22 @@ MonoBehaviour:
   m_Name: CounterStance
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StatusEffectData
   displayName: "\uBC18\uACA9 \uD0DC\uC138"
+  description: 
   category: 0
   stackMode: 1
   duration: 2
+  features: 33
   damageAttackRatio: 0
   damageTargetMaxHpRatio: 0
   maxHpDamageAttackCap: 0
+  healSourceMaxHpRatio: 0
   statModifiers:
   - stat: 7
     percent: 0.75
     flat: 0
   icon: {fileID: 2800000, guid: aa01f22c2946ef94096c79b88fb5643a, type: 3}
   isPersonal: 1
+  isPermanent: 0
   convertsTo: {fileID: 0}
+  skipsTurn: 0
   recordsDamageTaken: 1
