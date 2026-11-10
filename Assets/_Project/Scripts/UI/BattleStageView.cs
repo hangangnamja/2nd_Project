@@ -62,6 +62,13 @@ namespace Game.UI
             RefreshAll();
         }
 
+        // 전투 유닛을 표시하는 캡슐을 찾는다 (연출이 이펙트를 띄울 위치를 얻을 때). 없으면 null.
+        // Find(조건): 조건(람다식)이 true인 첫 원소를 돌려주고, 없으면 null.
+        public UnitView FindView(BattleUnit unit)
+        {
+            return views.Find(view => view.Unit == unit);
+        }
+
         // 한쪽 편 유닛들을 편성 순서대로 일렬로 세운다. direction이 -1이면 왼쪽(아군), 1이면 오른쪽(적).
         private void SpawnSide(IReadOnlyList<BattleUnit> units, float direction)
         {

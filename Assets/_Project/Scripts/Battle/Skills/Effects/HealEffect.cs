@@ -41,6 +41,7 @@ namespace Game.Battle.Effects
 
                 int healed = target.Heal(CalculateAmount(context.Caster, target));
                 context.Log($"  {target.Name} {healed} 회복 (HP {target.CurrentHp}/{target.MaxHp})");
+                context.Events?.RaiseHealed(target, healed);
             }
         }
 

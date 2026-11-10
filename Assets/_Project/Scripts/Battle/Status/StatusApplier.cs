@@ -67,12 +67,22 @@ namespace Game.Battle.Status
         // 피해를 보호막으로 먼저 흡수한 뒤 HP에 적용하고, HP가 실제로 줄어든 양을 돌려준다.
         // 스킬 피해와 지속피해가 모두 이 함수를 거친다. 깨진 보호막은 "지워짐"으로 알린다.
         // absorbed: 보호막이 흡수한 양 (로그용)
-        public static int DealDamage(BattleUnit target, int amount, BattleUnit attacker, BattleServices services, out int absorbed)
+        // isCritical·isDamageOverTime: 계산에는 쓰지 않고, 화면의 피해 숫자 모양을 고르도록 연출 사건에 그대로 넘긴다.
+        // 기본값(= false)이 있는 매개변수라, 넘기지 않으면 일반 피해로 본다.
+        public static int DealDamage(
+            BattleUnit target,
+            int amount,
+            BattleUnit attacker,
+            BattleServices services,
+            out int absorbed,
+            bool isCritical = false,
+            bool isDamageOverTime = false)
         {
             // 무적(보스 스테이지 버프몹)은 어떤 피해도 받지 않는다. 보호막·피해 기록도 건드리지 않는다.
             if (target.IsInvulnerable)
             {
                 absorbed = 0;
+                services.Events.RaiseDamageTaken(new DamageTakenInfo(target, 0, 0, isCritical, isDamageOverTime, isBlocked: true));
                 return 0;
             }
 
@@ -95,7 +105,9 @@ namespace Game.Battle.Status
                 remaining = ApplyFatalDamageRules(target, remaining, services);
             }
 
-            return target.TakeDamage(remaining, attacker);
+            int dealt = target.TakeDamage(remaining, attacker);
+            services.Events.RaiseDamageTaken(new DamageTakenInfo(target, dealt, absorbed, isCritical, isDamageOverTime, isBlocked: false));
+            return dealt;
         }
 
         // 받은 피해를 "피해 기록" 효과(반격 태세)에 누적한다. 보호막에 흡수된 피해도 받은 피해로 센다.
@@ -170,7 +182,14 @@ namespace Game.Battle.Status
                 ReportRemoved(target, result.PushedOut, services);
             }
 
-            bool isNewBuff = result.IsNew && result.Instance.Data.Category == StatusCategory.Buff;
+            // result.Instance?.: 행동 제어 면역 등으로 걸리지 않았으면 Instance가 null이라 연출을 건너뛴다.
+            bool isBuff = result.Instance?.Data.Category == StatusCategory.Buff;
+            if (isBuff)
+            {
+                services.Events.RaiseBuffApplied(target, result.Instance);
+            }
+
+            bool isNewBuff = result.IsNew && isBuff;
             if (isNewBuff)
             {
                 services.Events.RaiseBuffGained(target, result.Instance.Data.DisplayName);
