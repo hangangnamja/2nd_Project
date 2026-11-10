@@ -13,15 +13,20 @@ MonoBehaviour:
   m_Name: Chase
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StatusEffectData
   displayName: "\uCD94\uACA9"
+  description: "\uB370\uBBF8\uC9C0\uAC00 20\uD37C\uC13C\uD2B8 \uC99D\uAC00\uD55C\uB2E4"
   category: 0
   stackMode: 1
   duration: 1
+  features: 1
   damageAttackRatio: 0
   damageTargetMaxHpRatio: 0
   maxHpDamageAttackCap: 0
+  healSourceMaxHpRatio: 0
   statModifiers:
   - stat: 5
     percent: 0.2
     flat: 0
   icon: {fileID: 2800000, guid: 0557726b20cd4583bdea301077a82017, type: 3}
   isPersonal: 1
+  isPermanent: 0
+  convertsTo: {fileID: 0}

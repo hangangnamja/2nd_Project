@@ -13,19 +13,18 @@ MonoBehaviour:
   m_Name: Invulnerable
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StatusEffectData
   displayName: "\uBB34\uC801"
-  description: "\uD53C\uD574\uB97C \uBC1B\uC9C0 \uC54A\uB294\uB2E4. \uC4F0\uB7EC\uB728\uB9AC\uC9C0
-    \uC54A\uC544\uB3C4 \uD074\uB9AC\uC5B4\uD560 \uC218 \uC788\uB2E4"
+  description: "\uC5B4\uB5A0\uD55C \uACBD\uC6B0\uC5D0\uB3C4 \uD53C\uD574\uB97C \uBC1B\uC9C0
+    \uC54A\uB294\uB2E4"
   category: 0
   stackMode: 1
   duration: 2
+  features: 0
   damageAttackRatio: 0
   damageTargetMaxHpRatio: 0
   maxHpDamageAttackCap: 0
   healSourceMaxHpRatio: 0
-  skipsTurn: 0
   statModifiers: []
   icon: {fileID: 2800000, guid: 79deaf4f62564f7c91f5cb28bc74b39b, type: 3}
   isPersonal: 0
   isPermanent: 1
   convertsTo: {fileID: 0}
-  recordsDamageTaken: 0

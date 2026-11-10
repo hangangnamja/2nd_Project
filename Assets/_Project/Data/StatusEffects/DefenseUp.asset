@@ -13,12 +13,20 @@ MonoBehaviour:
   m_Name: DefenseUp
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StatusEffectData
   displayName: "\uBC29\uC5B4\uB825 \uC99D\uAC00"
+  description: "\uBC29\uC5B4\uB825\uC774 50% \uC99D\uAC00\uD55C\uB2E4"
   category: 0
   stackMode: 1
   duration: 2
+  features: 1
   damageAttackRatio: 0
+  damageTargetMaxHpRatio: 0
+  maxHpDamageAttackCap: 0
+  healSourceMaxHpRatio: 0
   statModifiers:
   - stat: 1
     percent: 0.5
     flat: 0
   icon: {fileID: 2800000, guid: aa01f22c2946ef94096c79b88fb5643a, type: 3}
+  isPersonal: 0
+  isPermanent: 0
+  convertsTo: {fileID: 0}

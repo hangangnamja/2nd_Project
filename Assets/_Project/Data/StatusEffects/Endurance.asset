@@ -13,14 +13,19 @@ MonoBehaviour:
   m_Name: Endurance
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StatusEffectData
   displayName: "\uBD88\uAD74"
+  description: 
   category: 0
   stackMode: 1
   duration: 2
+  features: 0
   damageAttackRatio: 0
   damageTargetMaxHpRatio: 0
   maxHpDamageAttackCap: 0
+  healSourceMaxHpRatio: 0
   statModifiers: []
   icon: {fileID: 2800000, guid: db7389568acd4d4ca5b8e87591c609ac, type: 3}
   isPersonal: 1
+  isPermanent: 0
   convertsTo: {fileID: 0}
+  skipsTurn: 0
   recordsDamageTaken: 0

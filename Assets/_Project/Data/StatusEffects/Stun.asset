@@ -13,17 +13,17 @@ MonoBehaviour:
   m_Name: Stun
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StatusEffectData
   displayName: "\uAE30\uC808"
-  description: "\uC790\uAE30 \uD134\uC5D0 \uD589\uB3D9\uD558\uC9C0 \uBABB\uD55C\uB2E4"
+  description: "\uC9C0\uC18D \uD134\uB9CC\uD07C \uD589\uB3D9\uD560 \uC218 \uC5C6\uB2E4"
   category: 1
   stackMode: 1
   duration: 1
+  features: 8
   damageAttackRatio: 0
   damageTargetMaxHpRatio: 0
   maxHpDamageAttackCap: 0
   healSourceMaxHpRatio: 0
-  skipsTurn: 1
   statModifiers: []
   icon: {fileID: 2800000, guid: 48ffca2ae66a42b5bc4043e5a79a9d3b, type: 3}
   isPersonal: 0
+  isPermanent: 0
   convertsTo: {fileID: 0}
-  recordsDamageTaken: 0

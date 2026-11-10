@@ -13,10 +13,11 @@ MonoBehaviour:
   m_Name: Regen
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StatusEffectData
   displayName: "\uC18C\uC0DD"
-  description: "\uB9E4 \uD134 \uC9C0\uC18D \uD68C\uBCF5 (\uBD80\uD65C \uC544\uB2D8)"
+  description: "\uB9E4\uD134 \uCCB4\uB825\uC744 \uC9C0\uC18D\uC801\uC73C\uB85C \uD68C\uBCF5\uD55C\uB2E4"
   category: 0
   stackMode: 1
   duration: 2
+  features: 4
   damageAttackRatio: 0
   damageTargetMaxHpRatio: 0
   maxHpDamageAttackCap: 0
@@ -24,5 +25,5 @@ MonoBehaviour:
   statModifiers: []
   icon: {fileID: 2800000, guid: e6fe74e050f6467cb30139c35244b79d, type: 3}
   isPersonal: 0
+  isPermanent: 0
   convertsTo: {fileID: 0}
-  recordsDamageTaken: 0

@@ -13,13 +13,19 @@ MonoBehaviour:
   m_Name: BearCheer
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StatusEffectData
   displayName: "\uACF0\uB3CC\uC774\uC758 \uC751\uC6D0"
+  description: "\uC774 \uBC84\uD504\uAC00 \uC5B4\uB5A0\uD55C \uBC29\uC2DD\uC73C\uB85C\uAC74
+    \uC0AC\uB77C\uC9C8\uACBD\uC6B0 \uACF5\uACA9\uB825 \uC99D\uAC00 \uBC84\uD504\uB97C
+    \uBD80\uC5EC\uD55C\uB2E4"
   category: 0
   stackMode: 1
   duration: 2
+  features: 16
   damageAttackRatio: 0
   damageTargetMaxHpRatio: 0
   maxHpDamageAttackCap: 0
+  healSourceMaxHpRatio: 0
   statModifiers: []
   icon: {fileID: 2800000, guid: f23b84bcf11f465a80e75732bbca6e12, type: 3}
   isPersonal: 0
+  isPermanent: 0
   convertsTo: {fileID: 11400000, guid: 178f2cced3933644abc52cf12479f8d7, type: 2}

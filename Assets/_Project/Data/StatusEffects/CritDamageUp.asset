@@ -13,16 +13,20 @@ MonoBehaviour:
   m_Name: CritDamageUp
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StatusEffectData
   displayName: "\uCE58\uBA85 \uD53C\uD574 \uC99D\uAC00"
+  description: "\uCE58\uBA85\uD0C0 \uD53C\uD574\uAC00 30\uD37C\uC13C\uD2B8 \uC99D\uAC00\uD55C\uB2E4"
   category: 0
   stackMode: 1
   duration: 2
+  features: 1
   damageAttackRatio: 0
   damageTargetMaxHpRatio: 0
   maxHpDamageAttackCap: 0
+  healSourceMaxHpRatio: 0
   statModifiers:
   - stat: 4
     percent: 0.3
     flat: 0
   icon: {fileID: 2800000, guid: e98c92906a304f4c99d96e6e8e6356fd, type: 3}
   isPersonal: 0
+  isPermanent: 0
   convertsTo: {fileID: 0}
