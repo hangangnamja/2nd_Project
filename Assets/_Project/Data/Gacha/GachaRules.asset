@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 578755535f3a1894f8c3c30725c7ef46, type: 3}
+  m_Name: GachaRules
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.GachaRulesData
+  sRate: 0.006
+  aRate: 0.09
+  hardPity: 90
+  softPityStart: 71
+  softPityStep: 0.04
+  aGuaranteeInterval: 10
+  pickupChance: 0.5
+  gemsPerPull: 100
+  obtainedLevel: 60
+  freePulls: 1

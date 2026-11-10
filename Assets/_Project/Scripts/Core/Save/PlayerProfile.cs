@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Game.Data;
 using UnityEngine;
@@ -34,6 +35,11 @@ namespace Game.Core
         private static SaveData data;
         private static GameDatabase database;
 
+        // 보유 캐릭터 목록이나 성장 값(레벨 등)이 바뀌어 저장된 직후 알린다.
+        // event Action: 구독한 화면(편성, 이후 육성 화면 등)의 함수를 모아 두었다가 Invoke 때 한꺼번에 호출한다.
+        // static이라 구독한 화면은 꺼질 때(OnDestroy) 반드시 해제해야, 사라진 화면이 호출되지 않는다.
+        public static event Action OwnedCharactersChanged;
+
         // 이 프로젝트는 플레이 시작 때 static 값을 지우는 과정(도메인 리로드)을 꺼 두었으므로,
         // 플레이할 때마다 직접 비워 세이브를 다시 읽게 한다. (에디터에서 세이브를 지운 뒤 다시 플레이해도 반영됨)
         // RuntimeInitializeOnLoadMethod(SubsystemRegistration): 플레이 시작 시 씬을 불러오기 전에 Unity가 이 함수를 자동 호출한다.
@@ -42,9 +48,70 @@ namespace Game.Core
         {
             data = null;
             database = null;
+
+            // 지난 플레이에서 해제되지 못한 구독이 남아 있지 않도록 비운다.
+            OwnedCharactersChanged = null;
+        }
+
+        // ID → 데이터 에셋 목록 (가챠가 S·A 캐릭터 목록과 규칙을 꺼낼 때 사용)
+        public static GameDatabase Database
+        {
+            get
+            {
+                EnsureLoaded();
+                return database;
+            }
+        }
+
+        // ---------- 재화 ----------
+
+        // 보유 보석 (가챠 화면 표시용)
+        public static int GetGems()
+        {
+            EnsureLoaded();
+            return data.currency.gems;
+        }
+
+        // ---------- 가챠 ----------
+
+        // 세이브의 가챠 카운터. 뽑기 판정(GachaMachine)이 직접 갱신하고, CommitGachaPull이 저장한다.
+        public static GachaSave GachaState
+        {
+            get
+            {
+                EnsureLoaded();
+                return data.gacha;
+            }
+        }
+
+        // 뽑기 결과 반영: 새로 얻은 캐릭터를 보유 목록에 추가하고 보석을 쓴 뒤 바로 저장한다 (기획서 9장: 가챠 직후 저장).
+        // 이미 보유한 캐릭터는 newCharacters에 넣지 않는다 (중복은 지금은 효과 없음).
+        public static void CommitGachaPull(IReadOnlyList<CharacterData> newCharacters, int gemCost, int level)
+        {
+            EnsureLoaded();
+            foreach (CharacterData character in newCharacters)
+            {
+                data.characters.Add(new OwnedCharacterSave { id = character.Id, level = level });
+            }
+
+            data.currency.gems -= gemCost;
+            Save();
+
+            // 새 캐릭터가 없으면(전부 무기·중복) 목록이 그대로이므로 알리지 않는다.
+            // ?.Invoke: 구독한 화면이 하나도 없으면 아무것도 하지 않는다.
+            if (newCharacters.Count > 0)
+            {
+                OwnedCharactersChanged?.Invoke();
+            }
         }
 
         // ---------- 보유 캐릭터 ----------
+
+        public static bool Owns(CharacterData character)
+        {
+            EnsureLoaded();
+            return FindOwnedSave(character.Id) != null;
+        }
 
         // 보유 캐릭터 목록 (세이브 순서 = 획득 순서). 데이터베이스에서 찾지 못한 ID는 건너뛴다.
         public static List<OwnedCharacter> GetOwnedCharacters()

@@ -70,7 +70,7 @@ namespace Game.UI
             RefreshSlots();
         }
 
-        // 처음 열 때 한 번만: 저장된 편성을 채우고, 버튼과 보유 목록 카드를 만든다.
+        // 처음 열 때 한 번만: 저장된 편성과 보유 목록을 채우고, 버튼과 보유 목록 변경 알림을 연결한다.
         // (화면이 꺼진 상태로 시작하므로 Awake 대신 첫 Open에서 준비한다.)
         private void InitializeOnce()
         {
@@ -99,12 +99,35 @@ namespace Game.UI
             clearSlotButton.onClick.AddListener(ClearEditingSlot);
             closeListButton.onClick.AddListener(CloseList);
 
-            CreateCards();
+            RebuildCards();
+
+            // 이후 가챠·육성으로 보유 목록이 바뀌면 그때만 다시 만든다 (화면이 꺼져 있어도 받는다).
+            PlayerProfile.OwnedCharactersChanged += HandleOwnedCharactersChanged;
         }
 
-        // 보유 캐릭터마다 카드를 하나씩 만든다. 누르면 지금 고르는 칸에 그 캐릭터를 넣는다.
-        private void CreateCards()
+        // 씬을 떠나 화면이 사라질 때 static 알림 구독을 해제한다 (사라진 화면을 호출하지 않도록).
+        // 구독한 적이 없어도 -= 는 아무 일도 하지 않으므로 그대로 호출해도 된다.
+        private void OnDestroy()
         {
+            PlayerProfile.OwnedCharactersChanged -= HandleOwnedCharactersChanged;
+        }
+
+        // 보유 캐릭터가 늘거나 레벨이 바뀌면 목록 카드와 칸의 레벨 표시를 새 값으로 다시 채운다.
+        private void HandleOwnedCharactersChanged()
+        {
+            RebuildCards();
+            RefreshSlots();
+        }
+
+        // 지금 보유한 캐릭터로 목록 카드를 새로 만든다 (이전 카드는 지운다). 누르면 지금 고르는 칸에 그 캐릭터를 넣는다.
+        private void RebuildCards()
+        {
+            foreach ((Button card, CharacterData _) in cards)
+            {
+                Destroy(card.gameObject);
+            }
+
+            cards.Clear();
             foreach (OwnedCharacter owned in PlayerProfile.GetOwnedCharacters())
             {
                 CharacterData character = owned.Data;

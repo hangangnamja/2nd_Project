@@ -1,0 +1,89 @@
+using Game.Outgame;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace Game.UI
+{
+    // 가챠 결과 카드 한 장의 표시 (한 장씩 공개하는 큰 카드, 마지막 결과 목록의 작은 카드가 같이 쓴다).
+    //  - 등급 색: 테두리와 그라데이션 배경을 3성 파랑 / 4성 보라 / 5성 황금빛으로 칠한다
+    //  - 덮개(cover): 4·5성을 공개하기 전에 내용을 가리는 판. 공개 연출이 끝나면 걷어낸다 (작은 카드는 덮개 없음)
+    // 빛·불꽃 같은 효과는 이 카드가 아니라 GachaPresenter의 파티클이 맡는다.
+    public class GachaResultCard : MonoBehaviour
+    {
+        [SerializeField] private Image frame;
+
+        [Tooltip("아래에서 위로 옅어지는 그라데이션 배경")]
+        [SerializeField] private Image gradient;
+
+        [Tooltip("캐릭터 일러스트 자리 / 3성이면 칼 그림")]
+        [SerializeField] private Image icon;
+
+        [SerializeField] private Text nameText;
+        [SerializeField] private Text starsText;
+        [SerializeField] private GameObject newTag;
+        [SerializeField] private GameObject pickupTag;
+
+        [Header("덮개 (공개 전, 없으면 비워 둔다)")]
+        [SerializeField] private GameObject cover;
+        [SerializeField] private Image coverGradient;
+
+        [Header("그림")]
+        [Tooltip("3성 무기 임시 그림 (칼)")]
+        [SerializeField] private Sprite weaponSprite;
+
+        // 실제 등급 색 (덮개를 걷을 때 테두리를 이 색으로 되돌린다)
+        private Color rarityColor;
+
+        // 결과 내용을 채운다. color = 이 결과의 등급 색.
+        public void Show(GachaResult result, Color color)
+        {
+            bool isWeapon = result.Character == null;
+
+            rarityColor = color;
+            frame.color = color;
+            gradient.color = color;
+
+            // 3성은 칼 그림을 그대로, 캐릭터는 일러스트가 생기기 전까지 옅은 빈 칸으로 둔다.
+            icon.sprite = isWeapon ? weaponSprite : null;
+            icon.color = isWeapon ? Color.white : new Color(1f, 1f, 1f, 0.15f);
+            icon.preserveAspect = true;
+
+            nameText.text = isWeapon ? "3성 무기" : result.Character.DisplayName;
+
+            // new string(문자, 개수): 같은 문자를 개수만큼 이어 붙인 문자열 → 등급 숫자만큼 ★
+            starsText.text = new string('★', (int)result.Rarity);
+
+            // 배경 그라데이션과 같은 색이면 묻히므로 흰색 쪽으로 60% 섞어 밝게 한다.
+            starsText.color = Color.Lerp(color, Color.white, 0.6f);
+
+            newTag.SetActive(result.IsNew);
+            pickupTag.SetActive(result.IsPickup);
+        }
+
+        // 공개 전 덮개를 씌운다. 덮개 색은 "보여줄 등급" 색이라, 반전 연출이면 실제 등급과 다를 수 있다.
+        public void Hide(Color shownColor)
+        {
+            cover.SetActive(true);
+            SetCoverColor(shownColor);
+        }
+
+        // 덮개와 테두리를 그 색으로 칠한다. 테두리도 바꾸는 이유: 실제 등급 색이 보이면 반전 연출이 미리 들키기 때문.
+        // 반전 연출에서는 보라색이던 것을 황금빛으로 바꾸는 데 쓴다.
+        public void SetCoverColor(Color color)
+        {
+            coverGradient.color = color;
+            frame.color = color;
+        }
+
+        // 덮개를 걷어 내용을 보여준다.
+        public void Reveal()
+        {
+            if (cover != null)
+            {
+                cover.SetActive(false);
+            }
+
+            frame.color = rarityColor;
+        }
+    }
+}
