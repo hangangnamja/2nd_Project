@@ -136,6 +136,14 @@ namespace Game.UI
                 card.name = $"Card_{character.name}";
                 card.image.color = GetRoleColor(character);
 
+                // 카드 위쪽에 일러스트의 머리 부분을 보여준다 (확대·자르기는 카드 템플릿의 IllustrationView 설정).
+                // GetComponentInChildren(true): 꺼져 있는 자식까지 찾는다 → 일러스트 칸이 꺼진 상태로 복제돼도 찾을 수 있다.
+                IllustrationView illust = card.GetComponentInChildren<IllustrationView>(true);
+                if (illust != null)
+                {
+                    illust.Show(character.Illustration);
+                }
+
                 CharacterData picked = character;
                 card.onClick.AddListener(() => PickCharacter(picked));
                 cards.Add((card, character));

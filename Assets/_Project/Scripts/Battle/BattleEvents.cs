@@ -29,6 +29,15 @@ namespace Game.Battle
         // Action<버프를 가졌던 유닛, 지워진 버프 인스턴스(부여자 = Source)>
         public event Action<BattleUnit, StatusInstance> BuffRemoved;
 
+        // 피해로 유닛의 HP가 줄었을 때 (보호막에 다 막혔거나 무적이면 알리지 않음).
+        // Action<맞은 유닛, 공격한 유닛, 맞기 전 HP, 지속피해인지>. HP 돌파 반응 패시브가 "몇 %에서 몇 %로 내려갔는지"를 판단한다.
+        public event Action<BattleUnit, BattleUnit, int, bool> HpLowered;
+
+        public void RaiseHpLowered(BattleUnit target, BattleUnit attacker, int hpBefore, bool isDamageOverTime)
+        {
+            HpLowered?.Invoke(target, attacker, hpBefore, isDamageOverTime);
+        }
+
         // ---------- 연출용 사건: 화면(BattleFxView)만 구독하고, 패시브 등 전투 로직은 반응하지 않는다 ----------
 
         // 피해가 들어갔을 때 (스킬·추가 공격·지속피해 모두, 무적이라 막힌 경우 포함). 타격 이펙트와 피해 숫자를 띄운다.

@@ -140,6 +140,17 @@ namespace Game.Battle
         }
     }
 
+    // 다타 추가 공격의 타수 저장소 (돌파 반응 패시브, 유닛·패시브마다 하나).
+    // 패시브(PassiveRunner)와 실행(BattleManager)이 같은 객체를 함께 보므로, 추가 공격 도중 쌓인 타수도 바로 이어서 친다.
+    public class HitCounter
+    {
+        // 아직 치지 않은 타수. 적이 모두 쓰러져 추가 공격이 나가지 못하면 그대로 남아 다음 발동에 더해진다.
+        public int Pending { get; set; }
+
+        // 이 타수를 쓸 추가 공격이 대기열에 있거나 실행 중인지. true면 새로 쌓인 타수는 그 추가 공격에 더해진다.
+        public bool IsQueued { get; set; }
+    }
+
     // 대기열에 들어가는 추가 공격 하나 (= 임시 턴 하나): 누가, 어떤 효과를, 어떤 대상 규칙으로, 누구를 노리는지.
     // 패시브 추가 공격뿐 아니라 반격 태세의 강제 공격·반격, 변신 종결기도 같은 대기열로 순서대로 실행한다.
     public class FollowUpAttack
@@ -160,10 +171,20 @@ namespace Game.Battle
         // 이 추가 공격이 끝나면 주인의 변신을 해제하는지 (변신 종결기).
         public bool EndsTransformation { get; }
 
+        // 다타 추가 공격의 남은 타수 (돌파 반응). 패시브가 타수를 쌓고, BattleManager가 한 타씩 꺼내 쓴다. 다타가 아니면 null.
+        public HitCounter HitCounter { get; }
+
         // 패시브로 나가는 추가 공격 (격발 딜러 패시브 2 등). 패시브의 효과를 단일 대상에게 쓴다.
         public FollowUpAttack(BattleUnit owner, PassiveData passive, BattleUnit preferredTarget)
             : this(owner, passive.PassiveName, passive.Effects, SkillTargetType.EnemySingle, preferredTarget)
         {
+        }
+
+        // 쌓인 타수만큼 반복하는 광역 추가 공격 (돌파 반응 패시브). 1타마다 패시브 효과를 적 전체에게 쓴다.
+        public FollowUpAttack(BattleUnit owner, PassiveData passive, HitCounter hitCounter)
+            : this(owner, passive.PassiveName, passive.Effects, SkillTargetType.EnemyAll, preferredTarget: null)
+        {
+            HitCounter = hitCounter;
         }
 
         // 효과 목록을 직접 지정하는 추가 공격 (반격 태세, 변신 종결기 등).

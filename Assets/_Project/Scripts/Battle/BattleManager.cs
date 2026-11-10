@@ -348,8 +348,23 @@ namespace Game.Battle
             while (!IsBattleDecided() && actionQueue.TryDequeueFollowUp(out FollowUpAttack followUp))
             {
                 // 쓰러졌거나 퇴장한 유닛의 추가 공격은 나가지 않는다.
+                // 다타 추가 공격이면 예약 표시만 풀어 둔다 → 쌓인 타수는 남아 다음 발동 때 쓰인다.
                 if (!followUp.Owner.IsOnField)
                 {
+                    if (followUp.HitCounter != null)
+                    {
+                        followUp.HitCounter.IsQueued = false;
+                    }
+
+                    continue;
+                }
+
+                // 돌파 반응처럼 타수가 쌓이는 추가 공격은 따로 처리한다 (여러 번 때리고, 도중에 타수가 늘 수 있음).
+                if (followUp.HitCounter != null)
+                {
+                    ExecuteMultiHitFollowUp(followUp);
+                    ConfirmDeaths();
+                    ProcessTurnEndEffects();
                     continue;
                 }
 
@@ -393,6 +408,54 @@ namespace Game.Battle
 
             // 추가 공격은 정규 턴 종료 알림 이후에 실행되므로, 바뀐 HP 등을 화면에 다시 알린다.
             StateChanged?.Invoke();
+        }
+
+        // 다타 추가 공격 (돌파 반응, 기획서 4-3): 쌓인 타수만큼 적 전체에게 같은 효과를 반복한다.
+        //  - 한 타 칠 때마다 남은 타수에서 1을 빼고, 그 타격으로 새로 돌파한 적이 있으면 패시브가 타수를 더한다 → 이어서 친다
+        //  - 적(무적 제외)이 모두 HP 0이 되면 남은 타수와 관계없이 끝나고, 남은 타수는 사라진다
+        //  - 처음부터 칠 적이 없으면 한 타도 치지 않고 타수를 그대로 남긴다 → 다음 발동 때 더해진다
+        // 사망 확정은 추가 공격 하나가 끝난 뒤 한 번만 한다 (기획서 3-9: 공격 도중 HP 0이어도 공격이 끝나야 사망).
+        private void ExecuteMultiHitFollowUp(FollowUpAttack followUp)
+        {
+            HitCounter counter = followUp.HitCounter;
+            int hitNumber = 0;
+
+            while (counter.Pending > 0 && HasStandingEnemy(followUp.Owner))
+            {
+                counter.Pending--;
+                hitNumber++;
+
+                // FindAll(조건): 조건이 true인 원소만 새 목록으로 모은다 → 이번 타에서 HP 0이 된 적은 다음 타에서 빼고 친다.
+                List<BattleUnit> targets = ResolveFollowUpTargets(followUp).FindAll(unit => !unit.IsDown);
+                string targetNames = string.Join(", ", targets.ConvertAll(unit => unit.Name));
+                Log($"[추가 공격] {followUp.Owner.Name}: {followUp.Name} {hitNumber}타 (남은 {counter.Pending}) → {targetNames}");
+
+                SkillExecutor.ExecuteEffects(
+                    followUp.Owner,
+                    followUp.Effects,
+                    targets,
+                    primaryTarget: null,
+                    services,
+                    ActionSource.FollowUpAttack);
+            }
+
+            // 한 타 이상 쳤는데 적이 다 쓰러져 끝났다면, 남은 타수는 저장하지 않고 버린다.
+            if (hitNumber > 0 && !HasStandingEnemy(followUp.Owner) && counter.Pending > 0)
+            {
+                Log($"  {followUp.Name}: 적이 모두 쓰러져 남은 {counter.Pending}타 소멸");
+                counter.Pending = 0;
+            }
+
+            // 실행이 끝났으므로, 이후 새로 쌓이는 타수는 새 추가 공격으로 예약된다.
+            counter.IsQueued = false;
+        }
+
+        // owner의 상대편에 아직 HP가 남은(무적 제외) 유닛이 있는지. 무적 버프몹만 남으면 더 칠 의미가 없으므로 없다고 본다.
+        private bool HasStandingEnemy(BattleUnit owner)
+        {
+            // Exists(조건): 조건(람다식)이 true인 원소가 하나라도 있으면 true.
+            return allUnits.Exists(unit =>
+                unit.IsAlly != owner.IsAlly && unit.IsOnField && !unit.IsDown && !unit.IsInvulnerable);
         }
 
         // 공격이나 턴 종료 처리가 끝난 시점에 HP가 0인 유닛의 사망을 확정한다 (기획서 3-9).

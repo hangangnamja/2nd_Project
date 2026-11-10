@@ -105,7 +105,13 @@ namespace Game.Battle.Status
                 remaining = ApplyFatalDamageRules(target, remaining, services);
             }
 
+            int hpBefore = target.CurrentHp;
             int dealt = target.TakeDamage(remaining, attacker);
+            if (dealt > 0)
+            {
+                services.Events.RaiseHpLowered(target, attacker, hpBefore, isDamageOverTime);
+            }
+
             services.Events.RaiseDamageTaken(new DamageTakenInfo(target, dealt, absorbed, isCritical, isDamageOverTime, isBlocked: false));
             return dealt;
         }
