@@ -77,6 +77,9 @@ namespace Game.Battle
         public bool IsWaitingForPlayer { get; private set; }
         public bool IsBattleOver { get; private set; }
 
+        // 전투가 끝났을 때 승리했는지 (결과 화면용). 전투 중에는 false.
+        public bool IsVictory { get; private set; }
+
         // 지금 행동이 추가 턴인지 (HUD 표시용).
         public bool IsExtraTurn { get; private set; }
 
@@ -102,8 +105,14 @@ namespace Game.Battle
         }
 
         // 씬이 시작되면 설정을 확인하고, 유닛과 스케줄러를 만든 뒤 전투를 시작한다.
+        // 로비에서 넘겨받은 설정이 있으면 그걸 쓰고, 없으면(씬을 바로 실행) Inspector의 테스트 설정을 쓴다.
         private void Start()
         {
+            if (Game.Core.BattleLaunch.TryTake(out BattleSetup launched))
+            {
+                setup = launched;
+            }
+
             if (!HasValidSetup())
             {
                 return;
@@ -628,9 +637,10 @@ namespace Game.Battle
         private void FinishBattle()
         {
             IsBattleOver = true;
+            IsVictory = IsStageCleared();
             CurrentActor = null;
 
-            string result = IsStageCleared() ? "승리" : "패배";
+            string result = IsVictory ? "승리" : "패배";
             Log($"전투 종료: {result} (총 {actionCount}회 행동, {CurrentCycle}사이클)");
             StateChanged?.Invoke();
         }

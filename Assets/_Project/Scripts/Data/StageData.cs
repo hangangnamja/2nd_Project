@@ -12,13 +12,21 @@ namespace Game.Data
     {
         [SerializeField] private string stageName = "새 스테이지";
 
-        [Tooltip("이 스테이지 적 전원의 레벨")]
+        [Tooltip("스테이지 선택 화면에 크게 보이는 번호 (예: 1-3). 비우면 화면이 정한 기본 표기를 쓴다")]
+        [SerializeField] private string stageCode;
+
+        [Tooltip("스테이지 상세 패널에 보이는 짧은 설명")]
+        [SerializeField, TextArea(1, 3)] private string description;
+
+        [Tooltip("이 스테이지 적 전원의 레벨 (스테이지 선택 화면에는 추천 레벨로 표시)")]
         [SerializeField, Range(1, 60)] private int enemyLevel = 60;
 
         [Tooltip("웨이브 목록 (위에서부터 순서대로 진행)")]
         [SerializeField] private List<StageWave> waves = new List<StageWave>();
 
         public string StageName => stageName;
+        public string StageCode => stageCode;
+        public string Description => description;
         public int EnemyLevel => enemyLevel;
         public IReadOnlyList<StageWave> Waves => waves;
     }
