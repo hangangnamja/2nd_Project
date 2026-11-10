@@ -13,15 +13,19 @@ namespace Game.UI
 
         [SerializeField] private StageSelectView stageSelect;
         [SerializeField] private GameObject formationScreen;
+        [SerializeField] private GameObject gachaScreen;
 
         [Header("버튼")]
         [Tooltip("메인 화면의 출격 버튼")]
         [SerializeField] private Button stageButton;
 
+        [Tooltip("메인 화면의 모집 버튼")]
+        [SerializeField] private Button gachaButton;
+
         [Tooltip("메인 화면으로 돌아가는 버튼들 (뒤로, 홈)")]
         [SerializeField] private List<Button> homeButtons = new List<Button>();
 
-        // 화면 목록. 전환할 때 이 중 하나만 켠다. 가챠 등 화면이 생기면 여기에 추가한다.
+        // 화면 목록. 전환할 때 이 중 하나만 켠다. 새 화면이 생기면 여기에 추가한다.
         private readonly List<GameObject> screens = new List<GameObject>();
 
         // 버튼마다 누르면 열 화면을 등록하고, 메인 화면에서 시작한다.
@@ -30,6 +34,7 @@ namespace Game.UI
             screens.Add(mainScreen);
             screens.Add(stageSelect.gameObject);
             screens.Add(formationScreen);
+            screens.Add(gachaScreen);
 
             // 람다식 () => ...: 버튼을 누르면 실행할 동작. 메인 → 출격은 스테이지 탭부터 새로 보여준다.
             stageButton.onClick.AddListener(() =>
@@ -37,6 +42,8 @@ namespace Game.UI
                 ShowStageSelect();
                 stageSelect.ResetView();
             });
+
+            gachaButton.onClick.AddListener(() => Show(gachaScreen));
 
             foreach (Button button in homeButtons)
             {

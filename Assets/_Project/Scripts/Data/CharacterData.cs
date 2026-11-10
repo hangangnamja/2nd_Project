@@ -17,6 +17,9 @@ namespace Game.Data
         [SerializeField] private string displayName = "새 캐릭터";
         [SerializeField] private CharacterRole role = CharacterRole.Attack;
 
+        // 가챠 확률 묶음(S/A)을 정한다. 적은 가챠에 나오지 않으므로 값이 의미 없다.
+        [SerializeField] private CharacterGrade grade = CharacterGrade.A;
+
         // Min 속성: Inspector에서 이 값보다 작게 입력하지 못하도록 막는다 (HP 0인 캐릭터 방지).
         [SerializeField, Min(1)] private int maxHp = 1000;
         [SerializeField, Min(0)] private int attack = 100;
@@ -51,6 +54,7 @@ namespace Game.Data
         public string Id => id;
         public string DisplayName => displayName;
         public CharacterRole Role => role;
+        public CharacterGrade Grade => grade;
         public int MaxHp => maxHp;
         public int Attack => attack;
         public int Defense => defense;

@@ -16,11 +16,30 @@ namespace Game.Data
         [Tooltip("스테이지 목록 (기본·보스 스테이지 모두 이 목록에서 ID로 찾는다)")]
         [SerializeField] private StageCatalog stageCatalog;
 
+        [Tooltip("가챠 확률·천장·비용 규칙")]
+        [SerializeField] private GachaRulesData gachaRules;
+
         [Header("새 게임")]
         [Tooltip("처음 시작할 때 보유하는 캐릭터. 앞에서부터 최대 4명이 첫 편성이 된다")]
         [SerializeField] private List<StartingCharacter> startingCharacters = new List<StartingCharacter>();
 
         public IReadOnlyList<StartingCharacter> StartingCharacters => startingCharacters;
+        public GachaRulesData GachaRules => gachaRules;
+
+        // 보유 가능한 캐릭터 중 그 등급인 캐릭터 목록 (가챠에서 S·A가 나올 때 이 중에서 고른다).
+        public List<CharacterData> GetCharactersOfGrade(CharacterGrade grade)
+        {
+            var result = new List<CharacterData>();
+            foreach (CharacterData character in characters)
+            {
+                if (character != null && character.Grade == grade)
+                {
+                    result.Add(character);
+                }
+            }
+
+            return result;
+        }
 
         // ID가 같은 보유 가능 캐릭터를 찾는다. 없으면 null (삭제된 캐릭터이거나 ID가 바뀐 경우).
         public CharacterData FindCharacter(string id)

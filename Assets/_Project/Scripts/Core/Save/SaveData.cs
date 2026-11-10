@@ -49,7 +49,7 @@ namespace Game.Core
         // 지난 S가 픽업이 아니었으면 true → 다음 S는 픽업 확정
         public bool pickupGuaranteed;
 
-        // A 확정까지 센 횟수 (0~9, 10회째 A 확정). S가 나왔을 때 초기화할지는 가챠 구현 때 정한다 (기획서 10장 미정)
+        // A 이상이 나오지 않고 연속으로 뽑은 횟수 (0~9, 10회째 A 확정). S가 나와도 A 확정을 채운 것으로 보고 0으로 되돌린다
         public int aGuaranteeCount;
     }
 

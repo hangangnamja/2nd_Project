@@ -20,6 +20,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: cf08d855ce8b3234c83826a75e404fef, type: 2}
   - {fileID: 11400000, guid: 8545e9f7091b4be4ab5466072e394403, type: 2}
   stageCatalog: {fileID: 11400000, guid: ab03e04c1f72e714a80ef2ac02e39394, type: 2}
+  gachaRules: {fileID: 11400000, guid: 9b3a483ca766a0549a9e6812deac2db3, type: 2}
   startingCharacters:
   - character: {fileID: 11400000, guid: 8545e9f7091b4be4ab5466072e394403, type: 2}
     level: 60

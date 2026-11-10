@@ -14,7 +14,7 @@
 | Battle | 전투 전용. Lobby에서 "스테이지 ID + 편성"을 넘겨받아 시작 |
 
 - UI는 uGUI Canvas 사용 (1920×1080 기준, Scale With Screen Size)
-- Lobby 씬: `LobbyCanvas` 아래 화면 패널(`MainScreen`, `StageSelectScreen`, `FormationScreen`, …)을 `LobbyNavigator`가 하나만 켜서 전환. 새 화면은 패널로 추가하고 Navigator에 등록
+- Lobby 씬: `LobbyCanvas` 아래 화면 패널(`MainScreen`, `StageSelectScreen`, `FormationScreen`, `GachaScreen`, …)을 `LobbyNavigator`가 하나만 켜서 전환. 새 화면은 패널로 추가하고 Navigator에 등록
 - 로비 → 전투: 스테이지 선택(`StageSelectView`) → 편성(`FormationView`) → `BattleSetup.Create`(편성 + 레벨 + 고른 스테이지)를 `BattleLaunch`(static)에 맡기고 Battle 씬을 불러옴 → `BattleManager`가 시작할 때 꺼내 씀. 맡긴 값이 없으면(씬 직접 실행) Inspector의 테스트 설정 사용
 - 보유 캐릭터·편성은 세이브(`PlayerProfile`)에서 읽음. 로비에서 시작한 전투는 캐릭터별 보유 레벨로 싸우고, 이기면 스테이지 클리어를 저장
 - Build Settings: Lobby(0) → Battle(1)
@@ -43,7 +43,17 @@
 | `BattleSetup`: 이번 전투의 아군 편성·레벨 + 스테이지 (지금은 테스트 에셋, 이후 로비가 만들어 넘김) | - |
 | `EnemyCharacterData`: `CharacterData` + 행동 패턴 목록 (패턴이 필요한 적만) | `BattleManager.DecideEnemyAction`: 패턴을 순서대로 확인해 스킬·대상 결정 |
 | `BattleRulesData`: 전투 공통 수치 (방어 상수 K 계산 파라미터, 레벨 성장 곡선) | `BattleUnit` 기본 스탯 = 데이터 스탯(Lv1) × 레벨 배율(`StatScaling`), 전투 시작 때 고정 |
+| `GachaBannerData`: 배너 이름·강조 문구·종료 일시·픽업 S 1명 | `GachaView`: 보여주는 배너 순서 |
+| `GachaRulesData`: 확률·천장·반천·A 확정·비용·디버그 무료 (배너 공통) | `GachaSave`(세이브): 천장·A 확정 카운터, 픽업 확정 여부 |
 | `GameDatabase` (`Resources/`): ID → 캐릭터·스테이지 SO 찾기, 새 게임 시작 캐릭터 | `SaveData` (JSON): ID와 바뀌는 값만 저장 |
+
+### 가챠
+- `GachaMachine`(순수 C#): 1회 판정만. 난수를 밖에서 받아 시드 고정 시 재현·시뮬레이션 가능. 카운터는 세이브의 `GachaSave`를 직접 갱신
+- `GachaService`: 보석 확인 → 판정 → `PlayerProfile.CommitGachaPull`로 새 캐릭터 지급·보석 차감·저장
+- `GachaPresenter`: 정해진 결과를 보여주기만 함 (기어 → 한 장씩 공개 → 결과 목록). 빛은 파티클·Bloom, 코드는 재생 순서와 색만
+  - 글로우(후처리)를 받으려고 연출은 Screen Space - Camera 캔버스(`GachaFxCanvas`)에서 재생하고, 그동안 Overlay인 `LobbyCanvas`를 끔
+  - 파티클은 캔버스 픽셀 단위(Hierarchy 스케일)로 만들고 sorting order 5로 UI 위에 그림. 머티리얼은 Additive + HDR 밝기(×2.6) → Bloom이 번지게 함
+- 임시 그림(기어·칼·글로우·고리·그라데이션)은 `Art/Gacha/`
 
 ### 세이브 (기획서 9장)
 - `SaveData`: 파일에 그대로 저장되는 내용. 필드 이름이 곧 JSON 키라, 이름·구조를 바꾸면 `version`을 올리고 `SaveStorage.Upgrade`에 변환을 추가
@@ -143,10 +153,10 @@ Assets/_Project/
         Effects/ 효과 블록 (SkillEffect, DamageEffect, HealEffect, ApplyStatusEffect, ...)
       Passives/  패시브 실행 (PassiveRunner)
       Status/    상태효과 (StatusInstance, StatusContainer, StatusTurnProcessor)
-    Outgame/     가챠, 육성, 편성
+    Outgame/     가챠(GachaMachine = 확률 판정, GachaService = 뽑기·저장), 육성, 편성
     UI/          화면 (UnitView, BattleStageView, BattleHud, ...)
     Editor/      에디터 스크립트 (효과 블록 드롭다운 등)
-  Data/          SO 에셋 (Characters/ = 플레이어블, Enemies/ = 적·보스, StatusEffects/, Stages/)
+  Data/          SO 에셋 (Characters/ = 플레이어블, Enemies/ = 적·보스, StatusEffects/, Stages/, Gacha/ = 가챠 배너)
   Resources/     코드가 이름으로 불러오는 에셋 (GameDatabase)
   Prefabs/  Scenes/  Art/
 ```
