@@ -10,6 +10,10 @@ namespace Game.Data
     [CreateAssetMenu(fileName = "NewStage", menuName = "Game/Stage Data")]
     public class StageData : ScriptableObject
     {
+        // 세이브의 클리어 기록에 저장되는 고유 ID (CharacterData의 ID와 같은 이유로 에셋 이름과 따로 둔다).
+        [Tooltip("세이브에 저장되는 고유 ID. 한 번 정하면 바꾸지 않는다")]
+        [SerializeField] private string id;
+
         [SerializeField] private string stageName = "새 스테이지";
 
         [Tooltip("스테이지 선택 화면에 크게 보이는 번호 (예: 1-3). 비우면 화면이 정한 기본 표기를 쓴다")]
@@ -24,6 +28,7 @@ namespace Game.Data
         [Tooltip("웨이브 목록 (위에서부터 순서대로 진행)")]
         [SerializeField] private List<StageWave> waves = new List<StageWave>();
 
+        public string Id => id;
         public string StageName => stageName;
         public string StageCode => stageCode;
         public string Description => description;

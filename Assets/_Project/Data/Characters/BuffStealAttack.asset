@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0cf10047d4cbc1d4a9d1cde009aa4d18, type: 3}
   m_Name: BuffStealAttack
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.CharacterData
+  id: BuffStealAttack
   displayName: BuffStealAttack
   role: 1
   maxHp: 1000

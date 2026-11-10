@@ -12,7 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 77cd8b030d278164b8b4a2ea0c5d7423, type: 3}
   m_Name: Stage_BuffEnemy
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StageData
+  id: Stage_BuffEnemy
   stageName: "\uCD95\uC801\uC758 \uB358\uC804"
+  stageCode: 
+  description: 
   enemyLevel: 60
   waves:
   - enemies:

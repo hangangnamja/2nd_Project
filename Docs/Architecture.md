@@ -16,7 +16,7 @@
 - UI는 uGUI Canvas 사용 (1920×1080 기준, Scale With Screen Size)
 - Lobby 씬: `LobbyCanvas` 아래 화면 패널(`MainScreen`, `StageSelectScreen`, `FormationScreen`, …)을 `LobbyNavigator`가 하나만 켜서 전환. 새 화면은 패널로 추가하고 Navigator에 등록
 - 로비 → 전투: 스테이지 선택(`StageSelectView`) → 편성(`FormationView`) → `BattleSetup.Create`(편성 + 레벨 + 고른 스테이지)를 `BattleLaunch`(static)에 맡기고 Battle 씬을 불러옴 → `BattleManager`가 시작할 때 꺼내 씀. 맡긴 값이 없으면(씬 직접 실행) Inspector의 테스트 설정 사용
-- 보유 캐릭터는 세이브 시스템 전까지 `PlayerRoster`(임시 SO)에서 읽음
+- 보유 캐릭터·편성은 세이브(`PlayerProfile`)에서 읽음. 로비에서 시작한 전투는 캐릭터별 보유 레벨로 싸우고, 이기면 스테이지 클리어를 저장
 - Build Settings: Lobby(0) → Battle(1)
 - **직접 실행 경로**: Battle 씬을 에디터에서 바로 실행해도 동작해야 한다
   - 공용 매니저가 없으면 자동 생성
@@ -43,6 +43,14 @@
 | `BattleSetup`: 이번 전투의 아군 편성·레벨 + 스테이지 (지금은 테스트 에셋, 이후 로비가 만들어 넘김) | - |
 | `EnemyCharacterData`: `CharacterData` + 행동 패턴 목록 (패턴이 필요한 적만) | `BattleManager.DecideEnemyAction`: 패턴을 순서대로 확인해 스킬·대상 결정 |
 | `BattleRulesData`: 전투 공통 수치 (방어 상수 K 계산 파라미터, 레벨 성장 곡선) | `BattleUnit` 기본 스탯 = 데이터 스탯(Lv1) × 레벨 배율(`StatScaling`), 전투 시작 때 고정 |
+| `GameDatabase` (`Resources/`): ID → 캐릭터·스테이지 SO 찾기, 새 게임 시작 캐릭터 | `SaveData` (JSON): ID와 바뀌는 값만 저장 |
+
+### 세이브 (기획서 9장)
+- `SaveData`: 파일에 그대로 저장되는 내용. 필드 이름이 곧 JSON 키라, 이름·구조를 바꾸면 `version`을 올리고 `SaveStorage.Upgrade`에 변환을 추가
+- `SaveStorage`: 파일 읽기·쓰기만 (임시 파일에 쓴 뒤 원본과 교체, 깨진 파일 보관)
+- `PlayerProfile` (static): 처음 쓰일 때 세이브를 불러오고(없으면 새 게임), 바꾸는 함수는 바꾼 직후 저장. 화면은 `SaveData`를 직접 만지지 않고 이 함수로 데이터 에셋을 받음
+- 저장되는 SO(`CharacterData`, `StageData`)는 에셋 이름과 별도로 **ID** 칸을 가짐. 한 번 정하면 바꾸지 않는다
+- 도메인 리로드를 꺼 두었으므로 static 값은 플레이 시작 때 직접 비운다 (`RuntimeInitializeOnLoadMethod`)
 
 ### 캐릭터 조립 구조
 ```
@@ -139,6 +147,7 @@ Assets/_Project/
     UI/          화면 (UnitView, BattleStageView, BattleHud, ...)
     Editor/      에디터 스크립트 (효과 블록 드롭다운 등)
   Data/          SO 에셋 (Characters/ = 플레이어블, Enemies/ = 적·보스, StatusEffects/, Stages/)
+  Resources/     코드가 이름으로 불러오는 에셋 (GameDatabase)
   Prefabs/  Scenes/  Art/
 ```
 - `_Project`로 감싸 에셋 스토어 에셋과 섞이지 않게 한다

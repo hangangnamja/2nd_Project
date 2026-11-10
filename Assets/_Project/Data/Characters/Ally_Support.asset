@@ -12,12 +12,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0cf10047d4cbc1d4a9d1cde009aa4d18, type: 3}
   m_Name: Ally_Support
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.CharacterData
+  id: Ally_Support
   displayName: Ally_Support
   role: 0
   maxHp: 900
   attack: 80
   defense: 50
   baseSpeed: 100
+  critRate: 0.05
+  critDamage: 0.5
   skill1:
     skillName: "\uD3C9\uD0C0"
     targetType: 0
@@ -46,6 +49,13 @@ MonoBehaviour:
     trigger: 1
     execution: 1
     maxTriggersPerTurn: 1
+    turnLimitScope: 0
+    maxTriggersPerBattle: 0
+    inactiveWhileTransformed: 0
+    maxStacks: 0
+    stacksPerOwnAction: 0
+    stackCostPerTrigger: 1
+    auraModifiers: []
     effects:
     - rid: 7605779465967763856
   references:
@@ -55,16 +65,19 @@ MonoBehaviour:
       type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         multiplier: 1
+        secondaryTargetRatio: 1
     - rid: 7605779465967763789
       type: {class: HealEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         scaleStat: 0
         ratio: 1.5
+        healCaster: 0
     - rid: 7605779465967763790
       type: {class: HealEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         scaleStat: 1
         ratio: 0.15
+        healCaster: 0
     - rid: 7605779465967763836
       type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
@@ -79,3 +92,4 @@ MonoBehaviour:
       type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         multiplier: 1
+        secondaryTargetRatio: 1

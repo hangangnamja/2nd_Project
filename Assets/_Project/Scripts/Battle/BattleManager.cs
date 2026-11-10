@@ -24,6 +24,9 @@ namespace Game.Battle
         [Header("전투 설정 (아군 편성·레벨, 스테이지)")]
         [SerializeField] private BattleSetup setup;
 
+        // 로비에서 넘겨받은 전투인지. 이길 때만 스테이지 클리어를 세이브에 기록한다 (씬을 바로 실행한 테스트 전투는 기록하지 않음).
+        private bool isLaunchedFromLobby;
+
         [Header("전투 규칙")]
         [SerializeField] private BattleRulesData rules;
 
@@ -111,6 +114,7 @@ namespace Game.Battle
             if (Game.Core.BattleLaunch.TryTake(out BattleSetup launched))
             {
                 setup = launched;
+                isLaunchedFromLobby = true;
             }
 
             if (!HasValidSetup())
@@ -230,7 +234,7 @@ namespace Game.Battle
         // → 웨이브를 정리했고 다음 웨이브가 있으면 다음 웨이브 시작
         private IEnumerator RunBattle()
         {
-            Log($"전투 시작: {stageRunner.Stage.StageName} (아군 Lv{setup.AllyLevel} vs 적 Lv{stageRunner.Stage.EnemyLevel})");
+            Log($"전투 시작: {stageRunner.Stage.StageName} (적 Lv{stageRunner.Stage.EnemyLevel})");
             Log($"--- 웨이브 {CurrentWaveNumber}/{WaveCount} ---");
             LogUnitStats();
             BattleUnit extraTurnUnit = null;
@@ -642,6 +646,11 @@ namespace Game.Battle
 
             string result = IsVictory ? "승리" : "패배";
             Log($"전투 종료: {result} (총 {actionCount}회 행동, {CurrentCycle}사이클)");
+
+            if (IsVictory && isLaunchedFromLobby)
+            {
+                Game.Core.PlayerProfile.RecordStageClear(stageRunner.Stage);
+            }
             StateChanged?.Invoke();
         }
 
@@ -816,10 +825,12 @@ namespace Game.Battle
             actionCount = 0;
 
             // 아군과 적은 레벨 성장 곡선이 다르다: 적 HP는 아군 공격력 성장을, 적 공격력은 아군 HP 성장을 따라간다 (BattleRulesData).
-            StatScaling allyScaling = rules.GetAllyScaling(setup.AllyLevel);
+            // 캐릭터마다 보유 레벨이 다를 수 있으므로, 레벨 배율도 아군마다 따로 구한다.
             for (int i = 0; i < setup.AllyParty.Count; i++)
             {
-                allies.Add(new BattleUnit(setup.AllyParty[i], isAlly: true, formationIndex: i, level: setup.AllyLevel, allyScaling));
+                int level = setup.GetAllyLevel(i);
+                StatScaling allyScaling = rules.GetAllyScaling(level);
+                allies.Add(new BattleUnit(setup.AllyParty[i], isAlly: true, formationIndex: i, level: level, allyScaling));
             }
 
             // 각 유닛에 같은 편 목록을 연결해, 살아 있는 아군의 오라 패시브가 스탯 계산에 반영되게 한다.

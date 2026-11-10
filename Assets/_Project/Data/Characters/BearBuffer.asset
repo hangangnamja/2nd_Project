@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0cf10047d4cbc1d4a9d1cde009aa4d18, type: 3}
   m_Name: BearBuffer
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.CharacterData
+  id: BearBuffer
   displayName: BearBuffer
   role: 0
   maxHp: 1000
@@ -50,6 +51,8 @@ MonoBehaviour:
     execution: 0
     maxTriggersPerTurn: 1
     turnLimitScope: 1
+    maxTriggersPerBattle: 0
+    inactiveWhileTransformed: 0
     maxStacks: 0
     stacksPerOwnAction: 0
     stackCostPerTrigger: 0
@@ -68,6 +71,7 @@ MonoBehaviour:
       type: {class: ShieldEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         shieldStatus: {fileID: 11400000, guid: 55d9beca8519a794ea4ca80275f15c29, type: 2}
+        scaleStat: 0
         maxHpRatio: 0.25
     - rid: 7605779530016096392
       type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
@@ -94,3 +98,4 @@ MonoBehaviour:
       data:
         skillNumbers: 0200000003000000
         turns: 1
+        targetCaster: 0

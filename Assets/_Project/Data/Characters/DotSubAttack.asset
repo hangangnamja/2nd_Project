@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0cf10047d4cbc1d4a9d1cde009aa4d18, type: 3}
   m_Name: DotSubAttack
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.CharacterData
+  id: DotSubAttack
   displayName: DotSubAttack
   role: 1
   maxHp: 900
@@ -49,6 +50,9 @@ MonoBehaviour:
     trigger: 2
     execution: 0
     maxTriggersPerTurn: 0
+    turnLimitScope: 0
+    maxTriggersPerBattle: 0
+    inactiveWhileTransformed: 0
     maxStacks: 0
     stacksPerOwnAction: 0
     stackCostPerTrigger: 0

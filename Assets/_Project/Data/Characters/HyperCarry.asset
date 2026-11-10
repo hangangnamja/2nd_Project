@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ea7e9821befe0114cabf858e7dd1cbbb, type: 3}
   m_Name: HyperCarry
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.TransformingCharacterData
+  id: HyperCarry
   displayName: HyperCarry
   role: 1
   maxHp: 1000
@@ -69,6 +70,7 @@ MonoBehaviour:
       percent: 2
       flat: 0
     turnLimit: 5
+    crowdControlImmune: 1
     forcedReleaseHpRatio: 0.25
     skill1:
       skillName: "\uD30C\uC1C4"

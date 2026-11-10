@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0cf10047d4cbc1d4a9d1cde009aa4d18, type: 3}
   m_Name: DotMainAttack
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.CharacterData
+  id: DotMainAttack
   displayName: DotMainAttack
   role: 1
   maxHp: 1000
@@ -48,18 +49,26 @@ MonoBehaviour:
     trigger: 0
     execution: 0
     maxTriggersPerTurn: 0
+    turnLimitScope: 0
+    maxTriggersPerBattle: 0
+    inactiveWhileTransformed: 0
     maxStacks: 0
     stacksPerOwnAction: 0
     stackCostPerTrigger: 1
+    auraModifiers: []
     effects:
     - rid: 7605779465967763817
   - passiveName: "\uC5F0\uC1C4 \uACA9\uBC1C"
     trigger: 1
     execution: 1
     maxTriggersPerTurn: 0
+    turnLimitScope: 0
+    maxTriggersPerBattle: 0
+    inactiveWhileTransformed: 0
     maxStacks: 2
     stacksPerOwnAction: 1
     stackCostPerTrigger: 1
+    auraModifiers: []
     effects:
     - rid: 7605779465967763934
     - rid: 7605779465967763935
@@ -70,6 +79,7 @@ MonoBehaviour:
       type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         multiplier: 1
+        secondaryTargetRatio: 1
     - rid: 7605779465967763817
       type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
@@ -79,6 +89,7 @@ MonoBehaviour:
       type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         multiplier: 0.8
+        secondaryTargetRatio: 1
     - rid: 7605779465967763913
       type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
@@ -88,6 +99,7 @@ MonoBehaviour:
       type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         multiplier: 2
+        secondaryTargetRatio: 1
     - rid: 7605779465967763915
       type: {class: DetonateEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data: 
@@ -95,6 +107,7 @@ MonoBehaviour:
       type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         multiplier: 0.5
+        secondaryTargetRatio: 1
     - rid: 7605779465967763935
       type: {class: DetonateEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data: 
