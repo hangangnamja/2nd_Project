@@ -15,8 +15,11 @@ namespace Game.UI
         [Tooltip("아래에서 위로 옅어지는 그라데이션 배경")]
         [SerializeField] private Image gradient;
 
-        [Tooltip("캐릭터 일러스트 자리 / 3성이면 칼 그림")]
+        [Tooltip("일러스트가 없을 때의 그림 자리 / 3성이면 칼 그림")]
         [SerializeField] private Image icon;
+
+        [Tooltip("캐릭터 일러스트 (카드를 꽉 채움). 일러스트가 있으면 icon 대신 이걸 보여준다")]
+        [SerializeField] private IllustrationView illustration;
 
         [SerializeField] private Text nameText;
         [SerializeField] private Text starsText;
@@ -43,7 +46,12 @@ namespace Game.UI
             frame.color = color;
             gradient.color = color;
 
-            // 3성은 칼 그림을 그대로, 캐릭터는 일러스트가 생기기 전까지 옅은 빈 칸으로 둔다.
+            // 캐릭터 일러스트가 있으면 카드를 그림으로 채우고, 작은 그림 자리(icon)는 숨긴다.
+            // ?.: 무기(Character = null)면 Illustration을 읽지 않고 null → 일러스트 없음으로 처리된다.
+            bool hasIllustration = illustration != null && illustration.Show(result.Character?.Illustration);
+            icon.gameObject.SetActive(!hasIllustration);
+
+            // 3성은 칼 그림을 그대로, 일러스트가 없는 캐릭터는 옅은 빈 칸으로 둔다.
             icon.sprite = isWeapon ? weaponSprite : null;
             icon.color = isWeapon ? Color.white : new Color(1f, 1f, 1f, 0.15f);
             icon.preserveAspect = true;
