@@ -13,9 +13,10 @@ MonoBehaviour:
   m_Name: DotMainAttack
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.CharacterData
   id: DotMainAttack
-  displayName: DotMainAttack
+  displayName: "\uCE74\uD504\uCE74"
   role: 1
   grade: 0
+  illustration: {fileID: 21300000, guid: 46ce1f93a0811ff44bd35d2787133dcb, type: 3}
   maxHp: 1000
   attack: 120
   defense: 50

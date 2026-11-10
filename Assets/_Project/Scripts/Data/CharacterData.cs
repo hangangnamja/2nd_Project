@@ -20,6 +20,11 @@ namespace Game.Data
         // 가챠 확률 묶음(S/A)을 정한다. 적은 가챠에 나오지 않으므로 값이 의미 없다.
         [SerializeField] private CharacterGrade grade = CharacterGrade.A;
 
+        // 화면에 보여줄 캐릭터 그림. 가챠 픽업·로비 대표 캐릭터·결과 카드 등 여러 화면이 이 칸 하나를 함께 쓴다.
+        // 비워 두면 각 화면이 임시 그림(실루엣 등)을 보여준다.
+        [Tooltip("캐릭터 일러스트 (Sprite). 비워 두면 화면마다 임시 그림을 쓴다")]
+        [SerializeField] private Sprite illustration;
+
         // Min 속성: Inspector에서 이 값보다 작게 입력하지 못하도록 막는다 (HP 0인 캐릭터 방지).
         [SerializeField, Min(1)] private int maxHp = 1000;
         [SerializeField, Min(0)] private int attack = 100;
@@ -55,6 +60,7 @@ namespace Game.Data
         public string DisplayName => displayName;
         public CharacterRole Role => role;
         public CharacterGrade Grade => grade;
+        public Sprite Illustration => illustration;
         public int MaxHp => maxHp;
         public int Attack => attack;
         public int Defense => defense;
