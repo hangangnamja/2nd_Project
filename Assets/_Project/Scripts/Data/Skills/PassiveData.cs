@@ -31,6 +31,10 @@ namespace Game.Data
         // 이 캐릭터가 치명적인 피해(남은 HP 이상)를 받기 직전. 발동하면 HP 1로 버틴다. 효과 대상 = 자신
         // 피해 결과를 바꾸는 즉시 개입형이므로 실행 방식은 Immediate로 둔다 (하이퍼캐리 버티기).
         OnFatalDamage,
+
+        // 아군의 공격(지속피해 제외)으로 적 HP가 기준(hpThreshold) 초과에서 이하로 내려갈 때 (적 1명마다 1회 쌓임).
+        // 쌓인 횟수만큼 타수가 늘어나는 광역 추가 공격으로 실행한다 (돌파 반응 딜러, 기획서 4-3). 효과 = 추가 공격 1타의 효과
+        OnEnemyHpThreshold,
     }
 
     // 턴당 횟수 제한을 어느 턴 기준으로 세는지.
@@ -93,6 +97,10 @@ namespace Game.Data
         [Tooltip("발동 1회에 소모하는 스택 수")]
         [SerializeField, Min(0)] private int stackCostPerTrigger = 1;
 
+        [Header("HP 돌파 (트리거가 OnEnemyHpThreshold일 때만)")]
+        [Tooltip("적 HP가 최대 HP의 이 비율 초과에서 이하로 내려갈 때 1회 쌓인다 (0.5 = 50%)")]
+        [SerializeField, Range(0.01f, 1f)] private float hpThreshold = 0.5f;
+
         [Header("오라 (트리거가 Aura일 때만)")]
         [Tooltip("아군 전원(자신 포함)에게 적용할 스탯 보정. 예: 지속피해 증가 +20%")]
         [SerializeField] private List<StatModifier> auraModifiers = new List<StatModifier>();
@@ -112,6 +120,7 @@ namespace Game.Data
         public int MaxStacks => maxStacks;
         public int StacksPerOwnAction => stacksPerOwnAction;
         public int StackCostPerTrigger => stackCostPerTrigger;
+        public float HpThreshold => hpThreshold;
         public IReadOnlyList<StatModifier> AuraModifiers => auraModifiers;
         public IReadOnlyList<SkillEffect> Effects => effects;
     }

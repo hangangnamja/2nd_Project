@@ -28,6 +28,10 @@ namespace Game.Battle
         private readonly Dictionary<(BattleUnit, PassiveData), int> triggerCountsThisBattle =
             new Dictionary<(BattleUnit, PassiveData), int>();
 
+        // 돌파 반응 패시브의 타수 저장소 (유닛·패시브마다 하나, 전투 내내 유지 → 웨이브가 바뀌어도 남은 타수 유지).
+        private readonly Dictionary<(BattleUnit, PassiveData), HitCounter> hitCounters =
+            new Dictionary<(BattleUnit, PassiveData), HitCounter>();
+
         // 전투 공용 도구와 전투 유닛 전체를 받아 사건 구독을 시작한다.
         public PassiveRunner(BattleServices services, IReadOnlyList<BattleUnit> allUnits)
         {
@@ -41,6 +45,7 @@ namespace Game.Battle
             events.UnitKilled += HandleUnitKilled;
             events.BuffRemoved += HandleBuffRemoved;
             events.FatalDamageIncoming += HandleFatalDamageIncoming;
+            events.HpLowered += HandleHpLowered;
         }
 
         // 전투가 끝나 더 이상 반응할 필요가 없을 때 구독을 해제한다.
@@ -53,6 +58,73 @@ namespace Game.Battle
             events.UnitKilled -= HandleUnitKilled;
             events.BuffRemoved -= HandleBuffRemoved;
             events.FatalDamageIncoming -= HandleFatalDamageIncoming;
+            events.HpLowered -= HandleHpLowered;
+        }
+
+        // 적 HP가 줄어듦: 공격한 쪽과 같은 편인 "HP 돌파" 패시브 주인을 찾아, 기준선을 넘어 내려갔으면 타수를 1 쌓는다.
+        // 지속피해는 공격이 아니므로 제외한다. 공격자 본인(돌파 딜러의 추가 공격)도 같은 편이라 포함된다 (기획서 3-4 예외).
+        private void HandleHpLowered(BattleUnit target, BattleUnit attacker, int hpBefore, bool isDamageOverTime)
+        {
+            if (attacker == null || isDamageOverTime)
+            {
+                return;
+            }
+
+            foreach (BattleUnit owner in allUnits)
+            {
+                // 공격자와 같은 편이고, 맞은 유닛은 반대편이며, 주인이 전장에 있을 때만 반응한다.
+                bool isRelevantOwner = owner.IsOnField && owner.IsAlly == attacker.IsAlly && target.IsAlly != owner.IsAlly;
+                if (!isRelevantOwner)
+                {
+                    continue;
+                }
+
+                foreach (PassiveData passive in owner.Data.Passives)
+                {
+                    if (passive.Trigger == PassiveTrigger.OnEnemyHpThreshold && HasCrossedThreshold(target, hpBefore, passive.HpThreshold))
+                    {
+                        AddThresholdHit(owner, passive, target);
+                    }
+                }
+            }
+        }
+
+        // 맞기 전 HP는 기준선 위였는데 지금은 기준선 이하인지. 기준선 = 최대 HP × 비율 (예: 10000 × 0.5 = 5000)
+        // "이하인 적을 때릴 때마다"가 아니라 "넘어가는 순간"만 세야, 이미 50% 아래인 적을 때리는 추가 공격이 끝없이 늘지 않는다.
+        private static bool HasCrossedThreshold(BattleUnit target, int hpBefore, float ratio)
+        {
+            double threshold = target.MaxHp * (double)ratio;
+            return hpBefore > threshold && target.CurrentHp <= threshold;
+        }
+
+        // 돌파 1회: 타수를 1 쌓고, 이 타수를 쓸 추가 공격이 아직 없으면 하나 예약한다.
+        // 이미 예약됐거나 실행 중이면 새로 예약하지 않는다 → 같은 추가 공격의 타수가 늘어난다.
+        private void AddThresholdHit(BattleUnit owner, PassiveData passive, BattleUnit target)
+        {
+            if (!CanTrigger(owner, passive))
+            {
+                return;
+            }
+
+            ConsumeTrigger(owner, passive);
+
+            var key = (owner, passive);
+
+            // TryGetValue로 없으면 새로 만들어 넣는다 → 유닛·패시브마다 저장소가 하나만 생긴다.
+            if (!hitCounters.TryGetValue(key, out HitCounter counter))
+            {
+                counter = new HitCounter();
+                hitCounters[key] = counter;
+            }
+
+            counter.Pending++;
+            log($"  [패시브] {owner.Name}: {passive.PassiveName} ({target.Name} {passive.HpThreshold:P0} 돌파) → 타수 {counter.Pending}");
+
+            if (!counter.IsQueued)
+            {
+                counter.IsQueued = true;
+                actions.EnqueueFollowUp(new FollowUpAttack(owner, passive, counter));
+            }
         }
 
         // 치명적인 피해 직전: 맞는 유닛 본인의 "치명적인 피해 시" 패시브가 발동하면 사망을 막는다 (하이퍼캐리 버티기).
