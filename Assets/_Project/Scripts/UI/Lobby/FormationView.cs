@@ -190,7 +190,7 @@ namespace Game.UI
             RefreshSlots();
         }
 
-        // 칸마다 모델 자리 색과 이름·레벨을 채운다. 편성이 비어 있으면 전투 시작을 막는다.
+        // 칸마다 일러스트(없으면 직군 색 박스)와 이름·레벨을 채운다. 편성이 비어 있으면 전투 시작을 막는다.
         private void RefreshSlots()
         {
             for (int i = 0; i < slots.Count; i++)
@@ -198,6 +198,12 @@ namespace Game.UI
                 CharacterData character = party[i];
                 Image model = slots[i].transform.Find("Model").GetComponent<Image>();
                 Text label = slots[i].transform.Find("Label").GetComponent<Text>();
+
+                // 일러스트가 있으면 칸을 그림으로 채우고 색 박스는 숨긴다. 빈 칸·일러스트 없는 캐릭터는 색 박스를 그대로 쓴다.
+                // ?.: 빈 칸(character = null)이면 Illustration을 읽지 않고 null → 일러스트 없음.
+                IllustrationView illust = slots[i].GetComponentInChildren<IllustrationView>(true);
+                bool hasIllustration = illust != null && illust.Show(character?.Illustration);
+                model.gameObject.SetActive(!hasIllustration);
 
                 model.color = character != null ? GetRoleColor(character) : emptyColor;
                 label.text = character != null ? $"LV.{PlayerProfile.GetLevel(character)}  {character.DisplayName}" : "+";
