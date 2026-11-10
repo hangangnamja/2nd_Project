@@ -28,6 +28,12 @@ namespace Game.UI
         [Tooltip("픽업 캐릭터 이름 글자")]
         [SerializeField] private Text pickupName;
 
+        [Tooltip("픽업 캐릭터 그림 자리. 캐릭터에 일러스트가 없으면 씬에 넣어 둔 임시 그림(실루엣)을 그대로 보여준다")]
+        [SerializeField] private Image pickupIllust;
+
+        [Tooltip("일러스트가 없을 때 보여줄 안내 글자 (일러스트가 있으면 숨긴다)")]
+        [SerializeField] private GameObject pickupPlaceholder;
+
         [SerializeField] private Button previousButton;
         [SerializeField] private Button nextButton;
 
@@ -62,6 +68,9 @@ namespace Game.UI
 
         private int bannerIndex;
         private bool isInitialized;
+
+        // 일러스트가 없는 캐릭터에 보여줄 임시 그림 (씬에 처음 넣어 둔 실루엣)
+        private Sprite defaultIllust;
 
         // 화면이 켜질 때마다(메인 화면에서 모집을 누를 때) 첫 배너와 보유 보석·확정까지 남은 횟수를 다시 보여준다.
         private void OnEnable()
@@ -138,11 +147,39 @@ namespace Game.UI
             endDateText.text = banner.EndDateText;
 
             pickupName.text = banner.PickupCharacter != null ? banner.PickupCharacter.DisplayName : string.Empty;
+            ShowPickupIllust(banner.PickupCharacter);
             RefreshPageDots();
 
             // 배너가 하나뿐이면 넘길 곳이 없으므로 화살표를 숨긴다.
             previousButton.gameObject.SetActive(banners.Count > 1);
             nextButton.gameObject.SetActive(banners.Count > 1);
+        }
+
+        // 픽업 캐릭터 그림을 보여준다. 일러스트가 있으면 그 그림으로, 없으면 처음 씬에 있던 임시 그림(실루엣)으로 되돌린다.
+        // 처음 쓸 때 임시 그림을 기억해 두는 이유: 일러스트가 있는 배너 → 없는 배너로 넘기면 원래 그림으로 돌아가야 하기 때문.
+        private void ShowPickupIllust(CharacterData pickup)
+        {
+            if (pickupIllust == null)
+            {
+                return;
+            }
+
+            // ??=: 아직 기억한 임시 그림이 없을 때만(null) 지금 그림을 기억한다 → 첫 호출 때 한 번만 저장된다.
+            defaultIllust ??= pickupIllust.sprite;
+
+            // ?.: pickup이 없으면(null) Illustration을 읽지 않고 null을 돌려준다.
+            Sprite illustration = pickup?.Illustration;
+            bool hasIllustration = illustration != null;
+
+            pickupIllust.sprite = hasIllustration ? illustration : defaultIllust;
+
+            // 비율 유지: 정사각형·세로형 그림이 섞여 있어도 찌그러지지 않게 칸 안에 맞춘다.
+            pickupIllust.preserveAspect = true;
+
+            if (pickupPlaceholder != null)
+            {
+                pickupPlaceholder.SetActive(!hasIllustration);
+            }
         }
 
         // 배너 수만큼 점을 켜고, 지금 배너의 점만 밝게 한다.
