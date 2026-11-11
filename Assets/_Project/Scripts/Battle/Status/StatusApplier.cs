@@ -64,7 +64,8 @@ namespace Game.Battle.Status
             }
         }
 
-        // 피해를 보호막으로 먼저 흡수한 뒤 HP에 적용하고, HP가 실제로 줄어든 양을 돌려준다.
+        // 피해를 보호막으로 먼저 흡수한 뒤 HP에 적용하고, 들어간 피해(보호막이 흡수하고 남은 피해)를 돌려준다.
+        // 돌려주는 값·피해 숫자는 남은 HP와 상관없는 원래 피해다: HP 9000에 15000을 맞으면 피해는 15000, HP는 0에서 멈춘다.
         // 스킬 피해와 지속피해가 모두 이 함수를 거친다. 깨진 보호막은 "지워짐"으로 알린다.
         // absorbed: 보호막이 흡수한 양 (로그용)
         // isCritical·isDamageOverTime: 계산에는 쓰지 않고, 화면의 피해 숫자 모양을 고르도록 연출 사건에 그대로 넘긴다.
@@ -98,6 +99,10 @@ namespace Game.Battle.Status
                 ReportRemoved(target, shield, services);
             }
 
+            // 화면·로그에 보여줄 피해 = 보호막에 막히고 남은 원래 피해. 아래 버티기·강제 해제나 HP 부족으로
+            // 실제로 깎이는 HP가 줄어들어도, 숫자는 계산된 피해 그대로 보여준다.
+            int shownDamage = remaining;
+
             // 남은 HP 이상의 피해 = 치명적인 피해. 사망을 막는 효과가 있으면 HP에 넣기 전에 피해량을 바꾼다.
             // !target.IsDown: 이미 HP 0인 대상(같은 공격 안에서 쓰러진 대상)은 다시 막지 않는다.
             if (remaining >= target.CurrentHp && !target.IsDown)
@@ -105,15 +110,16 @@ namespace Game.Battle.Status
                 remaining = ApplyFatalDamageRules(target, remaining, services);
             }
 
+            // TakeDamage는 HP를 0 밑으로 내리지 않는다 → 실제로 깎인 HP(hpLost)는 남은 HP를 넘지 않는다.
             int hpBefore = target.CurrentHp;
-            int dealt = target.TakeDamage(remaining, attacker);
-            if (dealt > 0)
+            int hpLost = target.TakeDamage(remaining, attacker);
+            if (hpLost > 0)
             {
                 services.Events.RaiseHpLowered(target, attacker, hpBefore, isDamageOverTime);
             }
 
-            services.Events.RaiseDamageTaken(new DamageTakenInfo(target, dealt, absorbed, isCritical, isDamageOverTime, isBlocked: false));
-            return dealt;
+            services.Events.RaiseDamageTaken(new DamageTakenInfo(target, shownDamage, absorbed, isCritical, isDamageOverTime, isBlocked: false));
+            return shownDamage;
         }
 
         // 받은 피해를 "피해 기록" 효과(반격 태세)에 누적한다. 보호막에 흡수된 피해도 받은 피해로 센다.

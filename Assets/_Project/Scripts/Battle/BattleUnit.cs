@@ -122,8 +122,95 @@ namespace Game.Battle
             }
         }
 
-        // 행동 제어(기절 등) 면역인지. 지금은 "행동 제어 면역" 설정이 켜진 변신 중일 때만 true (하이퍼캐리).
-        public bool IsCrowdControlImmune => IsTransformed && Transformation.Data.CrowdControlImmune;
+        // 행동 제어(기절 등) 면역인지. 면역을 주는 경계(하이퍼캐리 고립)를 펼친 동안 true.
+        // ?.: 경계가 없으면(null) 면역 여부를 읽지 않고 null → == true가 아니므로 false.
+        public bool IsCrowdControlImmune => ActiveBoundary?.GrantsCrowdControlImmunity == true;
+
+        // ---------- 경계 (기획서 3-12) ----------
+
+        // 이 유닛이 펼친 경계. 없으면 null. 경계의 스탯 보정·면역·머리 위 표시가 이 값을 본다.
+        public Boundary ActiveBoundary { get; private set; }
+
+        // 경계를 달거나(boundary) 뗀다(null). Boundary.Begin/End만 호출한다.
+        // 최대 HP 보정이 있는 경계라서, 달 때는 늘어난 최대 HP만큼 현재 HP도 올리고(비율 유지),
+        // 뗄 때는 줄어든 최대 HP를 넘는 현재 HP를 최대 HP로 맞춘다.
+        // 예: 최대 HP 1000 → 3000 (+200%), 현재 HP 800 → 2800 / 해제 시 2800 → 1000
+        public void SetActiveBoundary(Boundary boundary)
+        {
+            int maxHpBefore = MaxHp;
+            ActiveBoundary = boundary;
+
+            if (boundary != null)
+            {
+                CurrentHp += MaxHp - maxHpBefore;
+            }
+            else
+            {
+                CurrentHp = Math.Min(CurrentHp, MaxHp);
+            }
+        }
+
+        // ---------- 기간 오라 (아스트라 공연, 기획서 3-7 오라) ----------
+
+        // 이 유닛이 생성 중인 기간 오라. 없으면 null. 같은 편 전원의 스탯 계산(GetAuraModifiers)에 들어간다.
+        public TimedAura ActiveAura { get; private set; }
+
+        // 공연 중이라 이번 턴을 강제로 스킵해야 하는지. 오라를 생성한 그 턴에는 아직 스킵하지 않는다.
+        public bool IsPerforming => ActiveAura != null && ActiveAura.SkipsOwnerTurns && !ActiveAura.IsStartingTurn;
+
+        // 기간 오라를 생성한다. 이미 생성 중이면 새 오라로 바꾼다.
+        public void StartAura(TimedAura aura)
+        {
+            ActiveAura = aura;
+        }
+
+        // 정규 턴이 끝날 때 기간 오라의 남은 턴을 줄인다. 이번에 끝났으면 끝난 오라를 돌려주고(로그용), 아니면 null.
+        public TimedAura TickAura()
+        {
+            if (ActiveAura == null || !ActiveAura.Tick())
+            {
+                return null;
+            }
+
+            TimedAura ended = ActiveAura;
+            ActiveAura = null;
+            return ended;
+        }
+
+        // ---------- 아군 퇴장 (하이퍼캐리 3스) ----------
+
+        // 이 유닛이 퇴장시킨 아군. 이 유닛의 변신이 끝나거나 쓰러지면 이 목록만 복귀시킨다.
+        private readonly System.Collections.Generic.List<BattleUnit> exitedAllies = new System.Collections.Generic.List<BattleUnit>();
+
+        // 자신을 뺀 같은 편 중 전장에 있는 유닛을 모두 퇴장시키고, 퇴장시킨 유닛 목록을 돌려준다 (로그용).
+        public System.Collections.Generic.IReadOnlyList<BattleUnit> ExitAllies()
+        {
+            var exited = new System.Collections.Generic.List<BattleUnit>();
+            foreach (BattleUnit ally in team)
+            {
+                if (ally != this && ally.IsOnField)
+                {
+                    ally.SetExited(true);
+                    exited.Add(ally);
+                }
+            }
+
+            exitedAllies.AddRange(exited);
+            return exited;
+        }
+
+        // 퇴장시켰던 아군을 복귀시키고, 복귀한 유닛 목록을 돌려준다 (로그용). 퇴장 중엔 게이지가 멈춰 있었으므로 그대로 이어서 진행한다.
+        public System.Collections.Generic.IReadOnlyList<BattleUnit> ReturnExitedAllies()
+        {
+            var returned = new System.Collections.Generic.List<BattleUnit>(exitedAllies);
+            foreach (BattleUnit ally in returned)
+            {
+                ally.SetExited(false);
+            }
+
+            exitedAllies.Clear();
+            return returned;
+        }
 
         // 무적: 피해를 받지 않는다 (보스 스테이지의 버프몹). 스테이지 설정으로 정해지고 전투 중 바뀌지 않는다.
         // 무적인 적은 승리 조건(적 전멸)에서도 빠진다 → 보스만 쓰러뜨리면 클리어.
@@ -232,8 +319,31 @@ namespace Game.Battle
             return IsTransformed ? Transformation.GetCooldown(slot) : remainingCooldowns[slot];
         }
 
-        // 쿨타임이 끝나 지금 사용할 수 있는 스킬인지 확인한다.
-        public bool CanUseSkill(int slot) => GetRemainingCooldown(slot) <= 0;
+        // 지금 사용할 수 있는 스킬인지: 쿨타임이 끝났고, 경계 스킬이면 같은 편에 이미 펼쳐진 경계가 없어야 한다.
+        // 경계는 전장에 하나뿐이라(기획서 3-12), 아군 경계가 펼쳐진 동안 다른 경계 스킬을 막아 교체가 일어나지 않게 한다.
+        public bool CanUseSkill(int slot)
+        {
+            if (GetRemainingCooldown(slot) > 0)
+            {
+                return false;
+            }
+
+            return !GetSkill(slot).DeploysBoundary || !IsTeamBoundaryActive();
+        }
+
+        // 같은 편(자신 포함) 중 경계를 펼친 유닛이 있는지.
+        private bool IsTeamBoundaryActive()
+        {
+            foreach (BattleUnit ally in team)
+            {
+                if (ally.ActiveBoundary != null)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
 
         // 스킬을 사용했을 때 해당 슬롯에 쿨타임을 건다.
         // usedTransformedSkill: 사용한 스킬이 변신 스킬이었는지 (스킬을 쓰기 전 상태 기준).
@@ -293,43 +403,17 @@ namespace Game.Battle
         public TransformationState Transformation { get; private set; }
         public bool IsTransformed => Transformation != null;
 
-        // 변신한다: 변신 상태를 만들고, exitAllies면 같은 편의 전장에 있는 다른 유닛을 퇴장시킨다.
-        // 최대 HP가 늘어난 만큼 현재 HP도 올려, 변신 직후 HP 비율이 떨어지지 않게 한다.
-        // 예: 최대 HP 1000 → 1300 (+30%), 현재 HP 800 → 1100
-        public void Transform(TransformationData data, bool exitAllies)
+        // 변신한다: 스킬 세트가 변신 스킬로 바뀌고 엑스트라 턴·종결기 규칙이 적용된다.
+        // 스탯 증가·행동 제어 면역은 경계(고립), 아군 퇴장은 "아군 퇴장" 블록이 맡는다 (기획서 3-12, 4-3).
+        public void Transform(TransformationData data)
         {
-            var exited = new System.Collections.Generic.List<BattleUnit>();
-            if (exitAllies)
-            {
-                foreach (BattleUnit ally in team)
-                {
-                    if (ally != this && ally.IsOnField)
-                    {
-                        ally.SetExited(true);
-                        exited.Add(ally);
-                    }
-                }
-            }
-
-            int maxHpBefore = MaxHp;
-            Transformation = new TransformationState(data, exited);
-            CurrentHp += MaxHp - maxHpBefore;
+            Transformation = new TransformationState(data);
         }
 
-        // 변신을 해제하고 퇴장시켰던 아군을 복귀시킨다. 복귀한 아군 목록을 돌려준다 (로그용).
-        // 최대 HP가 원래대로 줄어들므로, 현재 HP가 넘치면 최대 HP로 맞춘다 (기획서 4-3 강제 해제 규칙).
-        public System.Collections.Generic.IReadOnlyList<BattleUnit> EndTransformation()
+        // 변신을 해제한다 (스킬 세트가 원래대로).
+        public void EndTransformation()
         {
-            System.Collections.Generic.IReadOnlyList<BattleUnit> returned = Transformation.ExitedAllies;
             Transformation = null;
-
-            foreach (BattleUnit ally in returned)
-            {
-                ally.SetExited(false);
-            }
-
-            CurrentHp = Math.Min(CurrentHp, MaxHp);
-            return returned;
         }
 
         // HP를 지정한 값으로 맞춘다 (1 ~ 최대 HP). 변신 강제 해제처럼 "사망 대신 정해진 HP로 버티는" 처리에 쓴다.
@@ -447,7 +531,7 @@ namespace Game.Battle
             }
         }
 
-        // 상태효과 칸 밖의 보정을 꺼낸다: 살아 있는 같은 편의 오라 패시브 + 변신 스탯 보정.
+        // 상태효과 칸 밖의 보정을 꺼낸다: 살아 있는 같은 편의 오라 패시브 + 경계 스탯 보정.
         private System.Collections.Generic.IEnumerable<StatModifier> GetNonStatusModifiers(StatType stat)
         {
             foreach (StatModifier modifier in GetAuraModifiers(stat))
@@ -455,11 +539,11 @@ namespace Game.Battle
                 yield return modifier;
             }
 
-            // 변신 중이면 변신 스탯 보정(공격력·방어력·최대 HP 증가)도 함께 적용한다.
-            // 상태효과 칸이 아니라 변신 설정에 들어 있으므로 강탈·소모·만료되지 않는다.
-            if (IsTransformed)
+            // 경계를 펼친 동안 경계 스탯 보정(공격력·방어력·최대 HP 증가)도 함께 적용한다.
+            // 상태효과 칸이 아니라 경계에 들어 있으므로 강탈·소모·만료되지 않고, 공격력 버프와 중첩 감소도 없이 그대로 더해진다.
+            if (ActiveBoundary != null)
             {
-                foreach (StatModifier modifier in Transformation.Data.StatModifiers)
+                foreach (StatModifier modifier in ActiveBoundary.StatModifiers)
                 {
                     if (modifier.Stat == stat)
                     {
@@ -475,10 +559,22 @@ namespace Game.Battle
         {
             foreach (BattleUnit ally in team)
             {
-                // 쓰러졌거나 퇴장한 유닛의 오라는 꺼진다.
-                if (!ally.IsOnField)
+                // 쓰러진 유닛의 오라만 꺼진다. 퇴장한 유닛의 오라는 계속 적용된다 (기획서 3-7 오라).
+                if (ally.IsDead)
                 {
                     continue;
+                }
+
+                // 기간 오라 (공연 등): 생성 중인 동안 같은 편 전원에게 적용
+                if (ally.ActiveAura != null)
+                {
+                    foreach (StatModifier modifier in ally.ActiveAura.StatModifiers)
+                    {
+                        if (modifier.Stat == stat)
+                        {
+                            yield return modifier;
+                        }
+                    }
                 }
 
                 foreach (PassiveData passive in ally.Data.Passives)
