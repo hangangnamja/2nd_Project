@@ -125,7 +125,7 @@ namespace Game.Battle
     {
         public BattleUnit Target { get; }
 
-        // HP가 실제로 줄어든 양
+        // 들어간 피해 (보호막이 흡수하고 남은 원래 피해). 남은 HP보다 커도 그대로 보여준다 (HP만 0에서 멈춤).
         public int Amount { get; }
 
         // 보호막이 흡수한 양

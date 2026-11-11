@@ -249,11 +249,12 @@ namespace Game.Battle
             {
                 BeginTurn(extraTurnUnit);
 
-                // 기절 중이면 행동(스킬 선택·사용)을 건너뛰고 바로 턴을 마친다.
-                // 턴 종료 처리는 그대로라 기절의 남은 턴이 줄어 풀린다.
-                if (CurrentActor.IsStunned)
+                // 기절·공연 중이면 행동(스킬 선택·사용)을 건너뛰고 바로 턴을 마친다.
+                // 턴 종료 처리는 그대로라 기절·공연의 남은 턴이 줄고, "공격하지 않은 턴" 패시브도 발동한다.
+                if (CurrentActor.IsStunned || CurrentActor.IsPerforming)
                 {
-                    Log($"  {CurrentActor.Name}: 기절로 행동 불가");
+                    string reason = CurrentActor.IsStunned ? "기절로 행동 불가" : $"{CurrentActor.ActiveAura.Name} 중 (행동 스킵)";
+                    Log($"  {CurrentActor.Name}: {reason}");
                     yield return new WaitForSeconds(enemyActionDelay);
                 }
                 // yield return 다른 코루틴: 그 코루틴이 끝날 때까지 여기서 기다린다.
@@ -471,11 +472,18 @@ namespace Game.Battle
                     // 처치 사건은 사망이 확정된 뒤에 알린다 → 처치 시 패시브가 확정된 결과를 기준으로 반응한다.
                     // LastAttacker: 마지막으로 피해를 준 유닛(지속피해면 그 효과의 부여자)을 처치자로 본다.
                     services.Events.RaiseUnitKilled(unit, unit.LastAttacker);
+
+                    // 아군을 퇴장시킨 유닛이 쓰러졌으면 퇴장한 아군을 바로 복귀시킨다 (남겨진 채 전멸 판정이 나지 않도록).
+                    ReturnExitedAllies(unit);
                 }
             }
+
+            // 경계를 펼친 유닛이 쓰러졌으면 경계도 끝난다.
+            services.Boundaries.CheckEnd();
         }
 
-        // 변신을 해제한다: 스킬 세트·스탯이 원래대로 돌아가고, 퇴장했던 아군이 퇴장 전 게이지 그대로 복귀한다.
+        // 변신을 해제한다: 스킬 세트가 원래대로 돌아가고, 3스로 퇴장했던 아군이 퇴장 전 게이지 그대로 복귀한다.
+        // 변신과 함께 끝나는 경계(고립)도 여기서 끝나 스탯 증가·행동 제어 면역이 사라진다.
         private void EndTransformation(BattleUnit unit)
         {
             if (!unit.IsTransformed)
@@ -483,10 +491,17 @@ namespace Game.Battle
                 return;
             }
 
-            IReadOnlyList<BattleUnit> returned = unit.EndTransformation();
-            Log($"  {unit.Name}: 변신 해제 (HP {unit.CurrentHp}/{unit.MaxHp})");
+            unit.EndTransformation();
+            Log($"  {unit.Name}: 변신 해제");
+            ReturnExitedAllies(unit);
+            services.Boundaries.CheckEnd();
+            Log($"  {unit.Name}: HP {unit.CurrentHp}/{unit.MaxHp}");
+        }
 
-            foreach (BattleUnit ally in returned)
+        // unit이 퇴장시켰던 아군을 복귀시키고 기록한다. 변신 해제와 퇴장시킨 유닛의 사망 때 부른다.
+        private void ReturnExitedAllies(BattleUnit unit)
+        {
+            foreach (BattleUnit ally in unit.ReturnExitedAllies())
             {
                 Log($"  {ally.Name} 복귀");
             }
@@ -664,6 +679,18 @@ namespace Game.Battle
 
             // 지속피해로 HP가 0이 됐으면 턴 종료 처리가 끝난 뒤 사망을 확정한다.
             ConfirmDeaths();
+
+            // 이번 턴에 공격하지 않았으면 그 패시브(아스트라 회복)를 발동한다. 지속피해·지속 회복·사망 확정 다음이라
+            // 이번 턴 지속피해로 쓰러진 아군은 회복되지 않는다 (부활 없음).
+            passiveRunner.HandleOwnTurnEnd(actor);
+
+            // 기간 오라(공연)의 남은 턴을 줄인다. 생성한 턴은 세지 않는다.
+            TimedAura endedAura = actor.TickAura();
+            if (endedAura != null)
+            {
+                Log($"  {actor.Name}: {endedAura.Name} 종료");
+            }
+
             actor.TickCooldowns();
             scheduler.EndTurn(actor);
 

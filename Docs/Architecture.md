@@ -140,6 +140,12 @@ UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
 - HP 돌파 반응(돌파 딜러)은 `StatusApplier.DealDamage`의 `HpLowered` 사건으로 "기준선 위 → 아래"를 판단하고, 타수를 `HitCounter`(유닛·패시브마다 하나)에 쌓는다
   - 쌓일 때 예약된 추가 공격이 없으면 1개만 예약하고, 이미 있거나 실행 중이면 그 추가 공격의 타수만 늘어난다
   - `BattleManager.ExecuteMultiHitFollowUp`이 타수를 한 타씩 꺼내 적 전체에 효과를 반복하고, 적(무적 제외)이 모두 HP 0이면 남은 타수를 버린다. 칠 적이 없으면 타수를 남겨 다음 발동에 더한다
+- 오라 (기획서 3-7): 버프 칸 밖의 보정이라 `BattleUnit.GetAuraModifiers`가 스탯 계산 때 같은 편을 돌며 모은다
+  - 패시브 오라(`PassiveTrigger.Aura`)와 기간 오라(`BattleUnit.ActiveAura`, `TimedAura`) 두 가지. 주인이 쓰러지면 꺼지고, **퇴장해도 유지**(`IsDead`만 확인)
+  - 기간 오라는 `StartAuraEffect`(아스트라 공연)가 만들고, 주인의 정규 턴 끝(`BattleManager.EndTurn`)마다 남은 턴이 준다. 만든 턴은 세지 않음
+  - `SkipsOwnerTurns`면 그동안 주인의 턴이 강제로 스킵된다(`BattleUnit.IsPerforming`, 기절과 같은 경로로 턴 종료 처리만)
+  - 전장 이펙트: 오라 데이터가 프리팹(`FieldEffect`)을 들고, Battle 씬의 `AuraFieldView`가 `StateChanged`마다 켜진 오라의 이펙트를 만들고 꺼진 오라의 이펙트를 지운다. 띠 흐름은 `FieldFxScroller`(텍스처 이동·서서히 나타남), 빛은 가산 HDR 재질 + Bloom
+- "공격하지 않은 턴" 패시브(`OnTurnEndWithoutAttack`, 아스트라): `PassiveRunner`가 자기 스킬 공격 행동을 턴마다 기록하고, `EndTurn`이 지속피해·사망 확정 다음에 `HandleOwnTurnEnd`를 부른다
 - 치명적인 피해(남은 HP 이상)는 `StatusApplier.DealDamage`에서 HP에 넣기 직전에 처리한다
   - 변신 중이면 강제 해제(HP 고정 + 종결기 예약), 아니면 `FatalDamageIncoming` 사건 → 버티기 패시브가 막으면 HP 1
 
@@ -147,7 +153,15 @@ UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
 - `IsDead`(쓰러짐)와 `IsOnField`(살아 있고 퇴장하지 않음)를 나눈다
   - 행동 순서·게이지 전진·대상 선택·반응 패시브·오라는 `IsOnField`, 승패 판정은 `IsDead`
 - 변신은 `BattleUnit.Transformation`(런타임 상태)이 들고, 스킬·쿨타임은 항상 `BattleUnit.GetSkill` 등 유닛을 거쳐 읽어 변신 스킬로 자동 교체된다
-- 변신 스탯 보정은 상태효과 칸이 아니라 변신 설정에 있어 강탈·소모·만료 대상이 아니다
+- 하이퍼캐리 3스는 효과 블록 3개로 나뉜다: 변신(`TransformEffect`, 스킬 교체) → 아군 퇴장(`ExitAlliesEffect`) → 경계: 고립(`IsolationBoundaryEffect`, 스탯·면역)
+  - 아군 퇴장: 퇴장시킨 유닛 목록을 시전자(`BattleUnit.ExitAllies`)가 들고, 변신 해제·시전자 사망 때 `ReturnExitedAllies`로 복귀
+- **경계** (기획서 3-12)
+  - `BoundaryEffect`(경계 블록 공통): 경계를 만들어 `BattleServices.Boundaries`(`BoundaryField`)에 펼친다. 공통 규칙은 "한 번에 하나"뿐
+    - 아군: `BattleUnit.CanUseSkill`이 같은 편에 경계가 있으면 경계 스킬(`SkillData.DeploysBoundary`)을 막는다
+    - 그래도 새 경계가 들어오면 `BoundaryField.Deploy`가 기존 경계를 끝내고 교체한다
+  - 경계마다 블록 하위 클래스 + 런타임 `Boundary` 하위 클래스: 스탯 보정(`StatModifiers`), 행동 제어 면역, 표시용 효과(`DisplayStatus`), 끝날 조건(`ShouldEnd`)
+    - 펼치면 주인의 `BattleUnit.ActiveBoundary`가 되어 스탯 계산(상태효과 칸 밖 보정)·면역(`IsCrowdControlImmune`)·머리 위 아이콘(`UnitView`)에 반영된다. 버프 칸이 아니라 강탈·소모·만료 대상이 아니다
+  - `BattleManager`가 변신 해제·사망 확정 직후 `Boundaries.CheckEnd()`를 불러 끝날 조건을 확인한다
 - 무적(`IsInvulnerable`)은 스테이지 설정으로 정해진다: `StatusApplier.DealDamage`에서 피해 0, 승리 판정에서 제외 (무적이 아닌 적 전멸 = 승리)
 - 기절(행동 불가 상태효과)이면 행동 선택·스킬을 건너뛰고 턴 종료 처리만 한다
 
@@ -195,7 +209,7 @@ Assets/_Project/
 
 ### 데이터·저장
 - SO 데이터: 캐릭터(등급·직군·스탯·1~3스·패시브·변신), 적(행동 패턴), 상태효과 17종, 스테이지 9개, 전투 규칙, 가챠 규칙·배너
-- 효과 블록 15종: 피해, 버프 수 비례 피해, 상태효과 부여, 격발, 강탈, 버프 전부 소모, 회복, 보호막, 행동 당기기, 추가 턴, 추가 공격 예약, 쿨타임 감소, 변신, 적 강제 공격(반격 태세), 받은 피해 비례 반격
+- 효과 블록 18종: 피해, 버프 수 비례 피해, 상태효과 부여, 격발, 강탈, 버프 전부 소모, 회복(시전자 최대 HP 기준·아군 전원 옵션), 보호막, 행동 당기기, 추가 턴, 추가 공격 예약, 쿨타임 감소, 변신, 아군 퇴장, 적 강제 공격(반격 태세), 받은 피해 비례 반격, 경계(고립), 기간 오라(공연)
 - Inspector 도구: 효과 블록 드롭다운(`SubclassSelector`), 상태효과 종류별 칸 표시
 - 세이브: JSON 저장·불러오기, 임시 파일 교체, 깨진 파일 보관, `version` 필드, 새 게임 시작 캐릭터, 에디터 메뉴(세이브 삭제·폴더 열기)
 
@@ -208,8 +222,8 @@ Assets/_Project/
 - 웨이브 진행(`StageRunner`), 승패 판정, 결과 화면(로비 복귀)
 - 적 AI: 패턴 목록(조건 → 스킬·대상), 일반 적 랜덤 공격
 
-### 캐릭터 (7 / 10명)
-- S: 격발 딜러(DotMainAttack), 강탈 딜러(BuffStealAttack), 하이퍼캐리(HyperCarry), 곰인형 버퍼(BearBuffer)
+### 캐릭터 (8 / 11명)
+- S: 격발 딜러(DotMainAttack), 강탈 딜러(BuffStealAttack), 하이퍼캐리(HyperCarry), 곰인형 버퍼(BearBuffer), 공연 오라 버퍼(Astra)
 - A: 독 서브딜러(DotSubAttack), 치명 버퍼(Ally_Support), 돌파 반응 광역 딜러(GeniusAoE)
 - 수치는 전부 테스트 값
 

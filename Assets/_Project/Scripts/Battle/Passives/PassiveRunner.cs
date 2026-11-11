@@ -28,6 +28,10 @@ namespace Game.Battle
         private readonly Dictionary<(BattleUnit, PassiveData), int> triggerCountsThisBattle =
             new Dictionary<(BattleUnit, PassiveData), int>();
 
+        // 이번 자기 턴에 스킬로 공격한 유닛 (턴이 시작될 때 지우고, 공격 행동 사건 때 넣는다).
+        // HashSet: 같은 값이 한 번만 들어가는 집합. "공격했는지"만 빠르게 확인한다.
+        private readonly HashSet<BattleUnit> attackedThisTurn = new HashSet<BattleUnit>();
+
         // 돌파 반응 패시브의 타수 저장소 (유닛·패시브마다 하나, 전투 내내 유지 → 웨이브가 바뀌어도 남은 타수 유지).
         private readonly Dictionary<(BattleUnit, PassiveData), HitCounter> hitCounters =
             new Dictionary<(BattleUnit, PassiveData), HitCounter>();
@@ -191,6 +195,18 @@ namespace Game.Battle
             }
         }
 
+        // 정규 턴이 끝날 때 BattleManager가 부른다: 이번 턴에 공격하지 않았으면 "공격하지 않은 턴" 패시브를 발동한다 (아스트라).
+        // 공연·기절로 스킵된 턴도 공격하지 않은 턴이다.
+        public void HandleOwnTurnEnd(BattleUnit actor)
+        {
+            if (actor.IsDead || attackedThisTurn.Contains(actor))
+            {
+                return;
+            }
+
+            ActivateOwnPassives(actor, PassiveTrigger.OnTurnEndWithoutAttack);
+        }
+
         // 턴 종료 단계로 예약된 패시브 효과를 실행한다 (BattleManager가 턴 종료 처리 뒤에 호출).
         // 대상은 패시브 주인 자신이고, 공격 행동이 아니므로 다른 패시브의 공격 반응을 깨우지 않는다.
         public void ExecuteTurnEndEffect(TurnEndEffect effect)
@@ -229,6 +245,9 @@ namespace Game.Battle
         // 추가 공격(임시 턴)은 이 함수를 부르지 않으므로 횟수가 다시 채워지지 않는다.
         public void ResetTurnCounters(BattleUnit actor)
         {
+            // 새 턴(추가 턴 포함)마다 "이번 턴에 공격했는지"를 처음부터 다시 센다.
+            attackedThisTurn.Remove(actor);
+
             var keysToClear = new List<(BattleUnit, PassiveData)>();
 
             // 튜플 분해 (unit, passive): 키에 묶인 두 값을 각각 이름 붙여 꺼낸다.
@@ -273,6 +292,9 @@ namespace Game.Battle
             {
                 return;
             }
+
+            // 자기 스킬로 공격했음을 기록한다 → 턴이 끝날 때 "공격하지 않은 턴" 패시브가 발동하지 않는다.
+            attackedThisTurn.Add(attacker);
 
             // 확산은 사실상 메인 대상 1인 공격이고 양옆은 여파라서, 반응 추가 공격도 메인 대상을 노린다 (기획서 4-3).
             // 메인 대상이 없는 광역 공격이거나 메인 대상의 HP가 0이 됐으면 HP 최고 → 편성 순서로 고른다.

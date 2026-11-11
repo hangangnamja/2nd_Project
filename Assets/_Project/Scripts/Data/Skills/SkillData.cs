@@ -32,5 +32,9 @@ namespace Game.Data
         public int Cooldown => cooldown;
         public int StartCooldown => startCooldown;
         public IReadOnlyList<SkillEffect> Effects => effects;
+
+        // 경계를 펼치는 스킬인지 (효과 목록에 경계 블록이 있는지). 같은 편 경계가 펼쳐진 동안 이런 스킬은 쓸 수 없다 (기획서 3-12).
+        // Exists(조건): 조건(람다식)이 true인 원소가 하나라도 있으면 true. is: 그 블록이 경계 블록 종류인지 확인한다.
+        public bool DeploysBoundary => effects.Exists(effect => effect is BoundaryEffect);
     }
 }

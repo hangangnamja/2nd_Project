@@ -15,17 +15,13 @@ namespace Game.Battle
         // 종결기가 이미 예약됐는지. 턴 제한과 강제 해제가 겹쳐도 종결기는 한 번만 나간다.
         public bool IsFinisherQueued { get; private set; }
 
-        // 변신하면서 퇴장시킨 아군. 해제될 때 이 유닛들만 복귀시킨다.
-        public IReadOnlyList<BattleUnit> ExitedAllies { get; }
-
         // 변신 스킬 슬롯별 남은 쿨타임. 원래 스킬의 쿨타임과 따로 센다.
         private readonly int[] cooldowns = new int[CharacterData.SkillCount];
 
-        // 변신 설정과 퇴장시킨 아군 목록을 받는다. 변신 스킬 쿨타임은 각 스킬의 시작 쿨타임으로 채운다.
-        public TransformationState(TransformationData data, IReadOnlyList<BattleUnit> exitedAllies)
+        // 변신 설정을 받는다. 변신 스킬 쿨타임은 각 스킬의 시작 쿨타임으로 채운다.
+        public TransformationState(TransformationData data)
         {
             Data = data;
-            ExitedAllies = exitedAllies;
 
             for (int slot = 0; slot < cooldowns.Length; slot++)
             {

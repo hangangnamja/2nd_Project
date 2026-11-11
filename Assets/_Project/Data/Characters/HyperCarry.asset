@@ -45,6 +45,8 @@ MonoBehaviour:
     startCooldown: 2
     effects:
     - rid: 7605779530016096424
+    - rid: 7605779530016096491
+    - rid: 7605779530016096490
   passives:
   - passiveName: "\uBD88\uAD74"
     trigger: 6
@@ -61,18 +63,7 @@ MonoBehaviour:
     - rid: 7605779530016096425
   transformation:
     transformName: "\uAC01\uC131 \uBCC0\uC2E0"
-    statModifiers:
-    - stat: 0
-      percent: 0.6
-      flat: 0
-    - stat: 1
-      percent: 0.3
-      flat: 0
-    - stat: 9
-      percent: 2
-      flat: 0
     turnLimit: 5
-    crowdControlImmune: 1
     forcedReleaseHpRatio: 0.25
     skill1:
       skillName: "\uD30C\uC1C4"
@@ -128,8 +119,27 @@ MonoBehaviour:
         targetCaster: 1
     - rid: 7605779530016096424
       type: {class: TransformEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data: 
+    - rid: 7605779530016096490
+      type: {class: IsolationBoundaryEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
-        exitAllies: 1
+        boundaryName: "고립"
+        statModifiers:
+        - stat: 0
+          percent: 0.6
+          flat: 0
+        - stat: 1
+          percent: 0.3
+          flat: 0
+        - stat: 9
+          percent: 2
+          flat: 0
+        crowdControlImmune: 1
+        endsWithOwnerTransformation: 1
+        displayStatus: {fileID: 11400000, guid: 3a9346898f174a5ab6995c099e5d80e2, type: 2}
+    - rid: 7605779530016096491
+      type: {class: ExitAlliesEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data: 
     - rid: 7605779530016096425
       type: {class: ShieldEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:

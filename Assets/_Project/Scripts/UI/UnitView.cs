@@ -32,6 +32,12 @@ namespace Game.UI
         // 무적 표시용 인스턴스. 상태효과 칸에 넣지 않고 화면 표시에만 쓰므로 강탈·소모되지 않는다. 처음 필요할 때 한 번 만든다.
         private StatusInstance invulnerableIcon;
 
+        // 경계 표시용 인스턴스. 경계는 상태효과 칸이 아니라서, 머리 위 표시에만 쓰는 인스턴스를 따로 만든다.
+        private StatusInstance boundaryIcon;
+
+        // 기간 오라(공연) 표시용 인스턴스. 오라도 버프 칸이 아니라 머리 위 표시에만 쓴다.
+        private StatusInstance auraIcon;
+
         // 이 뷰가 표시할 전투 유닛을 연결한다. 생성 직후 BattleStageView가 한 번 호출한다.
         public void Bind(BattleUnit unit)
         {
@@ -75,6 +81,32 @@ namespace Game.UI
 
                 // 맨 앞에 넣어, 버프·디버프가 늘어나도 무적 아이콘이 항상 첫 칸에 보이게 한다.
                 statuses.Insert(0, invulnerableIcon);
+            }
+
+            // 경계를 펼친 동안: 경계의 표시용 효과를 자기 버프처럼 맨 앞에 보여준다 (기획서 3-12).
+            // ?.: 경계가 없으면(null) DisplayStatus를 읽지 않고 null을 돌려준다.
+            StatusEffectData boundaryDisplay = Unit.ActiveBoundary?.DisplayStatus;
+            if (boundaryDisplay != null)
+            {
+                // 같은 경계를 보여주는 동안에는 인스턴스를 다시 만들지 않는다 (툴팁이 매 갱신마다 바뀌지 않도록).
+                if (boundaryIcon == null || boundaryIcon.Data != boundaryDisplay)
+                {
+                    boundaryIcon = new StatusInstance(boundaryDisplay, Unit, appliedOrder: 0);
+                }
+
+                statuses.Insert(0, boundaryIcon);
+            }
+
+            // 기간 오라(공연)를 생성하는 동안: 오라의 표시용 효과를 맨 앞에 보여준다. 오라는 버프 칸이 아니라 표시만 따로 한다.
+            StatusEffectData auraDisplay = Unit.ActiveAura?.DisplayStatus;
+            if (auraDisplay != null)
+            {
+                if (auraIcon == null || auraIcon.Data != auraDisplay)
+                {
+                    auraIcon = new StatusInstance(auraDisplay, Unit, appliedOrder: 0);
+                }
+
+                statuses.Insert(0, auraIcon);
             }
 
             return statuses;
