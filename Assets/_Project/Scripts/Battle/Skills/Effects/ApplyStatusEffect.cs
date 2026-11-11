@@ -13,13 +13,16 @@ namespace Game.Battle.Effects
     [Serializable]
     public class ApplyStatusEffect : SkillEffect
     {
+        [Label("상태효과")]
         [SerializeField] private StatusEffectData status;
 
         [Tooltip("한 번에 거는 개수. 중첩형 효과는 개수만큼 칸을 차지한다")]
-        [SerializeField, Min(1)] private int count = 1;
+        [Label("개수", Min = 1f)]
+        [SerializeField] private int count = 1;
 
         // 적을 때리는 스킬에 "아군 전체 버프"를 함께 붙일 때 쓴다 (돌파 딜러 3스: 광역 피해 + 천재의 지원).
         [Tooltip("체크하면 스킬 대상 대신 시전자 편 아군 전원(자신 포함, 전장에 있는 유닛)에게 건다")]
+        [Label("아군 전체에")]
         [SerializeField] private bool applyToAllAllies;
 
         // 대상마다 상태효과를 count개 건다. 밀려난 효과 로그와 "새 버프 획득" 사건은 StatusApplier가 처리한다.

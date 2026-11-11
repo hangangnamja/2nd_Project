@@ -13,10 +13,12 @@ namespace Game.Battle.Effects
     public class BuffScalingDamageEffect : SkillEffect
     {
         [Tooltip("버프가 없어도 들어가는 기본 배율")]
-        [SerializeField, Min(0f)] private float baseMultiplier = 1.5f;
+        [Label("기본 배율", Min = 0f)]
+        [SerializeField] private float baseMultiplier = 1.5f;
 
         [Tooltip("버프 1개당 더해지는 배율")]
-        [SerializeField, Min(0f)] private float multiplierPerBuff = 0.5f;
+        [Label("버프당 배율", Min = 0f)]
+        [SerializeField] private float multiplierPerBuff = 0.5f;
 
         // 버프 개수로 배율을 정한 뒤, 일반 피해 블록과 같은 방식으로 피해를 준다.
         public override void Apply(SkillContext context)

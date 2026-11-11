@@ -23,6 +23,11 @@ namespace Game.Battle
         // 전장의 경계 자리 (기획서 3-12). 경계 블록이 여기에 경계를 펼치고, 한 번에 하나만 유지된다.
         public BoundaryField Boundaries { get; }
 
+        // 대상 규칙으로 실제 대상 목록을 만드는 함수 (BattleManager.ResolveTargets).
+        // Func<시전자, 대상 규칙, 고른 대상, 결과 목록>: 세 값을 받아 대상 목록을 돌려주는 함수를 담는 델리게이트.
+        // "다른 스킬 사용" 블록처럼 효과 안에서 다른 스킬의 대상을 다시 정해야 할 때 쓴다 (대상 결정 규칙을 한 곳에 두기 위해 함수를 넘겨받음).
+        public Func<BattleUnit, SkillTargetType, BattleUnit, System.Collections.Generic.List<BattleUnit>> ResolveTargets { get; }
+
         // 전투 시작 시 BattleManager가 한 번 만든다.
         // units는 BattleManager의 유닛 목록을 그대로 참조하므로, 유닛을 나중에 채워 넣어도 최신 목록을 본다.
         public BattleServices(
@@ -31,7 +36,8 @@ namespace Game.Battle
             ActionQueue actions,
             Random random,
             BattleRulesData rules,
-            System.Collections.Generic.IReadOnlyList<BattleUnit> units)
+            System.Collections.Generic.IReadOnlyList<BattleUnit> units,
+            Func<BattleUnit, SkillTargetType, BattleUnit, System.Collections.Generic.List<BattleUnit>> resolveTargets)
         {
             Log = log;
             Events = events;
@@ -39,6 +45,7 @@ namespace Game.Battle
             Random = random;
             Rules = rules;
             Units = units;
+            ResolveTargets = resolveTargets;
             Boundaries = new BoundaryField(log);
         }
     }

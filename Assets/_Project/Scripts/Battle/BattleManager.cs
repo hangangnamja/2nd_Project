@@ -877,7 +877,8 @@ namespace Game.Battle
             // new System.Random(): 시드 없이 만들면 매번 다른 순서의 난수가 나온다.
             // new System.Random(seed): 같은 시드면 항상 같은 순서의 난수가 나와 전투를 그대로 재현할 수 있다.
             System.Random random = randomSeed == 0 ? new System.Random() : new System.Random(randomSeed);
-            services = new BattleServices(Log, new BattleEvents(), new ActionQueue(), random, rules, allUnits);
+            // ResolveTargets: 메서드 이름만 넘기면 델리게이트로 바뀐다 → 효과 블록이 이 대상 결정 규칙을 그대로 빌려 쓴다.
+            services = new BattleServices(Log, new BattleEvents(), new ActionQueue(), random, rules, allUnits, ResolveTargets);
         }
 
         // 편성 리스트가 비어 있지 않고, 연결이 빠진(null) 슬롯이 없는지 검사한다.

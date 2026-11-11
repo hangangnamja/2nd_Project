@@ -267,7 +267,8 @@ namespace Game.Battle
             }
         }
 
-        // 공격 판정 1회: 공격자 본인의 "공격 판정 시" 패시브를 맞은 대상에게 실행한다.
+        // 공격 판정 1회: 공격자 본인의 "공격 판정 시" 패시브를 맞은 대상에게 실행하고,
+        // 같은 편의 "디버프 걸린 적 피격 시" 패시브도 확인한다.
         private void HandleAttackHit(BattleUnit attacker, BattleUnit target)
         {
             foreach (PassiveData passive in attacker.Data.Passives)
@@ -275,6 +276,31 @@ namespace Game.Battle
                 if (passive.Trigger == PassiveTrigger.OnAttackHit)
                 {
                     Activate(attacker, passive, target);
+                }
+            }
+
+            HandleAllyHitDebuffedEnemy(attacker, target);
+        }
+
+        // 같은 편 아군(공격자 자신 포함)의 공격이 "필요한 상태효과"가 걸린 적에게 들어갔을 때 (니콜 이자).
+        // 퇴장한 아군은 반응 패시브가 멈추므로 전장에 있는 유닛만 확인한다.
+        private void HandleAllyHitDebuffedEnemy(BattleUnit attacker, BattleUnit target)
+        {
+            foreach (BattleUnit owner in services.Units)
+            {
+                if (owner.IsAlly != attacker.IsAlly || !owner.IsOnField)
+                {
+                    continue;
+                }
+
+                foreach (PassiveData passive in owner.Data.Passives)
+                {
+                    // Statuses.Find(에셋): 맞은 적에게 그 상태효과가 걸려 있으면 인스턴스, 없으면 null.
+                    bool targetHasStatus = passive.RequiredStatus != null && target.Statuses.Find(passive.RequiredStatus) != null;
+                    if (passive.Trigger == PassiveTrigger.OnAllyHitDebuffedEnemy && targetHasStatus)
+                    {
+                        Activate(owner, passive, target);
+                    }
                 }
             }
         }
@@ -433,10 +459,20 @@ namespace Game.Battle
             triggerCountsThisBattle.TryGetValue(key, out int battleCount);
             triggerCountsThisBattle[key] = battleCount + 1;
 
-            if (passive.UsesStacks)
+            if (passive.UsesStacks && passive.StackCostPerTrigger > 0)
             {
                 owner.TryConsumePassiveStacks(passive, passive.StackCostPerTrigger);
                 log($"  [패시브] {owner.Name}: {passive.PassiveName} 스택 -{passive.StackCostPerTrigger} ({owner.GetPassiveStacks(passive)}/{passive.MaxStacks})");
+            }
+
+            // 발동할 때 스택을 얻는 패시브 (니콜 이자). 최대 스택을 넘는 양은 버려진다.
+            if (passive.UsesStacks && passive.StacksGainedPerTrigger > 0)
+            {
+                int gained = owner.AddPassiveStacks(passive, passive.StacksGainedPerTrigger);
+                if (gained > 0)
+                {
+                    log($"  [패시브] {owner.Name}: {passive.PassiveName} 스택 +{gained} ({owner.GetPassiveStacks(passive)}/{passive.MaxStacks})");
+                }
             }
         }
     }

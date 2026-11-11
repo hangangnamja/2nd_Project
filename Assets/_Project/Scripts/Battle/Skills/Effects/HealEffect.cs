@@ -13,25 +13,30 @@ namespace Game.Battle.Effects
         // 에셋에는 숫자 순서로 저장되므로 새 항목은 맨 뒤에 추가한다.
         public enum ScaleStat
         {
-            CasterAttack,
-            TargetMaxHp,
+            [InspectorName("시전자 공격력")] CasterAttack,
+            [InspectorName("대상 최대 HP")] TargetMaxHp,
 
             // 시전자의 최대 HP 기준 (아스트라 패시브: 시전자 최대 HP의 15%를 아군 전체에)
-            CasterMaxHp,
+            [InspectorName("시전자 최대 HP")] CasterMaxHp,
         }
+
+        [Label("기준 스탯")]
 
         [SerializeField] private ScaleStat scaleStat = ScaleStat.CasterAttack;
 
         [Tooltip("기준 스탯 대비 회복 비율 (100% = 1.0)")]
-        [SerializeField, Min(0f)] private float ratio = 1f;
+        [Label("비율", Min = 0f)]
+        [SerializeField] private float ratio = 1f;
 
         // 공격 스킬에 붙여 "공격하고 자신도 회복"을 만들 때 쓴다 (하이퍼캐리 변신 스킬의 HP 20% 회복).
         // 이때 대상 최대 HP 기준이면 시전자 자신의 최대 HP가 기준이 된다.
         [Tooltip("체크하면 스킬 대상 대신 시전자 자신을 회복한다")]
+        [Label("시전자 회복")]
         [SerializeField] private bool healCaster;
 
         // 패시브처럼 대상이 자신 하나로 정해지는 곳에서 "아군 전체 회복"을 만들 때 쓴다 (아스트라 패시브).
         [Tooltip("체크하면 스킬 대상 대신 시전자 편 아군 전원(자신 포함, 전장에 있는 유닛)을 회복한다")]
+        [Label("아군 전체 회복")]
         [SerializeField] private bool healAllAllies;
 
         // 대상마다 회복량을 계산해 적용한다. HP가 0인 대상은 회복하지 않는다 (게임에 부활 없음).

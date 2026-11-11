@@ -14,7 +14,9 @@ namespace Game.Battle.Effects
     [Serializable]
     public class QueueFollowUpEffect : SkillEffect
     {
+        [Label("추가 공격 이름")]
         [SerializeField] private string followUpName = "반격";
+        [Label("대상")]
         [SerializeField] private SkillTargetType targetType = SkillTargetType.EnemyAll;
 
         // 블록 안에 효과 목록을 한 번 더 담는다. 스킬 효과 목록과 같은 방식으로 종류를 골라 넣는다.

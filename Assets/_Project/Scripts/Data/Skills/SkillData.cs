@@ -11,14 +11,18 @@ namespace Game.Data
     [Serializable]
     public class SkillData
     {
+        [Label("스킬 이름")]
         [SerializeField] private string skillName = "새 스킬";
+        [Label("대상")]
         [SerializeField] private SkillTargetType targetType = SkillTargetType.EnemySingle;
 
         [Tooltip("사용 후 다시 쓸 수 있을 때까지의 자기 턴 수. 0이면 매 턴 사용 가능")]
-        [SerializeField, Min(0)] private int cooldown;
+        [Label("쿨타임", Min = 0f)]
+        [SerializeField] private int cooldown;
 
         [Tooltip("전투 시작 시 남아 있는 쿨타임. 0이면 첫 턴부터 사용 가능")]
-        [SerializeField, Min(0)] private int startCooldown;
+        [Label("시작 쿨타임", Min = 0f)]
+        [SerializeField] private int startCooldown;
 
         // [SerializeReference]: 리스트 원소를 "실제 하위 클래스 그대로" 저장한다.
         // 일반 [SerializeField]는 선언된 타입(SkillEffect)으로만 저장해 DamageEffect의 배율 같은 값이 사라지지만,
