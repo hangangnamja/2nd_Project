@@ -9,7 +9,7 @@ namespace Game.Outgame
     // 숫자가 클수록 높은 등급이라, 결과 중 최고 등급을 비교로 구할 수 있다.
     public enum GachaRarity
     {
-        ThreeStar = 3,  // 3성 무기 (무기 시스템 전까지 임시 칼 그림)
+        ThreeStar = 3,  // 3성 무기
         FourStar = 4,   // A 캐릭터
         FiveStar = 5,   // S 캐릭터
     }
@@ -28,11 +28,18 @@ namespace Game.Outgame
         // 이번에 처음 얻은 캐릭터인지 (GachaService가 보유 여부를 보고 채운다)
         public bool IsNew { get; set; }
 
-        public GachaResult(GachaRarity rarity, CharacterData character, bool isPickup)
+        // 나온 무기 (3성일 때). 등록된 3성 무기가 없으면 null.
+        public WeaponData Weapon { get; }
+
+        // 무기 칸이 꽉 차 있어 받자마자 무기 재료로 자동 분해됐는지 (GachaService가 저장 결과를 보고 채운다)
+        public bool IsDismantled { get; set; }
+
+        public GachaResult(GachaRarity rarity, CharacterData character, bool isPickup, WeaponData weapon = null)
         {
             Rarity = rarity;
             Character = character;
             IsPickup = isPickup;
+            Weapon = weapon;
         }
     }
 
@@ -45,13 +52,16 @@ namespace Game.Outgame
         private readonly Random random;
         private readonly List<CharacterData> sCharacters;
         private readonly List<CharacterData> aCharacters;
+        private readonly List<WeaponData> threeStarWeapons;
 
-        public GachaMachine(GachaRulesData rules, Random random, List<CharacterData> sCharacters, List<CharacterData> aCharacters)
+        // threeStarWeapons: 3성 결과에서 고를 무기 목록 (비어 있으면 무기 없이 3성 결과만 나온다)
+        public GachaMachine(GachaRulesData rules, Random random, List<CharacterData> sCharacters, List<CharacterData> aCharacters, List<WeaponData> threeStarWeapons)
         {
             this.rules = rules;
             this.random = random;
             this.sCharacters = sCharacters;
             this.aCharacters = aCharacters;
+            this.threeStarWeapons = threeStarWeapons;
         }
 
         // 1회 뽑기. 난수 하나(0~1)를 확률 구간에 대어 등급을 정한다:
@@ -104,12 +114,14 @@ namespace Game.Outgame
             return new GachaResult(GachaRarity.FourStar, PickRandom(aCharacters), isPickup: false);
         }
 
-        // 3성 무기: 두 카운터 모두 1 증가.
+        // 3성 무기: 두 카운터 모두 1 증가. 무기는 3성 무기 중 균등 랜덤.
         private GachaResult PullThreeStar(GachaSave state)
         {
             state.pityCount++;
             state.aGuaranteeCount++;
-            return new GachaResult(GachaRarity.ThreeStar, null, isPickup: false);
+
+            WeaponData weapon = threeStarWeapons.Count > 0 ? threeStarWeapons[random.Next(threeStarWeapons.Count)] : null;
+            return new GachaResult(GachaRarity.ThreeStar, null, isPickup: false, weapon);
         }
 
         // 목록에서 하나를 같은 확률로 고른다. Next(n): 0 이상 n 미만의 정수.

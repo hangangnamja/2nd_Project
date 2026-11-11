@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
 using UnityEngine;
@@ -77,10 +78,18 @@ namespace Game.Core
             }
         }
 
-        // 옛 버전 세이브를 현재 구조로 바꾼다. 지금은 버전 1뿐이라 바꿀 내용이 없다.
-        // 구조를 바꾸면 버전마다 단계를 추가한다. 예: if (data.version < 2) { 버전 2에서 바뀐 칸 채우기 }
+        // 옛 버전 세이브를 현재 구조로 바꾼다. 구조를 바꾸면 버전마다 단계를 추가한다.
         private static void Upgrade(SaveData data)
         {
+            // 버전 1 → 2: 인벤토리 칸이 새로 생겼다. JSON에 없던 칸은 SaveData의 초기값(빈 목록, 번호 1)으로 이미 채워지지만,
+            // 파일에 null로 적혀 있던 경우까지 빈 인벤토리로 맞춘다 (??=: 왼쪽이 null일 때만 오른쪽을 넣는다).
+            if (data.version < 2)
+            {
+                data.weapons ??= new List<WeaponSave>();
+                data.materials ??= new List<MaterialSave>();
+                data.nextWeaponUid = Math.Max(1, data.nextWeaponUid);
+            }
+
             if (data.version < SaveData.CurrentVersion)
             {
                 data.version = SaveData.CurrentVersion;

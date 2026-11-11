@@ -19,12 +19,43 @@ namespace Game.Data
         [Tooltip("가챠 확률·천장·비용 규칙")]
         [SerializeField] private GachaRulesData gachaRules;
 
+        [Header("인벤토리")]
+        [Tooltip("무기 전체. 가챠의 3성 무기는 이 중 3성에서 고르고, 세이브의 무기 ID도 여기서 찾는다")]
+        [SerializeField] private List<WeaponData> weapons = new List<WeaponData>();
+
+        [Tooltip("재료 전체. 세이브의 재료 ID를 여기서 찾는다")]
+        [SerializeField] private List<MaterialData> materials = new List<MaterialData>();
+
+        [Tooltip("무기 칸 수·재료 최대 개수·분해 보상")]
+        [SerializeField] private InventoryRulesData inventoryRules;
+
         [Header("새 게임")]
         [Tooltip("처음 시작할 때 보유하는 캐릭터. 앞에서부터 최대 4명이 첫 편성이 된다")]
         [SerializeField] private List<StartingCharacter> startingCharacters = new List<StartingCharacter>();
 
         public IReadOnlyList<StartingCharacter> StartingCharacters => startingCharacters;
         public GachaRulesData GachaRules => gachaRules;
+        public InventoryRulesData InventoryRules => inventoryRules;
+        public IReadOnlyList<MaterialData> Materials => materials;
+
+        // 그 등급의 무기 목록 (가챠에서 3성 무기가 나올 때 이 중에서 고른다).
+        public List<WeaponData> GetWeaponsOfGrade(WeaponGrade grade)
+        {
+            // FindAll(조건 람다): 조건이 참인 원소만 모은 새 목록. 빈 칸(null)은 제외한다.
+            return weapons.FindAll(weapon => weapon != null && weapon.Grade == grade);
+        }
+
+        // ID가 같은 무기를 찾는다. 없으면 null. Find(조건 람다): 조건이 참인 첫 원소.
+        public WeaponData FindWeapon(string id)
+        {
+            return weapons.Find(weapon => weapon != null && weapon.Id == id);
+        }
+
+        // ID가 같은 재료를 찾는다. 없으면 null.
+        public MaterialData FindMaterial(string id)
+        {
+            return materials.Find(material => material != null && material.Id == id);
+        }
 
         // 보유 가능한 캐릭터 중 그 등급인 캐릭터 목록 (가챠에서 S·A가 나올 때 이 중에서 고른다).
         public List<CharacterData> GetCharactersOfGrade(CharacterGrade grade)
