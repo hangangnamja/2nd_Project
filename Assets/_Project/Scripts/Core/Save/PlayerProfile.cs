@@ -24,7 +24,8 @@ namespace Game.Core
     //  - 처음 쓰일 때 세이브를 불러오고, 없으면 새 게임을 만든다 → 어느 씬을 먼저 실행해도 동작한다
     //  - 값을 바꾸는 함수는 바꾼 직후 바로 저장한다 (기획서 9장: 변경 직후 즉시 저장)
     //  - 화면은 세이브 구조(SaveData)를 직접 만지지 않고, 이 함수들을 거쳐 데이터 에셋으로 받는다
-    public static class PlayerProfile
+    // partial: 인벤토리 부분은 PlayerProfile.Inventory.cs에 따로 적는다.
+    public static partial class PlayerProfile
     {
         // 편성 칸 수 (기획서 2장 4인 파티)
         public const int FormationSize = 4;
@@ -51,6 +52,7 @@ namespace Game.Core
 
             // 지난 플레이에서 해제되지 못한 구독이 남아 있지 않도록 비운다.
             OwnedCharactersChanged = null;
+            InventoryChanged = null;
         }
 
         // ID → 데이터 에셋 목록 (가챠가 S·A 캐릭터 목록과 규칙을 꺼낼 때 사용)
@@ -84,14 +86,21 @@ namespace Game.Core
             }
         }
 
-        // 뽑기 결과 반영: 새로 얻은 캐릭터를 보유 목록에 추가하고 보석을 쓴 뒤 바로 저장한다 (기획서 9장: 가챠 직후 저장).
-        // 이미 보유한 캐릭터는 newCharacters에 넣지 않는다 (중복은 지금은 효과 없음).
-        public static void CommitGachaPull(IReadOnlyList<CharacterData> newCharacters, int gemCost, int level)
+        // 뽑기 결과 반영: 새로 얻은 캐릭터를 보유 목록에 추가하고, 나온 무기를 무기 인벤에 넣고, 보석을 쓴 뒤 바로 저장한다
+        // (기획서 9장: 가챠 직후 저장). 이미 보유한 캐릭터는 newCharacters에 넣지 않는다 (중복은 지금은 효과 없음).
+        // 반환: weapons와 같은 순서로 "자동 분해됐는지" (무기 칸이 꽉 차 있었으면 true) → 결과 화면에 "분해됨" 표시.
+        public static List<bool> CommitGachaPull(IReadOnlyList<CharacterData> newCharacters, IReadOnlyList<WeaponData> weapons, int gemCost, int level)
         {
             EnsureLoaded();
             foreach (CharacterData character in newCharacters)
             {
                 data.characters.Add(new OwnedCharacterSave { id = character.Id, level = level });
+            }
+
+            var dismantled = new List<bool>();
+            foreach (WeaponData weapon in weapons)
+            {
+                dismantled.Add(!StoreWeaponOrDismantle(weapon));
             }
 
             data.currency.gems -= gemCost;
@@ -103,6 +112,13 @@ namespace Game.Core
             {
                 OwnedCharactersChanged?.Invoke();
             }
+
+            if (weapons.Count > 0)
+            {
+                InventoryChanged?.Invoke();
+            }
+
+            return dismantled;
         }
 
         // ---------- 보유 캐릭터 ----------

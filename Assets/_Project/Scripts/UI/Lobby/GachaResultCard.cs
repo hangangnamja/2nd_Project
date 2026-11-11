@@ -31,7 +31,7 @@ namespace Game.UI
         [SerializeField] private Image coverGradient;
 
         [Header("그림")]
-        [Tooltip("3성 무기 임시 그림 (칼)")]
+        [Tooltip("무기 아이콘이 없을 때 쓰는 임시 그림 (칼)")]
         [SerializeField] private Sprite weaponSprite;
 
         // 실제 등급 색 (덮개를 걷을 때 테두리를 이 색으로 되돌린다)
@@ -51,12 +51,13 @@ namespace Game.UI
             bool hasIllustration = illustration != null && illustration.Show(result.Character?.Illustration);
             icon.gameObject.SetActive(!hasIllustration);
 
-            // 3성은 칼 그림을 그대로, 일러스트가 없는 캐릭터는 옅은 빈 칸으로 둔다.
-            icon.sprite = isWeapon ? weaponSprite : null;
+            // 3성은 무기 아이콘(없으면 임시 칼 그림)을 그대로, 일러스트가 없는 캐릭터는 옅은 빈 칸으로 둔다.
+            // ?. + ??: 무기 데이터나 아이콘이 없으면 임시 칼 그림을 쓴다.
+            icon.sprite = isWeapon ? result.Weapon?.Icon ?? weaponSprite : null;
             icon.color = isWeapon ? Color.white : new Color(1f, 1f, 1f, 0.15f);
             icon.preserveAspect = true;
 
-            nameText.text = isWeapon ? "3성 무기" : result.Character.DisplayName;
+            nameText.text = isWeapon ? BuildWeaponName(result) : result.Character.DisplayName;
 
             // new string(문자, 개수): 같은 문자를 개수만큼 이어 붙인 문자열 → 등급 숫자만큼 ★
             starsText.text = new string('★', (int)result.Rarity);
@@ -66,6 +67,20 @@ namespace Game.UI
 
             newTag.SetActive(result.IsNew);
             pickupTag.SetActive(result.IsPickup);
+        }
+
+        // 무기 이름. 무기 칸이 꽉 차 자동 분해됐으면 아랫줄에 표시한다 (리치 텍스트 <color>, <size>로 붉은 작은 글자).
+        private string BuildWeaponName(GachaResult result)
+        {
+            string weaponName = result.Weapon != null ? result.Weapon.DisplayName : "3성 무기";
+            if (!result.IsDismantled)
+            {
+                return weaponName;
+            }
+
+            nameText.supportRichText = true;
+            int smallSize = Mathf.Max(10, Mathf.RoundToInt(nameText.fontSize * 0.7f));
+            return $"{weaponName}\n<size={smallSize}><color=#FF8A7A>자동 분해</color></size>";
         }
 
         // 공개 전 덮개를 씌운다. 덮개 색은 "보여줄 등급" 색이라, 반전 연출이면 실제 등급과 다를 수 있다.

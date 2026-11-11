@@ -45,7 +45,9 @@
 | `BattleRulesData`: 전투 공통 수치 (방어 상수 K 계산 파라미터, 레벨 성장 곡선) | `BattleUnit` 기본 스탯 = 데이터 스탯(Lv1) × 레벨 배율(`StatScaling`), 전투 시작 때 고정 |
 | `GachaBannerData`: 배너 이름·강조 문구·종료 일시·픽업 S 1명 | `GachaView`: 보여주는 배너 순서 |
 | `GachaRulesData`: 확률·천장·반천·A 확정·비용·디버그 무료 (배너 공통) | `GachaSave`(세이브): 천장·A 확정 카운터, 픽업 확정 여부 |
-| `GameDatabase` (`Resources/`): ID → 캐릭터·스테이지 SO 찾기, 새 게임 시작 캐릭터 | `SaveData` (JSON): ID와 바뀌는 값만 저장 |
+| `WeaponData`·`MaterialData`: 무기(등급 3~5성, 기초 스탯)·재료(분류, 등급) 종류 | `WeaponSave`(개체 번호·레벨·장착)·`MaterialSave`(개수) → `OwnedWeapon`·`OwnedMaterial` |
+| `InventoryRulesData`: 무기 칸 수, 재료 최대 개수, 분해 재료·등급별 보상 | - |
+| `GameDatabase` (`Resources/`): ID → 캐릭터·스테이지·무기·재료 SO 찾기, 인벤토리 규칙, 새 게임 시작 캐릭터 | `SaveData` (JSON): ID와 바뀌는 값만 저장 |
 
 ### 가챠
 - `GachaMachine`(순수 C#): 1회 판정만. 난수를 밖에서 받아 시드 고정 시 재현·시뮬레이션 가능. 카운터는 세이브의 `GachaSave`를 직접 갱신
@@ -57,6 +59,13 @@
   - 글로우(후처리)를 받으려고 연출은 Screen Space - Camera 캔버스(`GachaFxCanvas`)에서 재생하고, 그동안 Overlay인 `LobbyCanvas`를 끔
   - 파티클은 캔버스 픽셀 단위(Hierarchy 스케일)로 만들고 sorting order 5로 UI 위에 그림. 머티리얼은 Additive + HDR 밝기(×2.6) → Bloom이 번지게 함
 - 임시 그림(물레 `Art/Gacha/Wheel/`, 칼·글로우·고리·그라데이션)은 `Art/Gacha/`
+
+### 인벤토리 (기획서 2장)
+- 무기 인벤과 재료 인벤은 세이브 목록부터 따로다: `SaveData.weapons`(개체 1개 = 1칸, `nextWeaponUid`로 개체 번호) / `SaveData.materials`(종류별 개수)
+- `PlayerProfile.Inventory.cs`(partial): 무기 추가(`AddWeapon`), 재료 증감(`AddMaterial`), 목록 조회, 일괄 분해(`PreviewDismantle`·`DismantleWeapons`), 저장 후 `InventoryChanged` 알림
+  - 자동 분해: `StoreWeaponOrDismantle`이 칸이 꽉 찼고 3성이면 칸에 넣지 않고 분해 보상만 준다. 가챠 10회는 `CommitGachaPull`이 무기를 한꺼번에 넣고 한 번 저장한 뒤, 무기마다 자동 분해 여부를 돌려준다(`GachaResult.IsDismantled`)
+- 화면: `InventoryView`(탭·목록·정렬·상세), `InventorySlotView`(칸 하나, 칸 원본을 복사해 재사용), `DismantlePopup`(등급 선택 → 미리 보기 → 분해). 등급 색은 `RarityColors`(가챠와 같은 값)
+- 에디터 메뉴 `InventoryDebugMenu`(Tools > Inventory): 테스트 아이템 지급, 무기 칸 채우기
 
 ### 세이브 (기획서 9장)
 - `SaveData`: 파일에 그대로 저장되는 내용. 필드 이름이 곧 JSON 키라, 이름·구조를 바꾸면 `version`을 올리고 `SaveStorage.Upgrade`에 변환을 추가
@@ -275,7 +284,8 @@ Assets/_Project/
 ### 화면
 - 전투 HUD: 웨이브·사이클, 스킬 버튼·쿨타임, 대상 선택, 행동 순서 목록(임시 세로 목록), 상태효과 아이콘·툴팁, 전투 로그
 - 전투 임시 연출: 타격·치명·지속피해·회복·버프 이펙트 + 피해 숫자, 행동 단위로 순서대로 재생 (3장 "연출 재생")
-- 로비: 메인 화면(출격·모집만 연결), 스테이지 선택(지도·보스 탭·상세 패널), 편성(4칸·보유 목록·저장)
+- 로비: 메인 화면(출격·모집·인벤토리 연결), 스테이지 선택(지도·보스 탭·상세 패널), 편성(4칸·보유 목록·저장)
+- 인벤토리: 무기·재료 탭, 정렬, 상세 패널, 일괄 분해(등급 선택), 무기 칸 200·자동 분해, 세이브 버전 2
 - 모집: 픽업 배너 4개, 1·10회 뽑기(천장·반천·A 확정), 확정까지 남은 횟수, 기어 → 공개 → 결과 목록 연출(파티클 + Bloom)
 
 ---
@@ -302,8 +312,7 @@ Assets/_Project/
 ### 육성·인벤토리
 - 전투원 화면: 보유 캐릭터 목록, 스킬·스탯 확인
 - 캐릭터 레벨업·진급 (경험치 곡선·진급 재료 미정) → 저장 후 `PlayerProfile.OwnedCharactersChanged` 알림
-- 무기: 개체 단위 보관, 레벨·진급, 장착, 전투 스탯 반영 (지금은 3성 무기를 저장하지 않음)
-- 인벤토리 화면 (에픽세븐식)
+- 무기: 레벨·진급, 장착, 전투 스탯 반영 (개체 보관·분해는 인벤토리로 구현됨)
 
 ### 가챠·재화
 - 확률 공시 화면 (버튼만 있음)
