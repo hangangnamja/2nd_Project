@@ -1,9 +1,12 @@
 using System;
+using Game.Core;
 using UnityEngine;
 
 namespace Game.Battle.Effects
 {
     // 대상 전원의 HP를 회복한다. 회복량 기준 스탯(공격력 / 최대 HP)은 캐릭터마다 다르므로 선택할 수 있다.
+    // 효과 블록 드롭다운에 보여줄 분류/이름과 설명 (SubclassMenuAttribute).
+    [SubclassMenu("회복·보호/회복", "대상 HP 회복. 기준 스탯(공격력·최대 HP·시전자 최대 HP)과 비율을 고르고, 시전자 자신·아군 전체 옵션이 있다", 200)]
     [Serializable]
     public class HealEffect : SkillEffect
     {

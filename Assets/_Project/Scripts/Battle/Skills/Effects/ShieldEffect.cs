@@ -1,4 +1,5 @@
 using System;
+using Game.Core;
 using Game.Battle.Status;
 using Game.Data;
 using UnityEngine;
@@ -8,6 +9,8 @@ namespace Game.Battle.Effects
     // 대상에게 보호막 버프를 건다 (곰인형 버퍼 2스 등, 여러 캐릭터가 공용으로 쓰는 블록).
     // 보호막 양 = 시전자 최대 HP × 비율. 피해는 보호막이 먼저 흡수하고, 다 깎이거나 남은 턴이 끝나면 버프가 사라진다.
     // 보호막은 버프 칸을 쓰는 일반 버프라서 강탈 딜러 3스의 소모 대상이기도 하다.
+    // 효과 블록 드롭다운에 보여줄 분류/이름과 설명 (SubclassMenuAttribute).
+    [SubclassMenu("회복·보호/보호막", "보호막 버프 부여. 양 = 기준 스탯 × 비율. 피해를 먼저 흡수하고 다 깎이거나 만료되면 사라진다", 210)]
     [Serializable]
     public class ShieldEffect : SkillEffect
     {

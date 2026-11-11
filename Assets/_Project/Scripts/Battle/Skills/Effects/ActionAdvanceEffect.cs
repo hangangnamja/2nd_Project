@@ -1,10 +1,13 @@
 using System;
+using Game.Core;
 using UnityEngine;
 
 namespace Game.Battle.Effects
 {
     // 대상의 행동 게이지를 당긴다 (기획서 3-3: 남은 거리 -= 10000 × 비율).
     // 자기 턴 중인 유닛이면 턴 종료 리셋 뒤에 적용된다 (BattleUnit.AddActionAdvance).
+    // 효과 블록 드롭다운에 보여줄 분류/이름과 설명 (SubclassMenuAttribute).
+    [SubclassMenu("턴·행동/행동 당기기", "대상 행동 게이지를 비율만큼 당긴다 (남은 거리 -= 10000 × 비율)", 400)]
     [Serializable]
     public class ActionAdvanceEffect : SkillEffect
     {

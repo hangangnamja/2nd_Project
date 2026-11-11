@@ -1,9 +1,12 @@
 using System;
+using Game.Core;
 
 namespace Game.Battle.Effects
 {
     // 시전자에게 추가 턴을 준다. 추가 턴은 이번 턴이 완전히 끝난 뒤(추가 공격·턴 종료 처리까지) 바로 이어진다.
     // 같은 턴에 추가 턴을 여러 번 얻어도 1회만 받는다 (기획서 4-3).
+    // 효과 블록 드롭다운에 보여줄 분류/이름과 설명 (SubclassMenuAttribute).
+    [SubclassMenu("턴·행동/추가 턴", "이번 턴이 완전히 끝난 뒤 시전자가 한 번 더 행동한다 (같은 턴에 여러 번 얻어도 1회)", 410)]
     [Serializable]
     public class GrantExtraTurnEffect : SkillEffect
     {

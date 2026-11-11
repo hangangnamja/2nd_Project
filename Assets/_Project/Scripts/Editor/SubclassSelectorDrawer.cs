@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Linq;
 using Game.Core;
 using UnityEditor;
 using UnityEngine;
@@ -32,7 +33,8 @@ namespace Game.EditorTools
                 position.width - EditorGUIUtility.labelWidth,
                 EditorGUIUtility.singleLineHeight);
 
-            if (EditorGUI.DropdownButton(buttonRect, new GUIContent(GetCurrentTypeName(property)), FocusType.Keyboard))
+            // 버튼 글자는 한국어 이름, 마우스를 올리면 그 효과의 설명이 툴팁으로 보인다.
+            if (EditorGUI.DropdownButton(buttonRect, GetCurrentTypeLabel(property), FocusType.Keyboard))
             {
                 ShowTypeMenu(property);
             }
@@ -63,16 +65,20 @@ namespace Game.EditorTools
             menu.AddItem(new GUIContent(NoneLabel), false, () => AssignInstance(serializedObject, propertyPath, null));
 
             // TypeCache.GetTypesDerivedFrom: 프로젝트에서 baseType을 상속한 모든 타입을 빠르게 찾는다.
-            foreach (Type type in TypeCache.GetTypesDerivedFrom(baseType))
-            {
-                if (!IsCreatable(type))
-                {
-                    continue;
-                }
+            // LINQ: Where로 만들 수 있는 타입만 남기고 → OrderBy로 [SubclassMenu]의 순서값, 그다음 메뉴 경로 순으로 정렬한다.
+            var types = TypeCache.GetTypesDerivedFrom(baseType)
+                .Where(IsCreatable)
+                .OrderBy(type => GetMenu(type)?.Order ?? int.MaxValue)
+                .ThenBy(GetMenuPath);
 
+            foreach (Type type in types)
+            {
                 // 반복 변수를 지역 변수로 복사해야 각 메뉴 항목이 자기 타입을 기억한다.
                 Type capturedType = type;
-                menu.AddItem(new GUIContent(type.Name), false, () => AssignInstance(serializedObject, propertyPath, capturedType));
+
+                // 메뉴 글자: "공격/피해   (DamageEffect)" → 공격 하위 메뉴에 "피해" 항목, 괄호 안은 문서·코드와 맞춰 볼 클래스 이름.
+                string itemText = $"{GetMenuPath(type)}   ({type.Name})";
+                menu.AddItem(new GUIContent(itemText), false, () => AssignInstance(serializedObject, propertyPath, capturedType));
             }
 
             menu.ShowAsContext();
@@ -115,21 +121,33 @@ namespace Game.EditorTools
                 && type.GetConstructor(Type.EmptyTypes) != null;
         }
 
-        // 버튼에 표시할 현재 타입 이름을 구한다.
-        // managedReferenceFullTypename은 "어셈블리명 네임스페이스.클래스명" 형식이라 마지막 클래스명만 잘라 쓴다.
-        private static string GetCurrentTypeName(SerializedProperty property)
+        // 타입에 붙은 [SubclassMenu]를 꺼낸다. 없으면 null.
+        // GetCustomAttributes(..., false): 이 클래스에 직접 붙은 것만 찾는다 (부모 클래스 것은 물려받지 않음).
+        private static SubclassMenuAttribute GetMenu(Type type)
         {
-            string fullName = property.managedReferenceFullTypename;
-            if (string.IsNullOrEmpty(fullName))
+            return type.GetCustomAttributes(typeof(SubclassMenuAttribute), false).FirstOrDefault() as SubclassMenuAttribute;
+        }
+
+        // 드롭다운 경로: [SubclassMenu]가 있으면 그 경로, 없으면 "기타/클래스 이름".
+        private static string GetMenuPath(Type type)
+        {
+            return GetMenu(type)?.Path ?? $"기타/{type.Name}";
+        }
+
+        // 버튼에 표시할 현재 타입의 이름(한국어)과 설명(툴팁)을 구한다.
+        // managedReferenceValue: 필드에 실제로 들어 있는 객체. 비어 있으면 null이라 "(없음)"을 보여준다.
+        private static GUIContent GetCurrentTypeLabel(SerializedProperty property)
+        {
+            Type type = property.managedReferenceValue?.GetType();
+            if (type == null)
             {
-                return NoneLabel;
+                return new GUIContent(NoneLabel);
             }
 
-            int lastDot = fullName.LastIndexOf('.');
-            int lastSpace = fullName.LastIndexOf(' ');
-
-            // Math.Max: 점과 공백 중 더 뒤에 있는 구분자 다음부터가 클래스 이름이다.
-            return fullName.Substring(Math.Max(lastDot, lastSpace) + 1);
+            SubclassMenuAttribute menu = GetMenu(type);
+            return menu == null
+                ? new GUIContent(type.Name)
+                : new GUIContent(menu.DisplayName, $"{menu.Description}\n({type.Name})");
         }
     }
 }
