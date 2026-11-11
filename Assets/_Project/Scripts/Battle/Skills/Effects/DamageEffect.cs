@@ -12,10 +12,12 @@ namespace Game.Battle.Effects
     public class DamageEffect : SkillEffect
     {
         [Tooltip("공격력 대비 배율 (100% = 1.0). 확산 스킬에서는 메인 대상이 받는 배율")]
-        [SerializeField, Min(0f)] private float multiplier = 1f;
+        [Label("배율", Min = 0f)]
+        [SerializeField] private float multiplier = 1f;
 
         [Tooltip("확산 스킬에서 양옆(메인 대상이 아닌) 대상이 받는 공격력 대비 배율. 메인 배율과 따로 정한다. 메인 대상이 없는 스킬(단일·광역)에서는 쓰지 않는다")]
-        [SerializeField, Min(0f)] private float secondaryMultiplier = 1f;
+        [Label("양옆 배율 (확산)", Min = 0f)]
+        [SerializeField] private float secondaryMultiplier = 1f;
 
         // 대상마다 배율을 정해 피해를 준다 (확산이면 메인 대상과 양옆이 서로 다른 배율을 쓴다).
         public override void Apply(SkillContext context)

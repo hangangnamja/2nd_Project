@@ -81,6 +81,7 @@ CharacterData (SO 에셋 1개)
 - 여러 종류의 블록을 한 리스트에 담기 위해 `[SerializeReference]` 사용
   - Unity 기본 Inspector에는 블록 종류를 골라 추가하는 UI가 없으므로 **에디터 스크립트를 함께 작성**
 - 드롭다운은 분류별 한국어 이름으로 보인다: 블록 클래스에 `[SubclassMenu("분류/이름", "설명", 순서)]`를 붙이고, 버튼에 마우스를 올리면 설명이 툴팁으로 나옴. 새 블록을 만들면 이 속성도 붙이고 아래 표에 추가
+- 필드 이름도 한국어로 보인다: `[Label("이름", Min = 0f, Max = 1f)]` (`LabelDrawer`가 그림). Min·Max도 여기서 정한다 (Unity는 필드 하나에 드로어 하나만 써서 `[Range]`·`[Min]`과 함께 쓰면 한쪽이 무시됨). enum 항목은 `[InspectorName]`. 리스트 필드는 영어 이름 그대로
 - 효과는 목록 순서대로 실행된다. 순서가 중요한 조합: 피해 → 격발(방금 붙은 화상도 터짐), 피해 → 버프 전부 소모(버프가 피해에 반영된 뒤 지움), 상대 강제 공격 → 추가 공격 예약(상대 공격이 끝난 뒤 반격)
 
 #### 스탯 보정 종류 (`StatType`, 상태효과·오라·경계의 스탯 보정에서 고름)
@@ -101,6 +102,7 @@ CharacterData (SO 에셋 1개)
 |---|---|---|---|
 | 공격 | 피해 (`DamageEffect`) | 공격력 × 배율 피해. 확산은 메인 배율·양옆 배율을 따로 정함 | 대부분의 공격 스킬 |
 | 공격 | 버프 수 비례 피해 (`BuffScalingDamageEffect`) | 기본 배율 + 버프 1개당 배율 × 시전자 버프 개수 | 강탈 딜러 3스 |
+| 공격 | 패시브 스택 비례 피해 (`PassiveStackDamageEffect`) | 기본 배율 + 스택 1개당 배율 × 시전자 패시브 스택, 피해 뒤 스택 전부 소모 | 니콜 2스 (이자 정산) |
 | 공격 | 받은 피해 비례 반격 (`RecordedDamageCounterEffect`) | 피해 기록에 쌓인 받은 피해(최대 HP 대비) × 계수를 공격력 배율로 반격, 기록 삭제 | 하이퍼캐리 반격 태세 |
 | 공격 | 격발 (`DetonateEffect`) | 대상의 지속피해를 즉시 1회씩 발동 (지속피해는 유지) | 격발 딜러 3스·패시브 |
 | 회복·보호 | 회복 (`HealEffect`) | 기준 스탯(공격력·최대 HP·시전자 최대 HP) × 비율 회복. 시전자 자신·아군 전체 옵션 | 아스트라 패시브, 변신 스킬 자가 회복 |
@@ -108,11 +110,12 @@ CharacterData (SO 에셋 1개)
 | 상태효과 | 상태효과 부여 (`ApplyStatusEffect`) | 상태효과를 개수만큼 부여. 아군 전체 옵션 | 화상·독·버프 부여 전반 |
 | 상태효과 | 버프 강탈 (`StealBuffsEffect`) | 대상 버프 전부 즉시 제거, 턴 종료 단계에 시전자가 획득 | 강탈 딜러 2스 |
 | 상태효과 | 버프 전부 소모 (`ConsumeAllBuffsEffect`) | 시전자 버프 전부 삭제 | 강탈 딜러 3스, 축적 해방 |
-| 턴·행동 | 행동 당기기 (`ActionAdvanceEffect`) | 행동 게이지를 비율만큼 당김 | - |
+| 턴·행동 | 행동 당기기 (`ActionAdvanceEffect`) | 행동 게이지를 비율만큼 당김. 시전자 자신 옵션 | 니콜 패시브(자신) |
 | 턴·행동 | 추가 턴 (`GrantExtraTurnEffect`) | 이번 턴이 끝난 뒤 한 번 더 행동 (같은 턴 중복은 1회) | - |
 | 턴·행동 | 추가 공격 예약 (`QueueFollowUpEffect`) | 블록 안 효과 목록을 시전자의 추가 공격(임시 턴)으로 예약 | 반격 태세의 반격, 패시브 추가 공격 |
 | 턴·행동 | 상대 강제 공격 (`ForceOpponentsAttackEffect`) | 상대 전원이 시전자를 1스로 1회씩 추가 공격 | 반격 태세 |
 | 턴·행동 | 쿨타임 감소 (`ReduceCooldownEffect`) | 지정 스킬의 남은 쿨타임 감소. 대상 또는 시전자 자신 | 하이퍼캐리 2스, 아스트라 2스, 곰인형 패시브 |
+| 턴·행동 | 다른 스킬 사용 (`UseSkillEffect`) | 시전자의 다른 스킬(1~3스)을 그 자리에서 함께 사용. 그 스킬의 대상 규칙·효과 그대로, 쿨타임은 안 걸림. 연동 안의 연동은 무시 | 니콜 3스 → 2스 |
 | 변신·전장 | 변신 (`TransformEffect`) | 시전자 변신 (스킬 교체, 턴 제한·종결기는 변신 설정) | 하이퍼캐리 3스 |
 | 변신·전장 | 아군 퇴장 (`ExitAlliesEffect`) | 시전자 외 아군 퇴장, 변신 해제·사망 때 복귀 | 하이퍼캐리 3스 |
 | 변신·전장 | 경계: 고립 (`IsolationBoundaryEffect`) | 스탯 보정 + 행동 제어 면역 경계 (경계는 한 번에 하나) | 하이퍼캐리 3스 |
@@ -132,7 +135,8 @@ BattleManager            전투 흐름 상태 머신
  ├─ 행동 결정자           같은 인터페이스: PlayerInput / RandomAI / BehaviorGraph(보스)
  └─ BattlePresenter      연출 재생, 재생이 끝나면 BattleManager에 완료를 알림
 
-BattleServices            전투 공용 도구 묶음 (로그, BattleEvents, ActionQueue, 난수, BattleRulesData, 전투 유닛 전원)
+BattleServices            전투 공용 도구 묶음 (로그, BattleEvents, ActionQueue, 난수, BattleRulesData, 전투 유닛 전원,
+                          대상 결정 함수 ResolveTargets = BattleManager의 규칙을 효과 블록이 빌려 씀)
                           효과 블록·패시브·스킬 실행에 하나로 전달. 난수 시드를 고정하면 전투를 그대로 재현
 
 BattleUnit (순수 C#)      값과 규칙
@@ -182,6 +186,7 @@ UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
   - `SkipsOwnerTurns`면 그동안 주인의 턴이 강제로 스킵된다(`BattleUnit.IsPerforming`, 기절과 같은 경로로 턴 종료 처리만)
   - 전장 이펙트: 오라 데이터가 프리팹(`FieldEffect`)을 들고, Battle 씬의 `AuraFieldView`가 `StateChanged`마다 켜진 오라의 이펙트를 만들고 꺼진 오라의 이펙트를 지운다. 띠 흐름은 `FieldFxScroller`(텍스처 이동·서서히 나타남), 빛은 가산 HDR 재질 + Bloom
 - "공격하지 않은 턴" 패시브(`OnTurnEndWithoutAttack`, 아스트라): `PassiveRunner`가 자기 스킬 공격 행동을 턴마다 기록하고, `EndTurn`이 지속피해·사망 확정 다음에 `HandleOwnTurnEnd`를 부른다
+- "상태효과 걸린 적 피격" 패시브(`OnAllyHitDebuffedEnemy`, 니콜 이자): `HandleAttackHit`에서 같은 편 전장 유닛의 패시브를 확인해, 맞은 적에게 `requiredStatus`가 있으면 발동. 발동 때 `stacksGainedPerTrigger`만큼 스택을 얻고(쓰는 스택 0), 2스의 스택 비례 피해 블록이 소모
 - 치명적인 피해(남은 HP 이상)는 `StatusApplier.DealDamage`에서 HP에 넣기 직전에 처리한다
   - 변신 중이면 강제 해제(HP 고정 + 종결기 예약), 아니면 `FatalDamageIncoming` 사건 → 버티기 패시브가 막으면 HP 1
 

@@ -28,18 +28,22 @@ namespace Game.Battle.Effects
     [Serializable]
     public class IsolationBoundaryEffect : BoundaryEffect
     {
+        [Label("경계 이름")]
         [SerializeField] private string boundaryName = "고립";
 
         [Tooltip("펼친 유닛에게 주는 스탯 보정 (예: 공격력 +60%, 방어력 +30%, 최대 HP +200%)")]
         [SerializeField] private List<StatModifier> statModifiers = new List<StatModifier>();
 
         [Tooltip("체크하면 경계 동안 행동 제어(기절 등)에 면역")]
+        [Label("행동 제어 면역")]
         [SerializeField] private bool crowdControlImmune = true;
 
         [Tooltip("체크하면 펼친 유닛의 변신이 끝날 때 경계도 끝난다 (하이퍼캐리: 종결기·강제 해제 후)")]
+        [Label("변신 끝나면 종료")]
         [SerializeField] private bool endsWithOwnerTransformation = true;
 
         [Tooltip("머리 위에 자기 버프처럼 보여줄 표시용 효과 (아이콘·툴팁)")]
+        [Label("표시용 효과")]
         [SerializeField] private StatusEffectData displayStatus;
 
         protected override Boundary CreateBoundary(BattleUnit caster)

@@ -14,21 +14,26 @@ namespace Game.Battle.Effects
     [Serializable]
     public class StartAuraEffect : SkillEffect
     {
+        [Label("오라 이름")]
         [SerializeField] private string auraName = "공연";
 
         [Tooltip("같은 편 전원에게 주는 스탯 보정 (예: 치명확률 +20%, 피해 증가 +30%)")]
         [SerializeField] private List<StatModifier> statModifiers = new List<StatModifier>();
 
         [Tooltip("오라를 유지하는 시전자의 턴 수 (생성한 턴은 세지 않음)")]
-        [SerializeField, Min(1)] private int durationTurns = 3;
+        [Label("지속 턴", Min = 1f)]
+        [SerializeField] private int durationTurns = 3;
 
         [Tooltip("체크하면 오라가 켜져 있는 동안 시전자의 턴이 강제로 스킵된다 (공연)")]
+        [Label("주인 턴 스킵")]
         [SerializeField] private bool skipOwnerTurns = true;
 
         [Tooltip("시전자 머리 위에 보여줄 표시용 효과 (아이콘·툴팁)")]
+        [Label("표시용 효과")]
         [SerializeField] private StatusEffectData displayStatus;
 
         [Tooltip("오라가 켜져 있는 동안 전장에 띄울 이펙트 프리팹 (예: 흐르는 악보·음표)")]
+        [Label("전장 이펙트")]
         [SerializeField] private GameObject fieldEffectPrefab;
 
         public override void Apply(SkillContext context)

@@ -21,6 +21,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 8545e9f7091b4be4ab5466072e394403, type: 2}
   - {fileID: 11400000, guid: 633db668293a4b2da96191484e189963, type: 2}
   - {fileID: 11400000, guid: ef06f3ccc980448b918f05c06d11706f, type: 2}
+  - {fileID: 11400000, guid: 949da07b8335206448fa0d45cd8f41a2, type: 2}
   stageCatalog: {fileID: 11400000, guid: ab03e04c1f72e714a80ef2ac02e39394, type: 2}
   gachaRules: {fileID: 11400000, guid: 9b3a483ca766a0549a9e6812deac2db3, type: 2}
   startingCharacters:

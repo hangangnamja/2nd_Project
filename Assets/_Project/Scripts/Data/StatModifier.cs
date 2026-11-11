@@ -1,4 +1,5 @@
 using System;
+using Game.Core;
 using UnityEngine;
 
 namespace Game.Data
@@ -35,12 +36,15 @@ namespace Game.Data
     public struct StatModifier
     {
         [Tooltip("바꿀 스탯.\n기본 스탯(공격력·방어력·속도·최대 HP): 원본 × (1 + % 합) + 고정 합\n비율 스탯(치명 확률·치명 피해·주는/받는 피해 증가·지속피해 증가): 원본 + % 합 (고정 칸은 안 씀)\n피해 감소: 효과끼리 곱연산, 최대 75%")]
+        [Label("스탯")]
         [SerializeField] private StatType stat;
 
         [Tooltip("% 보정. 0.3 = +30% (비율 스탯은 +30%p), -0.2 = -20% (디버프)")]
+        [Label("% 보정")]
         [SerializeField] private float percent;
 
         [Tooltip("고정 보정 (기본 스탯 전용). 10 = +10")]
+        [Label("고정 보정")]
         [SerializeField] private float flat;
 
         public StatType Stat => stat;

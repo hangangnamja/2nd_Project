@@ -1,0 +1,101 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0cf10047d4cbc1d4a9d1cde009aa4d18, type: 3}
+  m_Name: CriticalRateBuff
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.CharacterData
+  id: CriticalRateBuff
+  displayName: "\uB2C8\uCF5C"
+  role: 0
+  grade: 1
+  illustration: {fileID: 21300000, guid: d327000e2bffd6544952ee09790580ff, type: 3}
+  maxHp: 1000
+  attack: 90
+  defense: 60
+  baseSpeed: 110
+  critRate: 0.05
+  critDamage: 0.5
+  skill1:
+    skillName: "\uD3C9\uD0C0"
+    targetType: 0
+    cooldown: 0
+    startCooldown: 0
+    effects:
+    - rid: 7605779558563578005
+  skill2:
+    skillName: "\uBE4C\uB9B0\uB3C8\uC740 \uBE60\uB974\uAC8C \uAC1A\uC73C\uB77C\uAD6C"
+    targetType: 1
+    cooldown: 2
+    startCooldown: 0
+    effects:
+    - rid: 7605779575302521112
+    - rid: 7605779575302521066
+  skill3:
+    skillName: "\uD2B9\uB300\uC11C\uBE44\uC2A4"
+    targetType: 4
+    cooldown: 3
+    startCooldown: 0
+    effects:
+    - rid: 7605779575302521067
+    - rid: 7605779575302521069
+    - rid: 7605779575302521098
+  passives:
+  - passiveName: "\uC5EC\uC720\uB294 \uC9C0\uAC11\uC5D0\uC11C"
+    trigger: 9
+    execution: 0
+    maxTriggersPerTurn: 0
+    turnLimitScope: 1
+    maxTriggersPerBattle: 0
+    inactiveWhileTransformed: 0
+    maxStacks: 10
+    stacksPerOwnAction: 0
+    stackCostPerTrigger: 0
+    stacksGainedPerTrigger: 1
+    hpThreshold: 0.01
+    requiredStatus: {fileID: 11400000, guid: f5fddc48f89189940b600fd9f467f0b1, type: 2}
+    auraModifiers: []
+    effects: []
+  references:
+    version: 2
+    RefIds:
+    - rid: 7605779558563578005
+      type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        multiplier: 1
+        secondaryMultiplier: 1
+    - rid: 7605779575302521066
+      type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        status: {fileID: 11400000, guid: f5fddc48f89189940b600fd9f467f0b1, type: 2}
+        count: 1
+        applyToAllAllies: 0
+    - rid: 7605779575302521067
+      type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        status: {fileID: 11400000, guid: eb51916f1c9d12e49b37400d76970a91, type: 2}
+        count: 3
+        applyToAllAllies: 0
+    - rid: 7605779575302521069
+      type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        status: {fileID: 11400000, guid: e9fcbcb6ffe2eff48bc4db751a40b56a, type: 2}
+        count: 3
+        applyToAllAllies: 0
+    - rid: 7605779575302521098
+      type: {class: UseSkillEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        skillNumber: 2
+    - rid: 7605779575302521112
+      type: {class: PassiveStackDamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        baseMultiplier: 2
+        multiplierPerStack: 0.2
+        passiveNumber: 1

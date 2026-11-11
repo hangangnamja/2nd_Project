@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: DefenseDown
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StatusEffectData
   displayName: "\uBC29\uC5B4\uB825 \uAC10\uC18C"
-  description: "\uBC29\uC5B4\uB825\uC774 30% \uAC10\uC18C\uD55C\uB2E4"
+  description: "\uBC29\uC5B4\uB825\uC774 50% \uAC10\uC18C\uD55C\uB2E4"
   category: 1
   stackMode: 1
   duration: 2
@@ -24,7 +24,7 @@ MonoBehaviour:
   healSourceMaxHpRatio: 0
   statModifiers:
   - stat: 1
-    percent: -0.3
+    percent: -0.5
     flat: 0
   icon: {fileID: 2800000, guid: aa85e1b898f52804cb760d245c1b89b6, type: 3}
   isPersonal: 0

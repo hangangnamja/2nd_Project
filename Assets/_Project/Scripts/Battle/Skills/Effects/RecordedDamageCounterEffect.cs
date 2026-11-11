@@ -18,10 +18,12 @@ namespace Game.Battle.Effects
     public class RecordedDamageCounterEffect : SkillEffect
     {
         [Tooltip("받은 피해를 기록하는 상태효과 (반격 태세)")]
+        [Label("피해 기록 효과")]
         [SerializeField] private StatusEffectData recordStatus;
 
         [Tooltip("받은 피해 비율(최대 HP 대비) → 공격력 배율 계수. 4.0이면 최대 HP의 50%를 받았을 때 공격력 200%")]
-        [SerializeField, Min(0f)] private float ratio = 4f;
+        [Label("계수", Min = 0f)]
+        [SerializeField] private float ratio = 4f;
 
         // 기록을 읽어 피해를 주고, 태세를 소모한다.
         public override void Apply(SkillContext context)

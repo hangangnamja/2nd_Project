@@ -15,11 +15,13 @@ namespace Game.Battle.Effects
         [SerializeField] private List<int> skillNumbers = new List<int> { 2, 3 };
 
         [Tooltip("줄일 턴 수")]
-        [SerializeField, Min(1)] private int turns = 1;
+        [Label("줄일 턴", Min = 1f)]
+        [SerializeField] private int turns = 1;
 
         // 적을 공격하는 스킬에 붙이면 스킬 대상은 적이므로, 자기 쿨타임을 줄이려면 이 값을 켜야 한다.
         // 예: 하이퍼캐리 2스 = 적 공격 + "자신의" 3스 쿨타임 감소
         [Tooltip("체크하면 스킬 대상 대신 시전자 자신의 쿨타임을 줄인다")]
+        [Label("시전자 자신")]
         [SerializeField] private bool targetCaster;
 
         // 대상마다 지정한 스킬의 남은 쿨타임을 줄이고 결과를 로그로 남긴다.
