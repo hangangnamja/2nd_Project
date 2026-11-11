@@ -58,6 +58,7 @@ MonoBehaviour:
     maxStacks: 0
     stacksPerOwnAction: 0
     stackCostPerTrigger: 1
+    hpThreshold: 0.5
     auraModifiers: []
     effects:
     - rid: 7605779530016096425
@@ -67,7 +68,7 @@ MonoBehaviour:
     forcedReleaseHpRatio: 0.25
     skill1:
       skillName: "\uD30C\uC1C4"
-      targetType: 0
+      targetType: 5
       cooldown: 0
       startCooldown: 0
       effects:
@@ -105,12 +106,12 @@ MonoBehaviour:
       type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         multiplier: 1
-        secondaryTargetRatio: 1
+        secondaryMultiplier: 1
     - rid: 7605779530016096422
       type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         multiplier: 1.5
-        secondaryTargetRatio: 1
+        secondaryMultiplier: 1.5
     - rid: 7605779530016096423
       type: {class: ReduceCooldownEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
@@ -119,26 +120,6 @@ MonoBehaviour:
         targetCaster: 1
     - rid: 7605779530016096424
       type: {class: TransformEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
-      data: 
-    - rid: 7605779530016096490
-      type: {class: IsolationBoundaryEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
-      data:
-        boundaryName: "고립"
-        statModifiers:
-        - stat: 0
-          percent: 0.6
-          flat: 0
-        - stat: 1
-          percent: 0.3
-          flat: 0
-        - stat: 9
-          percent: 2
-          flat: 0
-        crowdControlImmune: 1
-        endsWithOwnerTransformation: 1
-        displayStatus: {fileID: 11400000, guid: 3a9346898f174a5ab6995c099e5d80e2, type: 2}
-    - rid: 7605779530016096491
-      type: {class: ExitAlliesEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data: 
     - rid: 7605779530016096425
       type: {class: ShieldEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
@@ -150,18 +131,20 @@ MonoBehaviour:
       type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         multiplier: 2.5
-        secondaryTargetRatio: 1
+        secondaryMultiplier: 1.5
     - rid: 7605779530016096427
       type: {class: HealEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         scaleStat: 1
         ratio: 0.2
         healCaster: 1
+        healAllAllies: 0
     - rid: 7605779530016096428
       type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         status: {fileID: 11400000, guid: e6b482ee0a98058459ebfbdf5c99e764, type: 2}
         count: 1
+        applyToAllAllies: 0
     - rid: 7605779530016096429
       type: {class: ForceOpponentsAttackEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data: 
@@ -178,24 +161,46 @@ MonoBehaviour:
         scaleStat: 1
         ratio: 0.2
         healCaster: 1
+        healAllAllies: 0
     - rid: 7605779530016096432
       type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         multiplier: 4
-        secondaryTargetRatio: 1
+        secondaryMultiplier: 4
     - rid: 7605779530016096433
       type: {class: HealEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         scaleStat: 1
         ratio: 0.2
         healCaster: 1
+        healAllAllies: 0
     - rid: 7605779530016096434
       type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         multiplier: 4
-        secondaryTargetRatio: 1
+        secondaryMultiplier: 4
     - rid: 7605779530016096435
       type: {class: RecordedDamageCounterEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         recordStatus: {fileID: 11400000, guid: e6b482ee0a98058459ebfbdf5c99e764, type: 2}
         ratio: 4
+    - rid: 7605779530016096490
+      type: {class: IsolationBoundaryEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        boundaryName: "\uACE0\uB9BD"
+        statModifiers:
+        - stat: 0
+          percent: 0.6
+          flat: 0
+        - stat: 1
+          percent: 0.3
+          flat: 0
+        - stat: 9
+          percent: 2
+          flat: 0
+        crowdControlImmune: 1
+        endsWithOwnerTransformation: 1
+        displayStatus: {fileID: 11400000, guid: 3a9346898f174a5ab6995c099e5d80e2, type: 2}
+    - rid: 7605779530016096491
+      type: {class: ExitAlliesEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data: 

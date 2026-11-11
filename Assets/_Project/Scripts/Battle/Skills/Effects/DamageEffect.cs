@@ -8,13 +8,13 @@ namespace Game.Battle.Effects
     [Serializable]
     public class DamageEffect : SkillEffect
     {
-        [Tooltip("공격력 대비 배율 (100% = 1.0)")]
+        [Tooltip("공격력 대비 배율 (100% = 1.0). 확산 스킬에서는 메인 대상이 받는 배율")]
         [SerializeField, Min(0f)] private float multiplier = 1f;
 
-        [Tooltip("확산 스킬에서 메인 대상이 아닌 주변 대상이 받는 비율 (0.5 = 메인 배율의 50%). 메인 대상이 없는 스킬에서는 쓰지 않는다")]
-        [SerializeField, Range(0f, 1f)] private float secondaryTargetRatio = 1f;
+        [Tooltip("확산 스킬에서 양옆(메인 대상이 아닌) 대상이 받는 공격력 대비 배율. 메인 배율과 따로 정한다. 메인 대상이 없는 스킬(단일·광역)에서는 쓰지 않는다")]
+        [SerializeField, Min(0f)] private float secondaryMultiplier = 1f;
 
-        // 대상마다 배율을 정해 피해를 준다 (확산이면 주변 대상은 비율만큼 줄어든다).
+        // 대상마다 배율을 정해 피해를 준다 (확산이면 메인 대상과 양옆이 서로 다른 배율을 쓴다).
         public override void Apply(SkillContext context)
         {
             // 람다식 target => ...: 대상 하나를 받아 그 대상에게 쓸 배율을 돌려주는 함수를 넘긴다.
@@ -73,12 +73,13 @@ namespace Game.Battle.Effects
             }
         }
 
-        // 이 대상에게 쓸 배율: 메인 대상이 있는 스킬(확산)에서 주변 대상이면 배율 × 주변 비율, 그 외는 배율 그대로.
-        // 예: 배율 1.5, 주변 비율 0.5 → 메인 150%, 양옆 75%
+        // 이 대상에게 쓸 배율: 메인 대상이 있는 스킬(확산)에서 양옆 대상이면 양옆 배율, 그 외(메인 대상·단일·광역)는 기본 배율.
+        // context.PrimaryTarget: 확산에서 직접 고른 적. 단일·광역 스킬은 null이라 항상 기본 배율을 쓴다.
+        // 예: 기본 배율 1.5, 양옆 배율 0.75 → 메인 150%, 양옆 75%
         private float GetMultiplierFor(BattleUnit target, SkillContext context)
         {
             bool isSecondary = context.PrimaryTarget != null && target != context.PrimaryTarget;
-            return isSecondary ? multiplier * secondaryTargetRatio : multiplier;
+            return isSecondary ? secondaryMultiplier : multiplier;
         }
     }
 }

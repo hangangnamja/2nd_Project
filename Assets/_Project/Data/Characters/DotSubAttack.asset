@@ -71,7 +71,7 @@ MonoBehaviour:
       type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         multiplier: 1
-        secondaryTargetRatio: 1
+        secondaryMultiplier: 1
     - rid: 7605779465967763967
       type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
@@ -82,7 +82,7 @@ MonoBehaviour:
       type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         multiplier: 1.5
-        secondaryTargetRatio: 0.5
+        secondaryMultiplier: 0.75
     - rid: 7605779465967763969
       type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
@@ -93,7 +93,7 @@ MonoBehaviour:
       type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         multiplier: 0.1
-        secondaryTargetRatio: 1
+        secondaryMultiplier: 0.1
     - rid: 7605779465967763971
       type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
