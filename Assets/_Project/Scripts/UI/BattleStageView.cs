@@ -4,22 +4,46 @@ using UnityEngine;
 
 namespace Game.UI
 {
-    // 전투 유닛들을 캡슐(UnitView)로 배치하고, 전투 상태가 바뀔 때마다 모두 갱신한다.
+    // 장면 구성 방식. 전투 위치(로직)와 화면에 서는 자리(연출)를 나눠, 장면마다 필요한 유닛만 그 장면의 자리에 세운다.
+    public enum StageLayout
+    {
+        // 전투 시작·종료: 아군 줄과 적 줄이 마주 봄 (전체를 한눈에)
+        Overview,
+
+        // 누군가의 차례: 행동하는 유닛 하나만 앞(원점)에 서고, 같은 편은 숨기고, 상대 편은 멀리 한 줄
+        ActorFocus,
+
+        // 행동하는 유닛의 편 전원이 카메라 쪽을 보고 한 줄로 섬 (아군 전체·단일 버프를 고를 때). 상대 편은 숨김
+        TeamLine,
+    }
+
+    // 전투 유닛들을 캡슐(UnitView)로 만들고, 장면(StageLayout)에 따라 세울 자리와 보일지를 정한다.
+    // 붕괴 스타레일처럼 "고정된 전장을 카메라가 돌아다니는" 것이 아니라, 장면마다 무대를 다시 세운다 (BattleCameraDirector가 장면을 고름).
     // BattleManager의 이벤트를 구독해서 움직이므로, BattleManager는 화면의 존재를 몰라도 된다.
     public class BattleStageView : MonoBehaviour
     {
         [SerializeField] private BattleManager battleManager;
         [SerializeField] private UnitView unitViewPrefab;
 
-        [Header("배치")]
-        [Tooltip("아군은 -x, 적은 +x 방향으로 이 거리부터 배치된다")]
-        [SerializeField] private float frontLineOffset = 2f;
-        [SerializeField] private float unitSpacing = 2.6f;
+        [Header("무대 배치")]
+        [Tooltip("행동하는 유닛 앞쪽(+z) 멀리 상대 편 줄까지의 거리")]
+        [SerializeField] private float farLineDistance = 10f;
+
+        [Tooltip("멀리 선 상대 편 줄의 가로 간격")]
+        [SerializeField] private float farLineSpacing = 3f;
+
+        [Tooltip("편 전원이 나란히 설 때(아군 정면) 가로 간격")]
+        [SerializeField] private float teamLineSpacing = 1.9f;
 
         private readonly List<UnitView> views = new List<UnitView>();
 
-        // 오브젝트가 활성화될 때 전투 이벤트를 구독한다.
-        // += 로 등록한 함수는 BattleManager가 해당 이벤트를 Invoke할 때마다 호출된다.
+        // 이번 장면에서 화면에 세운 유닛 캡슐. 나머지는 숨긴다 (쓰러짐·퇴장도 숨김).
+        private readonly HashSet<UnitView> staged = new HashSet<UnitView>();
+
+        // 마지막으로 세운 장면. 웨이브가 바뀌어 적 캡슐을 새로 만들면 같은 장면으로 다시 세운다.
+        private StageLayout currentLayout = StageLayout.Overview;
+        private BattleUnit currentActor;
+
         private void OnEnable()
         {
             battleManager.BattleStarted += HandleBattleStarted;
@@ -27,7 +51,6 @@ namespace Game.UI
             battleManager.StateChanged += RefreshAll;
         }
 
-        // 비활성화·파괴될 때 구독을 해제한다. 해제하지 않으면 사라진 오브젝트의 함수가 계속 호출될 수 있다.
         private void OnDisable()
         {
             battleManager.BattleStarted -= HandleBattleStarted;
@@ -35,15 +58,15 @@ namespace Game.UI
             battleManager.StateChanged -= RefreshAll;
         }
 
-        // 전투가 시작되면 아군·적 유닛마다 캡슐을 하나씩 만들어 배치한다.
+        // 전투가 시작되면 유닛마다 캡슐을 하나씩 만들고, 전체가 보이는 장면으로 세운다.
         private void HandleBattleStarted()
         {
-            SpawnSide(battleManager.Allies, direction: -1f);
-            SpawnSide(battleManager.Enemies, direction: 1f);
-            RefreshAll();
+            SpawnViews(battleManager.Allies);
+            SpawnViews(battleManager.Enemies);
+            Stage(StageLayout.Overview, null);
         }
 
-        // 다음 웨이브가 시작되면 이전 웨이브의 적 캡슐을 지우고 새 적 캡슐을 세운다. 아군 캡슐은 그대로 둔다.
+        // 다음 웨이브: 이전 적 캡슐을 지우고 새 적 캡슐을 만든 뒤, 지금 장면을 다시 세워 새 적을 자리에 놓는다.
         private void HandleWaveStarted()
         {
             // RemoveAll(조건): 조건이 true인 원소를 목록에서 모두 지운다. 지우기 전에 그 캡슐 오브젝트를 파괴한다.
@@ -54,46 +77,116 @@ namespace Game.UI
                     return false;
                 }
 
+                staged.Remove(view);
                 Destroy(view.gameObject);
                 return true;
             });
 
-            SpawnSide(battleManager.Enemies, direction: 1f);
-            RefreshAll();
+            SpawnViews(battleManager.Enemies);
+            Stage(currentLayout, currentActor);
         }
 
         // 전투 유닛을 표시하는 캡슐을 찾는다 (연출이 이펙트를 띄울 위치를 얻을 때). 없으면 null.
-        // Find(조건): 조건(람다식)이 true인 첫 원소를 돌려주고, 없으면 null.
         public UnitView FindView(BattleUnit unit)
         {
             return views.Find(view => view.Unit == unit);
         }
 
-        // 한쪽 편 유닛들을 편성 순서대로 일렬로 세운다. direction이 -1이면 왼쪽(아군), 1이면 오른쪽(적).
-        private void SpawnSide(IReadOnlyList<BattleUnit> units, float direction)
-        {
-            for (int i = 0; i < units.Count; i++)
-            {
-                // 편성 0번이 앞줄(중앙 쪽), 뒤 번호일수록 바깥쪽에 선다.
-                float x = direction * (frontLineOffset + i * unitSpacing);
-                Vector3 position = transform.position + new Vector3(x, 0f, 0f);
+        // 행동하는 유닛이 서는 자리(원점)와, 멀리 선 상대 편 줄의 가운데 (카메라 구도의 기준점).
+        public Vector3 ActorPoint => transform.position;
+        public Vector3 FarLineCenter => transform.position + new Vector3(0f, 0f, farLineDistance);
 
-                UnitView view = Instantiate(unitViewPrefab, position, Quaternion.identity, transform);
-                view.name = $"Unit_{units[i].Name}";
-                view.Bind(units[i]);
+        // 장면에 맞게 유닛을 세운다. actor = 지금 행동하는 유닛 (Overview면 null이어도 된다).
+        public void Stage(StageLayout layout, BattleUnit actor)
+        {
+            currentLayout = layout;
+            currentActor = actor;
+            staged.Clear();
+
+            switch (layout)
+            {
+                case StageLayout.ActorFocus:
+                    StageActorFocus(actor);
+                    break;
+                case StageLayout.TeamLine:
+                    // ?? true: 행동 유닛이 없으면 아군 줄을 세운다.
+                    StageLine(GetSide(actor?.IsAlly ?? true), Vector3.zero, teamLineSpacing, faceCamera: true, cameraInFront: true);
+                    break;
+                default:
+                    StageLine(GetSide(isAlly: true), Vector3.zero, teamLineSpacing, faceCamera: false, cameraInFront: false);
+                    StageLine(GetSide(isAlly: false), new Vector3(0f, 0f, farLineDistance), farLineSpacing, faceCamera: true, cameraInFront: false);
+                    break;
+            }
+
+            RefreshAll();
+        }
+
+        // 행동 유닛 하나만 원점에 세우고(+z를 봄), 상대 편은 멀리 한 줄(행동 유닛 쪽을 봄). 같은 편은 숨긴다.
+        private void StageActorFocus(BattleUnit actor)
+        {
+            UnitView actorView = actor != null ? FindView(actor) : null;
+            if (actorView != null)
+            {
+                Place(actorView, Vector3.zero, Quaternion.identity);
+            }
+
+            bool actorIsAlly = actor == null || actor.IsAlly;
+            StageLine(GetSide(!actorIsAlly), new Vector3(0f, 0f, farLineDistance), farLineSpacing, faceCamera: true, cameraInFront: false);
+        }
+
+        // 한쪽 편 유닛들을 center를 가운데로 가로 한 줄로 세운다 (편성 0번이 화면 왼쪽).
+        // faceCamera: 원점 쪽(-z)을 보게 할지. cameraInFront: 카메라가 줄 앞(+z)에서 -z를 보는 장면인지(TeamLine).
+        // 쓰러지거나 퇴장한 유닛은 빼고 남은 유닛끼리 가운데 정렬한다.
+        private void StageLine(List<UnitView> side, Vector3 center, float spacing, bool faceCamera, bool cameraInFront)
+        {
+            // FindAll(조건): 화면에 세울 수 있는(살아 있고 퇴장하지 않은) 유닛만 모은다.
+            List<UnitView> standing = side.FindAll(view => view.Unit.IsOnField);
+
+            // Quaternion.Euler(0, 180, 0): y축으로 반 바퀴 → -z(카메라·행동 유닛 쪽)를 바라본다.
+            Quaternion facing = faceCamera ? Quaternion.Euler(0f, 180f, 0f) : Quaternion.identity;
+
+            // 카메라가 줄 앞에서 거꾸로(-z) 보면 화면 왼쪽이 +x가 되므로, 편성 0번이 화면 왼쪽에 오도록 x 방향을 뒤집는다.
+            float direction = cameraInFront ? -1f : 1f;
+
+            for (int i = 0; i < standing.Count; i++)
+            {
+                // 가운데 정렬: (i - (인원 - 1) / 2) × 간격 → 인원이 몇 명이든 줄의 가운데가 center.
+                float x = (i - (standing.Count - 1) * 0.5f) * spacing * direction;
+                Place(standing[i], center + new Vector3(x, 0f, 0f), facing);
+            }
+        }
+
+        private void Place(UnitView view, Vector3 localPosition, Quaternion rotation)
+        {
+            view.transform.SetPositionAndRotation(transform.position + localPosition, rotation);
+            staged.Add(view);
+        }
+
+        // 한쪽 편 캡슐 목록 (편성 순서).
+        private List<UnitView> GetSide(bool isAlly)
+        {
+            return views.FindAll(view => view.Unit.IsAlly == isAlly);
+        }
+
+        private void SpawnViews(IReadOnlyList<BattleUnit> units)
+        {
+            foreach (BattleUnit unit in units)
+            {
+                UnitView view = Instantiate(unitViewPrefab, transform.position, Quaternion.identity, transform);
+                view.name = $"Unit_{unit.Name}";
+                view.Bind(unit);
                 views.Add(view);
             }
         }
 
-        // 모든 유닛 표시를 현재 상태로 갱신한다 (현재 행동자, 선택된 스킬의 대상 후보 강조 포함).
+        // 모든 유닛 표시를 현재 상태로 갱신한다. 이번 장면에 세운 유닛만 보이고, 쓰러진 유닛은 장면에서 빠진다.
         private void RefreshAll()
         {
             foreach (UnitView view in views)
             {
-                // 퇴장한 아군(하이퍼캐리 변신 중)은 다른 공간에 남겨진 것이므로 화면에서 아예 숨긴다.
                 // SetActive(false): 오브젝트를 끄면 그려지지 않고 콜라이더도 꺼져 클릭 대상에서도 빠진다.
-                // 뷰는 views 목록이 계속 들고 있으므로, 복귀하면 다시 켜고 그대로 갱신한다.
-                bool isVisible = !view.Unit.IsExited;
+                // 쓰러진 유닛은 이번 장면에 세웠더라도 그 공격의 연출이 끝난 뒤 다음 장면부터 빠진다 (사망 이펙트가 보이도록 지금은 둔다).
+                bool isVisible = staged.Contains(view) && !view.Unit.IsExited;
                 view.gameObject.SetActive(isVisible);
                 if (!isVisible)
                 {
