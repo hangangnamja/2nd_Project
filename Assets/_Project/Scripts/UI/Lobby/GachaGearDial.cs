@@ -10,8 +10,8 @@ namespace Game.UI
     // IBeginDragHandler·IDragHandler: EventSystem이 이 오브젝트 위에서 드래그가 시작·진행될 때 아래 함수를 호출한다.
     public class GachaGearDial : MonoBehaviour, IBeginDragHandler, IDragHandler
     {
-        [Tooltip("드래그에 따라 회전하는 기어 그림")]
-        [SerializeField] private RectTransform gear;
+        [Tooltip("드래그에 따라 회전하는 물체 (UI 그림 또는 3D 물레 바퀴). 자기 z축을 중심으로 돈다")]
+        [SerializeField] private Transform gear;
 
         [Tooltip("다 돌렸다고 볼 누적 회전 각도 (360 = 한 바퀴)")]
         [SerializeField, Min(1f)] private float requiredDegrees = 540f;
@@ -69,7 +69,7 @@ namespace Game.UI
             float turned = Mathf.Min(-delta, requiredDegrees - accumulatedDegrees);
             accumulatedDegrees += turned;
 
-            // 기어 그림을 누적 각도만큼 시계 방향(z 음수)으로 돌린다.
+            // 바퀴를 누적 각도만큼 시계 방향(z 음수)으로 돌린다. 3D 바퀴면 비스듬히 놓인 바퀴 면 안에서 돈다.
             gear.localEulerAngles = new Vector3(0f, 0f, -accumulatedDegrees);
             isLocked = IsComplete;
 

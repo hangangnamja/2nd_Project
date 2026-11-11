@@ -13,8 +13,10 @@ MonoBehaviour:
   m_Name: DotSubAttack
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.CharacterData
   id: DotSubAttack
-  displayName: DotSubAttack
+  displayName: "\uB9F9\uB3C5\uC8FC\uC220\uC0AC"
   role: 1
+  grade: 1
+  illustration: {fileID: 0}
   maxHp: 900
   attack: 100
   defense: 45
@@ -56,6 +58,7 @@ MonoBehaviour:
     maxStacks: 0
     stacksPerOwnAction: 0
     stackCostPerTrigger: 0
+    hpThreshold: 0.5
     auraModifiers:
     - stat: 8
       percent: 0.2
@@ -74,6 +77,7 @@ MonoBehaviour:
       data:
         status: {fileID: 11400000, guid: 96b850fc2a3b240488c141b84c337036, type: 2}
         count: 1
+        applyToAllAllies: 0
     - rid: 7605779465967763968
       type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
@@ -84,6 +88,7 @@ MonoBehaviour:
       data:
         status: {fileID: 11400000, guid: 96b850fc2a3b240488c141b84c337036, type: 2}
         count: 1
+        applyToAllAllies: 0
     - rid: 7605779465967763970
       type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
@@ -94,3 +99,4 @@ MonoBehaviour:
       data:
         status: {fileID: 11400000, guid: 96b850fc2a3b240488c141b84c337036, type: 2}
         count: 3
+        applyToAllAllies: 0

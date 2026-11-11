@@ -50,10 +50,13 @@
 ### 가챠
 - `GachaMachine`(순수 C#): 1회 판정만. 난수를 밖에서 받아 시드 고정 시 재현·시뮬레이션 가능. 카운터는 세이브의 `GachaSave`를 직접 갱신
 - `GachaService`: 보석 확인 → 판정 → `PlayerProfile.CommitGachaPull`로 새 캐릭터 지급·보석 차감·저장
-- `GachaPresenter`: 정해진 결과를 보여주기만 함 (기어 → 한 장씩 공개 → 결과 목록). 빛은 파티클·Bloom, 코드는 재생 순서와 색만
+- `GachaPresenter`: 정해진 결과를 보여주기만 함 (물레 → 한 장씩 공개 → 결과 목록). 빛은 파티클·Bloom, 코드는 재생 순서와 색만
+  - 물레: 3D 모델 `GachaWheel3D`(월드 공간, 카메라 앞 7 / 캔버스는 10이라 UI 배경보다 앞에 그려짐). 메시는 코드로 생성한 선반 가공 모양(`Art/Gacha/Wheel/Meshes`), 재질은 URP Lit 나무·황동·실
+    - `GachaGearDial`(투명 UI 드래그 영역)이 바퀴(`WheelSpin`)만 자기 z축으로 돌린다. 등급 색은 줄 가운데 `ThreadGlow`, 바퀴 둘레 고리 빛 `GearGlow`, 물레를 비추는 점광원 `WheelLight`(돌릴수록 밝아짐)
+    - 부품 깊이는 모두 캔버스(10)보다 앞이어야 보인다 (비스듬히 돌린 각도가 크면 뒤쪽 부품이 배경 뒤로 숨음)
   - 글로우(후처리)를 받으려고 연출은 Screen Space - Camera 캔버스(`GachaFxCanvas`)에서 재생하고, 그동안 Overlay인 `LobbyCanvas`를 끔
   - 파티클은 캔버스 픽셀 단위(Hierarchy 스케일)로 만들고 sorting order 5로 UI 위에 그림. 머티리얼은 Additive + HDR 밝기(×2.6) → Bloom이 번지게 함
-- 임시 그림(기어·칼·글로우·고리·그라데이션)은 `Art/Gacha/`
+- 임시 그림(물레 `Art/Gacha/Wheel/`, 칼·글로우·고리·그라데이션)은 `Art/Gacha/`
 
 ### 세이브 (기획서 9장)
 - `SaveData`: 파일에 그대로 저장되는 내용. 필드 이름이 곧 JSON 키라, 이름·구조를 바꾸면 `version`을 올리고 `SaveStorage.Upgrade`에 변환을 추가
