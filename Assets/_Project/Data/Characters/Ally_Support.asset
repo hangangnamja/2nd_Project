@@ -68,7 +68,7 @@ MonoBehaviour:
       type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         multiplier: 1
-        secondaryTargetRatio: 1
+        secondaryMultiplier: 1
     - rid: 7605779465967763789
       type: {class: HealEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
@@ -97,4 +97,4 @@ MonoBehaviour:
       type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         multiplier: 1
-        secondaryTargetRatio: 1
+        secondaryMultiplier: 1

@@ -66,7 +66,7 @@ MonoBehaviour:
       type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         multiplier: 1
-        secondaryTargetRatio: 1
+        secondaryMultiplier: 1
     - rid: 7605779465967765101
       type: {class: ReduceCooldownEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:

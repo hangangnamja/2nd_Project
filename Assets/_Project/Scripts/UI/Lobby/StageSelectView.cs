@@ -47,8 +47,8 @@ namespace Game.UI
         // 목록 내용을 노드·카드에 채우고 클릭을 연결한다. 처음에는 스테이지 탭, 상세 패널 닫힘.
         private void Awake()
         {
-            BindNodes(normalNodes, catalog.NormalStages, index => $"1-{index + 1}");
-            BindNodes(bossNodes, catalog.BossStages, index => $"BOSS {index + 1}");
+            BindNodes(normalNodes, catalog.NormalStages, index => $"1-{index + 1}", codeSize: 38);
+            BindNodes(bossNodes, catalog.BossStages, index => $"BOSS {index + 1}", codeSize: 46);
 
             normalTab.onClick.AddListener(() => ShowTab(isBoss: false));
             bossTab.onClick.AddListener(() => ShowTab(isBoss: true));
@@ -66,7 +66,8 @@ namespace Game.UI
         // 노드 i에 목록의 i번째 스테이지를 연결한다. 스테이지가 없으면 "준비 중"으로 표시하고 누를 수 없게 한다.
         // defaultCode: 스테이지 에셋에 번호가 비어 있을 때 쓸 기본 표기 (1-3, BOSS 2 등).
         // System.Func<int, string>: 정수(순서)를 받아 문자열(표기)을 돌려주는 함수를 담는 델리게이트.
-        private void BindNodes(List<Button> nodes, IReadOnlyList<StageData> stages, System.Func<int, string> defaultCode)
+        // codeSize: 번호 글자 크기. 번호는 크고 굵게, 이름은 노드 기본 글자 크기로 아래 줄에 쓴다 (리치 텍스트 <size>, <b>).
+        private void BindNodes(List<Button> nodes, IReadOnlyList<StageData> stages, System.Func<int, string> defaultCode, int codeSize)
         {
             for (int i = 0; i < nodes.Count; i++)
             {
@@ -74,7 +75,8 @@ namespace Game.UI
                 string code = stage != null && !string.IsNullOrEmpty(stage.StageCode) ? stage.StageCode : defaultCode(i);
 
                 Text label = nodes[i].GetComponentInChildren<Text>(true);
-                label.text = stage != null ? $"{code}\n{stage.StageName}" : $"{code}\n준비 중";
+                string stageName = stage != null ? stage.StageName : "준비 중";
+                label.text = $"<size={codeSize}><b>{code}</b></size>\n{stageName}";
 
                 nodes[i].interactable = stage != null;
 
