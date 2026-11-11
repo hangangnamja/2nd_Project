@@ -152,6 +152,16 @@ BattleUnit (순수 C#)      값과 규칙
 UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
 ```
 
+### 장면 연출 (카메라·무대)
+- 전투 위치(로직)와 화면에 서는 자리(연출)를 나눈다. `BattleStageView.Stage(StageLayout, 행동 유닛)`가 장면마다 유닛을 다시 세우고 나머지는 숨김
+  - `Overview`(아군 줄 + 멀리 적 줄: 시작·종료·적 차례), `ActorFocus`(행동 유닛만 원점 + 상대 줄 멀리), `TeamLine`(행동 유닛 편 전원이 카메라를 보고 한 줄)
+- `BattleCameraDirector`(카메라): `StateChanged`마다 장면을 고른다. 무대가 바뀌면 `SceneFade`(HUD 검은 판)로 덮은 사이에 다시 세우고 카메라를 바로 놓고, 같은 무대 안에서는 구도만 SmoothDamp로 이동
+  - 구도 = `CameraShot`(기준점 + 오프셋, 바라볼 기준점 + 오프셋, 화각). 캡슐은 원점이 몸 가운데(y -1~1)
+  - 차례 시작 때 자동으로 골라진 스킬은 구도를 바꾸지 않고, 플레이어가 다른 스킬을 누르면 그 스킬 대상 규칙에 맞는 장면으로 바뀜
+- `PartyBarView`·`PartyCardView`: 아래 아군 초상화 카드 (HP·스택·차례·대상 표시, 누르면 `SelectTarget`). 카드 아래 버프 줄·디버프 줄(줄마다 5칸 + "…")(목록은 `UnitView.BuildDisplayedStatuses`와 같음). 꾹 누르면(`LongPressed`, 손을 뗄 때의 클릭은 무시) `UnitDetailPanel`(스탯 + 효과 설명 `StatusDescriptionBuilder`)
+- `Billboard`: 이름표·상태효과 줄이 카메라를 보고 거리에 맞춰 크기를 조절. `UnitView`의 조준 고리(`TargetRing`)는 카메라 쪽으로 당겨 그림
+- 숨겨진 유닛의 이펙트는 `BattleFxView`가 건너뜀
+
 ### 연출 재생 (현재 임시 구현)
 - 로직은 행동 하나(스킬 → 턴 종료 → 추가 공격)를 한 프레임에 끝까지 계산하고, 그동안 `BattleEvents`의 연출용 사건(`DamageTaken`, `Healed`, `BuffApplied`)을 알린다
   - 피해는 `StatusApplier.DealDamage`, 회복은 `HealEffect`·지속 회복, 버프는 `StatusApplier`의 부여 결과에서 한 곳씩만 알린다

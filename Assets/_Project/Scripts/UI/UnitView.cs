@@ -23,6 +23,19 @@ namespace Game.UI
         [Tooltip("퇴장한 아군(하이퍼캐리 변신 중) 색. 쓰러진 것과 구분되도록 밝은 회색")]
         [SerializeField] private Color exitedColor = new Color(0.65f, 0.65f, 0.7f);
 
+        [Header("대상 표시")]
+        [Tooltip("지금 고른 스킬로 고를 수 있는 대상에 보여주는 고리 (붕괴 스타레일식 조준 표시)")]
+        [SerializeField] private SpriteRenderer targetRing;
+
+        [Tooltip("아군을 고를 때(버프·회복) 고리 색")]
+        [SerializeField] private Color allyTargetColor = new Color(0.3f, 0.85f, 1f, 0.9f);
+
+        [Tooltip("적을 고를 때(공격) 고리 색")]
+        [SerializeField] private Color enemyTargetColor = new Color(1f, 0.4f, 0.35f, 0.9f);
+
+        [Tooltip("고리가 도는 속도 (초당 각도)")]
+        [SerializeField] private float ringSpinSpeed = 45f;
+
         [Header("고정 상태 아이콘")]
         [Tooltip("무적 유닛 머리 위에 함께 보여줄 표시 전용 효과 (영구 표시)")]
         [SerializeField] private StatusEffectData invulnerableDisplay;
@@ -57,15 +70,51 @@ namespace Game.UI
             string marker = isTargetable ? "▼ " : string.Empty;
             label.text = $"{marker}{Unit.Name}{BuildStackText()}{BuildFieldStateText()}\nHP {Unit.CurrentHp}/{Unit.MaxHp}";
 
+            // 아군 이름·HP·스택은 화면 아래 초상화 카드(PartyCardView)에서 보여준다.
+            // 아군은 카메라 바로 앞에 서는 장면이 많아 머리 위 글자가 화면을 가리므로 숨긴다. 적은 그대로 머리 위에 표시.
+            label.gameObject.SetActive(!Unit.IsAlly);
+
             // renderer.material: 이 오브젝트 전용 머티리얼 복사본을 돌려주므로 다른 캡슐 색에는 영향이 없다.
             // URP Lit 셰이더는 기본 색(_BaseColor)을 material.color로 바꿀 수 있다.
             bodyRenderer.material.color = PickColor(isActing);
 
             statusBar.Show(BuildDisplayedStatuses());
+            ShowTargetRing(isTargetable);
         }
 
-        // 머리 위에 보여줄 효과 목록: 걸려 있는 상태효과 + 고정 상태(무적) 표시. 쓰러진 유닛은 아무것도 표시하지 않는다.
-        private List<StatusInstance> BuildDisplayedStatuses()
+        // 고를 수 있는 대상이면 고리를 켠다. 아군이면 하늘색, 적이면 붉은색.
+        private void ShowTargetRing(bool isTargetable)
+        {
+            if (targetRing == null)
+            {
+                return;
+            }
+
+            targetRing.gameObject.SetActive(isTargetable && !Unit.IsDead);
+            targetRing.color = Unit.IsAlly ? allyTargetColor : enemyTargetColor;
+        }
+
+        // 고리를 천천히 돌린다. 고리는 Billboard로 카메라를 보므로, 그 위에 화면 기준 z축 회전을 더한다.
+        // LateUpdate: Billboard가 정면을 맞춘 다음 프레임 순서와 상관없이 매번 정면 + 회전각을 다시 계산한다.
+        private void LateUpdate()
+        {
+            if (targetRing == null || !targetRing.gameObject.activeSelf || Camera.main == null)
+            {
+                return;
+            }
+
+            // Quaternion.Euler(0, 0, 각도): 화면을 바라보는 축(z)으로 각도만큼 돌린 회전. Time.time × 속도 = 계속 늘어나는 각도.
+            targetRing.transform.rotation = Camera.main.transform.rotation * Quaternion.Euler(0f, 0f, Time.time * ringSpinSpeed);
+
+            // 고리를 몸 가운데에서 카메라 쪽으로 조금 당겨 캡슐에 가려지지 않게 한다.
+            // (카메라 위치 - 몸 위치).normalized: 몸에서 카메라를 향하는 길이 1짜리 방향.
+            Vector3 toCamera = (Camera.main.transform.position - transform.position).normalized;
+            targetRing.transform.position = transform.position + Vector3.up * 0.1f + toCamera * 0.7f;
+        }
+
+        // 머리 위에 보여줄 효과 목록: 걸려 있는 상태효과 + 고정 상태(무적·경계·오라) 표시. 쓰러진 유닛은 아무것도 표시하지 않는다.
+        // 아래 초상화 카드·상세 창(PartyCardView, UnitDetailPanel)도 같은 목록을 쓰도록 public으로 연다.
+        public List<StatusInstance> BuildDisplayedStatuses()
         {
             if (Unit.IsDead)
             {
