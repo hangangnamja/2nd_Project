@@ -1,4 +1,5 @@
 using System;
+using Game.Core;
 using Game.Battle.Status;
 using Game.Data;
 using UnityEngine;
@@ -11,6 +12,8 @@ namespace Game.Battle.Effects
     // 이유: 적 공격력은 아군 HP 곡선(Lv60 ×12.5), 적 HP는 아군 공격력 곡선(×6.15)을 따라 커져서,
     //       받은 피해를 그대로 쓰면 레벨이 오를수록 반격이 적 HP보다 빨리 커진다. 비율로 바꾸면 레벨과 상관없이 같은 비율이 나온다.
     // 예: 최대 HP 16,250, 받은 피해 5,520 (34%), 계수 4.0 → 공격력 136% 광역
+    // 효과 블록 드롭다운에 보여줄 분류/이름과 설명 (SubclassMenuAttribute).
+    [SubclassMenu("공격/받은 피해 비례 반격", "피해 기록 효과에 쌓인 받은 피해(최대 HP 대비 비율) × 계수를 공격력 배율로 반격하고 기록을 지운다 (반격 태세)", 120)]
     [Serializable]
     public class RecordedDamageCounterEffect : SkillEffect
     {

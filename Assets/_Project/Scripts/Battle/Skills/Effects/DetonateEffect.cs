@@ -1,4 +1,5 @@
 using System;
+using Game.Core;
 using Game.Battle.Status;
 
 namespace Game.Battle.Effects
@@ -6,6 +7,8 @@ namespace Game.Battle.Effects
     // 격발: 대상에게 걸린 모든 지속피해(화상, 독 등)를 즉시 1회씩 발동시킨다 (기획서 3-8).
     // 지속피해는 사라지거나 남은 턴이 줄지 않고 그대로 유지된다.
     // 효과 목록에서 피해 블록 뒤에 두면, 그 공격으로 막 붙은 화상까지 함께 터진다 (기획서 4-3 격발 딜러 3스).
+    // 효과 블록 드롭다운에 보여줄 분류/이름과 설명 (SubclassMenuAttribute).
+    [SubclassMenu("공격/격발", "대상의 지속피해(화상·독)를 즉시 1회씩 발동. 지속피해는 그대로 남는다. 피해 블록 뒤에 두면 방금 붙은 화상도 터진다", 130)]
     [Serializable]
     public class DetonateEffect : SkillEffect
     {

@@ -1,10 +1,13 @@
 using System;
+using Game.Core;
 using Game.Battle.Status;
 using UnityEngine;
 
 namespace Game.Battle.Effects
 {
     // 대상 전원에게 "공격력 × 배율" 기반 피해를 준다.
+    // 효과 블록 드롭다운에 보여줄 분류/이름과 설명 (SubclassMenuAttribute).
+    [SubclassMenu("공격/피해", "공격력 × 배율 피해. 확산 스킬은 메인 대상 배율과 양옆 배율을 따로 정한다", 100)]
     [Serializable]
     public class DamageEffect : SkillEffect
     {

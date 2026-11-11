@@ -9,6 +9,8 @@ namespace Game.Battle.Effects
     // 시전자의 추가 공격(임시 턴) 하나를 대기열 끝에 예약한다. 효과 목록은 이 블록 안에 따로 조립한다.
     // 대기열은 먼저 넣은 것부터 실행되므로, 앞에서 예약된 추가 공격(상대의 강제 공격 등)이 모두 끝난 뒤에 나간다.
     // 예: 하이퍼캐리 반격 태세 = 상대 전원 공격 예약 → 이 블록으로 반격 예약 → 상대 공격이 다 끝나면 반격
+    // 효과 블록 드롭다운에 보여줄 분류/이름과 설명 (SubclassMenuAttribute).
+    [SubclassMenu("턴·행동/추가 공격 예약", "블록 안에 담은 효과 목록을 시전자의 추가 공격(임시 턴)으로 대기열 끝에 예약한다", 420)]
     [Serializable]
     public class QueueFollowUpEffect : SkillEffect
     {

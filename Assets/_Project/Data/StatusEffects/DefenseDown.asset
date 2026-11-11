@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e7ea1fe386d9a7468a3d5897f0a5561, type: 3}
+  m_Name: DefenseDown
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StatusEffectData
+  displayName: "\uBC29\uC5B4\uB825 \uAC10\uC18C"
+  description: "\uBC29\uC5B4\uB825\uC774 30% \uAC10\uC18C\uD55C\uB2E4"
+  category: 1
+  stackMode: 1
+  duration: 2
+  features: 1
+  damageAttackRatio: 0
+  damageTargetMaxHpRatio: 0
+  maxHpDamageAttackCap: 0
+  healSourceMaxHpRatio: 0
+  statModifiers:
+  - stat: 1
+    percent: -0.3
+    flat: 0
+  icon: {fileID: 2800000, guid: aa85e1b898f52804cb760d245c1b89b6, type: 3}
+  isPersonal: 0
+  isPermanent: 0
+  convertsTo: {fileID: 0}

@@ -1,4 +1,5 @@
 using System;
+using Game.Core;
 using System.Collections.Generic;
 using Game.Battle.Status;
 using Game.Data;
@@ -7,6 +8,8 @@ using UnityEngine;
 namespace Game.Battle.Effects
 {
     // 대상 전원에게 상태효과(화상, 버프 등)를 부여한다.
+    // 효과 블록 드롭다운에 보여줄 분류/이름과 설명 (SubclassMenuAttribute).
+    [SubclassMenu("상태효과/상태효과 부여", "대상에게 상태효과(버프·디버프·지속피해 등)를 개수만큼 건다. 아군 전체에 거는 옵션이 있다", 300)]
     [Serializable]
     public class ApplyStatusEffect : SkillEffect
     {

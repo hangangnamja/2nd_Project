@@ -1,10 +1,13 @@
 using System;
+using Game.Core;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace Game.Battle.Effects
 {
     // 대상의 지정한 스킬 쿨타임을 줄인다 (곰인형 버퍼 패시브 등).
+    // 효과 블록 드롭다운에 보여줄 분류/이름과 설명 (SubclassMenuAttribute).
+    [SubclassMenu("턴·행동/쿨타임 감소", "지정한 스킬의 남은 쿨타임을 줄인다. 대상 또는 시전자 자신을 고를 수 있다", 440)]
     [Serializable]
     public class ReduceCooldownEffect : SkillEffect
     {

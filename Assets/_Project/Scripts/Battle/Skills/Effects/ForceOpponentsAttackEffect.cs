@@ -1,4 +1,5 @@
 using System;
+using Game.Core;
 using Game.Data;
 
 namespace Game.Battle.Effects
@@ -6,6 +7,8 @@ namespace Game.Battle.Effects
     // 전장에 있는 상대 전원이 시전자를 1스로 1회씩 공격하게 한다 (기획서 4-3 하이퍼캐리 변신 2스 반격 태세).
     // 공격은 지금 턴이 끝난 뒤 상대 각자의 추가 공격(임시 턴)으로 실행된다 → 상대의 행동 게이지·쿨타임은 변하지 않는다.
     // 이 블록 뒤에 "추가 공격 예약" 블록(반격)을 두면, 대기열 순서상 상대의 공격이 모두 끝난 뒤 반격이 나간다.
+    // 효과 블록 드롭다운에 보여줄 분류/이름과 설명 (SubclassMenuAttribute).
+    [SubclassMenu("턴·행동/상대 강제 공격", "상대 전원이 시전자를 1스로 1회씩 추가 공격하게 한다 (반격 태세). 뒤에 추가 공격 예약을 두면 그다음에 반격", 430)]
     [Serializable]
     public class ForceOpponentsAttackEffect : SkillEffect
     {
