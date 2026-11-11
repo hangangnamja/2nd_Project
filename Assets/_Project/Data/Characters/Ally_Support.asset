@@ -13,8 +13,10 @@ MonoBehaviour:
   m_Name: Ally_Support
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.CharacterData
   id: Ally_Support
-  displayName: Ally_Support
+  displayName: "\uD504\uB9AC\uC2A4\uD2B8"
   role: 0
+  grade: 1
+  illustration: {fileID: 0}
   maxHp: 900
   attack: 80
   defense: 50
@@ -55,6 +57,7 @@ MonoBehaviour:
     maxStacks: 0
     stacksPerOwnAction: 0
     stackCostPerTrigger: 1
+    hpThreshold: 0.5
     auraModifiers: []
     effects:
     - rid: 7605779465967763856
@@ -83,11 +86,13 @@ MonoBehaviour:
       data:
         status: {fileID: 11400000, guid: 178f2cced3933644abc52cf12479f8d7, type: 2}
         count: 1
+        applyToAllAllies: 0
     - rid: 7605779465967763837
       type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         status: {fileID: 11400000, guid: 62dad865be8c8f14594f8af81597f160, type: 2}
         count: 1
+        applyToAllAllies: 0
     - rid: 7605779465967763856
       type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:

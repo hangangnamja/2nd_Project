@@ -8,10 +8,10 @@ using UnityEngine.UI;
 namespace Game.UI
 {
     // 가챠 결과 연출. 결과는 뽑는 순간(GachaService) 이미 정해져 있고, 이 컴포넌트는 그 결과를 순서대로 보여주기만 한다.
-    //  1. 기어: 시계 방향으로 돌리면 색이 파랑 → 보라 → 황금빛으로 변한다. 도달하는 색 = 이번 결과의 최고 등급
+    //  1. 물레: 바퀴를 시계 방향으로 돌리면 실감개로 이어진 줄 가운데 빛이 파랑 → 보라 → 황금빛으로 변한다. 도달하는 색 = 이번 결과의 최고 등급
     //     (3성만 = 파랑, 4성 포함 = 보라, 5성 포함 = 황금빛)
     //  2. 한 장씩 공개 (화면 바닥이 그 카드의 등급 색으로 빛난다): 3성은 바로, 4성은 보라 빛이 차오르다 터지며, 5성은 더 오래 뜸 들이다 더 크게 터지며 공개. 탭하면 다음 장
-    //     반전: 5성이 있어도 일정 확률로 기어를 보라까지만 보여주고, 공개 때 보라 → 황금빛으로 바뀌며 5성이 나온다
+    //     반전: 5성이 있어도 일정 확률로 줄 빛을 보라까지만 보여주고, 공개 때 보라 → 황금빛으로 바뀌며 5성이 나온다
     //  3. 결과 목록: 뽑은 것을 한꺼번에 보여주고 확인으로 닫는다. SKIP은 언제든 바로 결과 목록으로 넘어간다
     // 빛·불꽃은 파티클(Additive 머티리얼 + Bloom 글로우)이 맡고, 이 코드는 "언제 어떤 색으로 재생할지"만 정한다.
     // 글로우(후처리)를 받으려고 Screen Space - Camera 캔버스에서 재생하며, 그동안 로비의 Overlay 캔버스는 끈다
@@ -37,20 +37,39 @@ namespace Game.UI
         [SerializeField, Range(0f, 1f)] private float floorAlpha = 0.85f;
         [SerializeField, Min(0.01f)] private float floorFadeTime = 0.4f;
 
-        [Header("1. 기어")]
+        // 1단계는 물레(3D 모델): 바퀴를 돌리면 물레와 실감개를 잇는 줄 가운데가 등급 색으로 점점 밝아진다.
+        // 필드 이름은 씬 연결을 유지하려고 처음의 "기어" 이름을 그대로 쓴다.
+        [Header("1. 물레")]
         [SerializeField] private GameObject gearPhase;
         [SerializeField] private GachaGearDial gearDial;
-        [SerializeField] private Image gearImage;
+
+        [Tooltip("물레 3D 모델 (월드 공간, 물레 단계 동안만 켠다)")]
+        [SerializeField] private GameObject wheelModel;
+
+        [Tooltip("물레를 비추는 빛. 돌릴수록 밝아져 물레가 은은하게 빛나 보인다")]
+        [SerializeField] private Light wheelLight;
+        [SerializeField] private Vector2 wheelLightIntensity = new Vector2(0.4f, 3f);
         [SerializeField] private Text gearHint;
 
-        [Tooltip("기어 뒤에서 계속 피어오르는 빛 (돌릴수록 색이 바뀐다)")]
+        [Tooltip("물레 바퀴 뒤에서 은은하게 피어오르는 빛 (돌릴수록 밝아진다, 등급과 무관한 따뜻한 색)")]
         [SerializeField] private ParticleSystem gearGlow;
 
-        [Tooltip("기어를 돌릴 때 튀는 불꽃 (돌린 각도만큼 뿜는다)")]
+        [Tooltip("줄 가운데의 빛 (돌릴수록 커지고 밝아지며, 등급 색으로 바뀐다)")]
+        [SerializeField] private ParticleSystem threadGlow;
+
+        [Tooltip("돌릴 때 줄 가운데에서 튀는 불꽃 (돌린 각도만큼 뿜는다)")]
         [SerializeField] private ParticleSystem gearSparks;
 
-        [Tooltip("다 돌렸을 때 기어에서 터지는 빛")]
+        [Tooltip("다 돌렸을 때 줄 가운데에서 터지는 빛")]
         [SerializeField] private ParticleSystem gearBurst;
+
+        [Tooltip("물레 바퀴 빛의 색. 알파 = 밝기 (처음 → 다 돌렸을 때)")]
+        [SerializeField] private Color wheelGlowColor = new Color(1f, 0.86f, 0.62f, 1f);
+        [SerializeField, Range(0f, 1f)] private float wheelGlowMinAlpha = 0.06f;
+        [SerializeField, Range(0f, 1f)] private float wheelGlowMaxAlpha = 0.4f;
+
+        [Tooltip("줄 가운데 빛의 크기 배율 (처음 → 다 돌렸을 때)")]
+        [SerializeField] private Vector2 threadGlowScale = new Vector2(0.3f, 1.4f);
 
         [Tooltip("1도 돌릴 때마다 뿜는 불꽃 수")]
         [SerializeField, Min(0f)] private float sparksPerDegree = 0.15f;
@@ -88,7 +107,7 @@ namespace Game.UI
         [SerializeField] private Color fiveStarColor = new Color(1f, 0.78f, 0.3f);
 
         [Header("연출 시간·확률 (임시)")]
-        [Tooltip("5성이 있을 때 기어를 보라까지만 보여주고 공개 때 황금빛으로 바꿀 확률")]
+        [Tooltip("5성이 있을 때 물레 줄 빛을 보라까지만 보여주고 공개 때 황금빛으로 바꿀 확률")]
         [SerializeField, Range(0f, 1f)] private float fakeOutChance = 0.3f;
 
         [SerializeField, Min(0f)] private float fourStarBuildUp = 0.9f;
@@ -137,6 +156,7 @@ namespace Game.UI
             root.SetActive(true);
             DimFloor();
             gearPhase.SetActive(false);
+            wheelModel.SetActive(false);
             revealPhase.SetActive(false);
             summaryPhase.SetActive(false);
             StartCoroutine(PlaySequence());
@@ -172,15 +192,17 @@ namespace Game.UI
             ShowSummary();
         }
 
-        // ---------- 1. 기어 ----------
+        // ---------- 1. 물레 ----------
 
         private IEnumerator RunGearPhase()
         {
             gearPhase.SetActive(true);
+            wheelModel.SetActive(true);
             gearHint.gameObject.SetActive(true);
             gearDial.ResetDial();
             ApplyGearColor(0f);
             gearGlow.Play();
+            threadGlow.Play();
 
             // 플레이어가 다 돌릴 때까지 매 프레임 확인한다 (yield return null = 다음 프레임까지 대기).
             while (!gearDial.IsComplete)
@@ -193,10 +215,12 @@ namespace Game.UI
             yield return new WaitForSeconds(0.9f);
 
             gearGlow.Stop();
+            threadGlow.Stop();
             gearPhase.SetActive(false);
+            wheelModel.SetActive(false);
         }
 
-        // 기어를 돌릴 때마다: 색을 진행도에 맞추고, 돌린 각도만큼 불꽃을 뿜는다.
+        // 물레를 돌릴 때마다: 색을 진행도에 맞추고, 돌린 각도만큼 불꽃을 뿜는다.
         private void HandleGearRotated(float turnedDegrees, float progress)
         {
             ApplyGearColor(progress);
@@ -205,10 +229,31 @@ namespace Game.UI
             gearSparks.Emit(Mathf.CeilToInt(turnedDegrees * sparksPerDegree));
         }
 
-        // 진행도(0~1)에 따른 기어 색. 최고 등급까지만 변한다:
+        // 진행도(0~1)에 맞춰 물레 연출을 바꾼다.
+        //  - 줄 가운데 빛: 등급 색 + 점점 커짐 (최고 등급까지만 색이 바뀜)
+        //  - 바퀴: 따뜻한 빛이 점점 밝아지고, 바퀴 그림도 살짝 밝아짐
+        private void ApplyGearColor(float progress)
+        {
+            Color color = GetThreadColor(progress);
+            SetParticleColor(threadGlow, color);
+            SetParticleColor(gearSparks, color);
+
+            // Mathf.Lerp(a, b, t): t(0~1)만큼 a에서 b로 섞은 값 → 진행도에 따라 줄 빛이 작게 시작해 크게 커진다.
+            // localScale로 키우는 이유: 파티클이 Hierarchy 크기 기준이라 이미 떠 있는 빛도 바로 커진다.
+            threadGlow.transform.localScale = Vector3.one * Mathf.Lerp(threadGlowScale.x, threadGlowScale.y, progress);
+
+            Color wheelGlow = wheelGlowColor;
+            wheelGlow.a = Mathf.Lerp(wheelGlowMinAlpha, wheelGlowMaxAlpha, progress);
+            SetParticleColor(gearGlow, wheelGlow);
+
+            // 물레를 비추는 빛이 점점 세진다 → 처음엔 어둑하다가 다 돌리면 환하게 보인다.
+            wheelLight.intensity = Mathf.Lerp(wheelLightIntensity.x, wheelLightIntensity.y, progress);
+        }
+
+        // 진행도(0~1)에 따른 줄 가운데 빛의 색. 최고 등급까지만 변한다:
         //   3성: 계속 파랑 / 4성: 파랑 → 보라 / 5성: 파랑 → 보라 → 황금빛
         // Mathf.InverseLerp(a, b, p): p가 a~b 구간의 몇 %인지(0~1, 구간 밖이면 0 또는 1). 그 비율로 두 색을 섞는다(Color.Lerp).
-        private void ApplyGearColor(float progress)
+        private Color GetThreadColor(float progress)
         {
             Color color = threeStarColor;
             if (gearRarity == GachaRarity.FourStar)
@@ -222,9 +267,7 @@ namespace Game.UI
                     : Color.Lerp(fourStarColor, fiveStarColor, Mathf.InverseLerp(0.55f, 0.9f, progress));
             }
 
-            gearImage.color = color;
-            SetParticleColor(gearGlow, color);
-            SetParticleColor(gearSparks, color);
+            return color;
         }
 
         // ---------- 2. 한 장씩 공개 ----------
@@ -405,6 +448,7 @@ namespace Game.UI
             StopAllEffects();
             DimFloor();
             gearPhase.SetActive(false);
+            wheelModel.SetActive(false);
             revealPhase.SetActive(false);
             summaryPhase.SetActive(true);
             skipButton.gameObject.SetActive(false);
@@ -465,7 +509,7 @@ namespace Game.UI
 
         private void StopAllEffects()
         {
-            foreach (ParticleSystem system in new[] { gearGlow, gearSparks, gearBurst, cardAura, burstFourStar, burstFiveStar })
+            foreach (ParticleSystem system in new[] { gearGlow, threadGlow, gearSparks, gearBurst, cardAura, burstFourStar, burstFiveStar })
             {
                 system.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             }
