@@ -131,16 +131,36 @@ namespace Game.UI
             group.alpha = !isFaded ? 1f : isTargetable ? 0.75f : 0.35f;
         }
 
-        // HP바와 보호막을 그린다.
+        // 연출에 맞춘 화면 HP(ShownHp)가 바뀔 때마다 HP바만 다시 그린다 (타격 박자에 맞춰 줄어듦).
+        private void OnEnable()
+        {
+            ShownHp.Changed += HandleShownHpChanged;
+        }
+
+        private void OnDisable()
+        {
+            ShownHp.Changed -= HandleShownHpChanged;
+        }
+
+        private void HandleShownHpChanged()
+        {
+            if (Unit != null)
+            {
+                ShowHp();
+            }
+        }
+
+        // HP바와 보호막을 그린다. 값은 실제 HP가 아니라 연출에 맞춘 화면 HP(ShownHp)를 쓴다.
         //  - HP 막대: 현재 HP / 최대 HP. fillAmount는 0~1 사이 값만큼 막대를 채운다
         //  - 보호막이 있으면: HP바를 감싸는 보호막 막대를 보호막 양 / 최대 HP만큼 채우고(넘치면 꽉 참), 숫자는 HP 대신 보호막 양
         //    보호막이 먼저 깎이므로, 지금 맞으면 줄어들 숫자를 보여주는 것이다
         private void ShowHp()
         {
-            float hpRatio = Unit.MaxHp > 0 ? (float)Unit.CurrentHp / Unit.MaxHp : 0f;
+            int hp = ShownHp.Hp(Unit);
+            float hpRatio = Unit.MaxHp > 0 ? (float)hp / Unit.MaxHp : 0f;
             hpFill.fillAmount = hpRatio;
 
-            int shield = Unit.ShieldAmount;
+            int shield = ShownHp.Shield(Unit);
             bool hasShield = shield > 0 && !Unit.IsDead;
 
             if (shieldFill != null)
@@ -151,7 +171,7 @@ namespace Game.UI
                 shieldFill.fillAmount = Unit.MaxHp > 0 ? Mathf.Clamp01((float)shield / Unit.MaxHp) : 0f;
             }
 
-            hpText.text = hasShield ? $"{shield}" : $"{Unit.CurrentHp}";
+            hpText.text = hasShield ? $"{shield}" : $"{hp}";
             hpText.color = hasShield ? shieldTextColor : hpTextColor;
         }
 

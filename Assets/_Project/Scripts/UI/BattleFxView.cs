@@ -49,8 +49,49 @@ namespace Game.UI
         [Tooltip("마지막 박자 뒤에 숫자를 읽을 시간(초)")]
         [SerializeField, Min(0f)] private float endHold = 0.3f;
 
+        [Header("타격감")]
+        [Tooltip("화면 흔들림을 주는 카메라 연출")]
+        [SerializeField] private BattleCameraDirector cameraDirector;
+
+        [Tooltip("히트스톱·슬로모션")]
+        [SerializeField] private BattleTimeFx timeFx;
+
+        [Tooltip("오른쪽 위 이번 턴 피해 합계")]
+        [SerializeField] private DamageTotalView damageTotal;
+
+        [Tooltip("3스 컷인")]
+        [SerializeField] private SkillCutInView cutIn;
+
+        [Tooltip("맞는 순간 멈추는 시간(초): 일반 / 치명")]
+        [SerializeField, Min(0f)] private float hitStopSeconds = 0.04f;
+        [SerializeField, Min(0f)] private float criticalHitStopSeconds = 0.08f;
+
+        [Tooltip("처치 순간: 멈춤 뒤 슬로모션 시간(실제 초)")]
+        [SerializeField, Min(0f)] private float killHitStopSeconds = 0.1f;
+        [SerializeField, Min(0f)] private float killSlowMotionSeconds = 0.35f;
+
+        [Tooltip("화면 흔들림 세기: 일반 / 치명 / 처치. 3스는 여기에 배율을 곱한다")]
+        [SerializeField, Min(0f)] private float hitShake = 0.04f;
+        [SerializeField, Min(0f)] private float criticalShake = 0.14f;
+        [SerializeField, Min(0f)] private float killShake = 0.2f;
+        [SerializeField, Min(1f)] private float ultimateShakeMultiplier = 1.6f;
+        [SerializeField, Min(0.01f)] private float shakeSeconds = 0.18f;
+
+        [Header("지속피해 숫자 (한 번에 파파팍)")]
+        [Tooltip("이어서 발동한 지속피해 숫자 사이의 간격(초). 작을수록 한꺼번에 터지는 느낌")]
+        [SerializeField, Min(0f)] private float dotPopupStagger = 0.05f;
+
+        [Tooltip("지속피해 숫자를 흩뿌리는 범위 (가로, 세로)")]
+        [SerializeField] private Vector2 dotPopupScatter = new Vector2(0.9f, 0.7f);
+
+        [Tooltip("맞은 유닛이 밀리는 거리: 일반 / 치명")]
+        [SerializeField, Min(0f)] private float hitPush = 0.25f;
+        [SerializeField, Min(0f)] private float criticalPush = 0.45f;
+
         private enum FxKind
         {
+            // 행동 시작: 3스 컷인 → 돌진 (항상 박자 하나를 따로 쓴다)
+            Action,
             Hit,
             Heal,
             Buff,
@@ -64,15 +105,24 @@ namespace Game.UI
             public readonly DamageTakenInfo Damage;
             public readonly int HealAmount;
             public readonly string BuffName;
+            public readonly ActionStartInfo Action;
+
+            // 이 사건 직후의 HP·보호막. 박자를 재생할 때 화면 HP를 이 값으로 바꾼다 (ShownHp).
+            // 사건이 일어난 그 순간(로직 계산 중)에 만들어지므로, 그때의 실제 값 = 이 사건 후 값이다.
+            public readonly int HpAfter;
+            public readonly int ShieldAfter;
 
             // 기본값이 있는 매개변수: 종류마다 필요한 값만 넘기고 나머지는 비워 둔다 (예: 회복이면 healAmount만).
-            public FxEntry(FxKind kind, BattleUnit unit, DamageTakenInfo damage = default, int healAmount = 0, string buffName = null)
+            public FxEntry(FxKind kind, BattleUnit unit, DamageTakenInfo damage = default, int healAmount = 0, string buffName = null, ActionStartInfo action = default)
             {
                 Kind = kind;
                 Unit = unit;
                 Damage = damage;
                 HealAmount = healAmount;
                 BuffName = buffName;
+                Action = action;
+                HpAfter = unit.CurrentHp;
+                ShieldAfter = unit.ShieldAmount;
             }
         }
 
@@ -80,6 +130,10 @@ namespace Game.UI
         private readonly List<List<FxEntry>> beats = new List<List<FxEntry>>();
         private BattleEvents events;
         private bool isRunning;
+
+        // 지금 재생 중인 행동의 공격자 자리와 3스 여부. 맞은 유닛이 공격 반대쪽으로 밀리고, 3스면 더 세게 흔들린다.
+        private Vector3? attackerPosition;
+        private bool isUltimateAction;
 
         // 재생 중이거나 재생할 박자가 남아 있으면 true → BattleManager가 다음 턴을 미룬다.
         public bool IsPlaying => isRunning || beats.Count > 0;
@@ -94,12 +148,16 @@ namespace Game.UI
         {
             battleManager.BattleStarted -= HandleBattleStarted;
             Unsubscribe();
+
+            // 연출 도중 꺼져도 화면 HP가 이전 값에 묶여 남지 않게 놓는다.
+            ShownHp.ReleaseAll();
         }
 
         // 전투가 시작되면 사건 통로가 생기므로, 그때 연출 사건을 구독하고 자신을 연출 재생기로 등록한다.
         private void HandleBattleStarted()
         {
             events = battleManager.Events;
+            events.ActionStarted += HandleActionStarted;
             events.DamageTaken += HandleDamageTaken;
             events.Healed += HandleHealed;
             events.BuffApplied += HandleBuffApplied;
@@ -113,19 +171,29 @@ namespace Game.UI
                 return;
             }
 
+            events.ActionStarted -= HandleActionStarted;
             events.DamageTaken -= HandleDamageTaken;
             events.Healed -= HandleHealed;
             events.BuffApplied -= HandleBuffApplied;
             events = null;
         }
 
+        private void HandleActionStarted(ActionStartInfo info)
+        {
+            Enqueue(new FxEntry(FxKind.Action, info.Caster, action: info));
+        }
+
+        // 피해·회복 사건이 오면 그 유닛의 화면 HP를 "사건 전" 값으로 붙잡는다 → 타격 박자가 재생될 때까지 HP바가 줄지 않는다.
         private void HandleDamageTaken(DamageTakenInfo info)
         {
+            ShownHp.Hold(info.Target, info.HpBefore, info.ShieldBefore);
             Enqueue(new FxEntry(FxKind.Hit, info.Target, damage: info));
         }
 
+        // 회복 사건은 회복한 직후에 오므로 회복 전 HP = 지금 HP - 회복량.
         private void HandleHealed(BattleUnit target, int amount)
         {
+            ShownHp.Hold(target, target.CurrentHp - amount, target.ShieldAmount);
             Enqueue(new FxEntry(FxKind.Heal, target, healAmount: amount));
         }
 
@@ -157,9 +225,16 @@ namespace Game.UI
             }
 
             // Exists(조건): 조건(람다식)이 true인 원소가 하나라도 있으면 true → 이미 그 유닛의 연출이 있는 박자인지 확인
+            // 행동 시작은 언제나 박자 하나를 따로 쓴다 (컷인·돌진이 끝난 뒤 타격이 나오도록).
+            // 일반 타격과 지속피해는 같은 박자에 섞지 않는다 (스킬 타격 → 지속피해 묶음 순서가 보이도록).
+            // 지속피해끼리는 같은 유닛이어도 한 박자에 모은다 → 턴 종료·격발로 터진 지속피해 숫자가 한꺼번에 파파팍 뜬다.
+            bool isDotBurst = last != null && IsDamageOverTime(entry) && last.TrueForAll(IsDamageOverTime);
+
             bool canJoin = last != null
+                && entry.Kind != FxKind.Action
                 && last[0].Kind == entry.Kind
-                && !last.Exists(other => other.Unit == entry.Unit);
+                && IsDamageOverTime(last[0]) == IsDamageOverTime(entry)
+                && (isDotBurst || !last.Exists(other => other.Unit == entry.Unit));
 
             if (canJoin)
             {
@@ -180,6 +255,15 @@ namespace Game.UI
         private IEnumerator PlayBeats()
         {
             isRunning = true;
+            attackerPosition = null;
+            isUltimateAction = false;
+
+            // 한 번의 재생 = 한 턴(행동 + 턴 종료 지속피해 + 추가 공격)이므로, 시작할 때 피해 합계를 새로 센다.
+            // Unity 오브젝트는 ?. 대신 != null로 확인한다 (비어 있는 칸도 Unity식 null로 정확히 판단).
+            if (damageTotal != null)
+            {
+                damageTotal.ResetTotal();
+            }
 
             // 사건은 로직 계산 도중에 들어오므로, 한 프레임 기다려 이번 행동의 사건이 모두 모인 뒤 시작한다.
             // yield return null: 다음 프레임까지 멈춘다.
@@ -190,16 +274,199 @@ namespace Game.UI
                 List<FxEntry> beat = beats[0];
                 beats.RemoveAt(0);
 
-                foreach (FxEntry entry in beat)
+                // 행동 시작 박자: 컷인과 돌진을 끝까지 기다린 뒤 다음 박자(타격)로 넘어간다.
+                // yield return 코루틴: 그 코루틴이 끝날 때까지 이어서 기다린다.
+                if (beat[0].Kind == FxKind.Action)
                 {
-                    Play(entry);
+                    yield return PlayAction(beat[0].Action);
+                    continue;
                 }
 
-                yield return new WaitForSeconds(beatInterval);
+                // 박자 재생에 걸리는 시간(지속피해를 차례로 터뜨리는 시간)과 기본 간격 중 긴 쪽만큼 기다린다.
+                float duration = PlayBeat(beat);
+                yield return new WaitForSeconds(Mathf.Max(beatInterval, duration));
             }
 
             yield return new WaitForSeconds(endHold);
             isRunning = false;
+
+            // 연출이 끝났으므로 붙잡아 둔 화면 HP를 놓아 실제 값을 보여준다.
+            ShownHp.ReleaseAll();
+        }
+
+        // 행동 시작 연출: 아군 3스면 컷인 → 상대를 노리는 행동이면 공격자가 대상 쪽으로 돌진.
+        // 다음 박자(타격)는 돌진이 대상에 닿는 순간(나가는 시간) 뒤에 나온다.
+        private IEnumerator PlayAction(ActionStartInfo action)
+        {
+            BattleUnit caster = action.Caster;
+            UnitView casterView = stageView.FindView(caster);
+            bool isCasterVisible = casterView != null && casterView.gameObject.activeInHierarchy;
+
+            // 3스(칸 번호 2)를 스킬로 직접 쓴 아군만 컷인 (추가 공격·연동 스킬·적은 제외).
+            isUltimateAction = action.SkillSlot == 2 && action.Source == ActionSource.Skill;
+            if (isUltimateAction && caster.IsAlly && cutIn != null)
+            {
+                cutIn.Play(caster.Data.Illustration, caster.Name, action.SkillName);
+                yield return new WaitForSecondsRealtime(cutIn.Duration);
+            }
+
+            attackerPosition = isCasterVisible ? casterView.transform.position : (Vector3?)null;
+
+            // 노리는 상대의 화면 위치 (보이는 상대만). 없으면 돌진하지 않는다 (버프·회복 스킬 등).
+            Vector3? targetPosition = FindOpponentTargetPosition(action);
+            if (!isCasterVisible || !targetPosition.HasValue)
+            {
+                yield break;
+            }
+
+            casterView.PlayLunge(targetPosition.Value);
+            yield return new WaitForSeconds(casterView.LungeOutSeconds);
+        }
+
+        // 행동이 노리는 상대 쪽 위치: 확산의 메인 대상이 보이면 그 자리, 아니면 보이는 상대 대상들의 가운데.
+        // 같은 편 대상(버프·회복)만 있으면 null.
+        private Vector3? FindOpponentTargetPosition(ActionStartInfo action)
+        {
+            UnitView primary = action.PrimaryTarget != null ? stageView.FindView(action.PrimaryTarget) : null;
+            if (primary != null && primary.gameObject.activeInHierarchy && action.PrimaryTarget.IsAlly != action.Caster.IsAlly)
+            {
+                return primary.transform.position;
+            }
+
+            Vector3 sum = Vector3.zero;
+            int count = 0;
+            foreach (BattleUnit target in action.Targets)
+            {
+                if (target.IsAlly == action.Caster.IsAlly)
+                {
+                    continue;
+                }
+
+                UnitView view = stageView.FindView(target);
+                if (view != null && view.gameObject.activeInHierarchy)
+                {
+                    sum += view.transform.position;
+                    count++;
+                }
+            }
+
+            return count > 0 ? sum / count : (Vector3?)null;
+        }
+
+        // 박자 하나를 재생한다. 타격 박자면 박자 전체에서 가장 강한 타격 하나만큼 화면을 흔들고 멈춘다
+        // (광역기로 여럿이 맞아도 흔들림·멈춤은 한 번).
+        // 돌려주는 값 = 이 박자를 다 보여주는 데 걸리는 시간 (지속피해 묶음이면 마지막 숫자가 뜰 때까지).
+        private float PlayBeat(List<FxEntry> beat)
+        {
+            // 지속피해 묶음: 숫자를 아주 짧은 간격으로 차례로 흩뿌린다 (손맛 연출 없음, 합계·HP만 반영).
+            // TrueForAll(조건): 모든 원소가 조건을 만족하면 true.
+            if (beat.TrueForAll(IsDamageOverTime))
+            {
+                StartCoroutine(PlayDotBurst(beat));
+                return dotPopupStagger * beat.Count;
+            }
+
+            float stop = 0f;
+            float shake = 0f;
+            bool hasKill = false;
+
+            foreach (FxEntry entry in beat)
+            {
+                // 화면 HP를 이 박자 순간의 값으로 맞춘다 (숨겨진 유닛도 카드 HP는 보이므로 연출 재생과 상관없이).
+                if (entry.Kind != FxKind.Action)
+                {
+                    ShownHp.Set(entry.Unit, entry.HpAfter, entry.ShieldAfter);
+                }
+
+                Play(entry);
+
+                if (entry.Kind != FxKind.Hit || !IsVisible(entry.Unit))
+                {
+                    continue;
+                }
+
+                DamageTakenInfo damage = entry.Damage;
+                AddToTotal(damage);
+
+                // 지속피해·막힌 피해는 손맛 연출(멈춤·흔들림) 없이 숫자만.
+                if (damage.IsBlocked || damage.IsDamageOverTime)
+                {
+                    continue;
+                }
+
+                // Mathf.Max: 박자 안에서 가장 센 값만 남긴다.
+                stop = Mathf.Max(stop, damage.IsCritical ? criticalHitStopSeconds : hitStopSeconds);
+                shake = Mathf.Max(shake, damage.IsCritical ? criticalShake : hitShake);
+
+                if (damage.IsLethal)
+                {
+                    hasKill = true;
+                    stop = Mathf.Max(stop, killHitStopSeconds);
+                    shake = Mathf.Max(shake, killShake);
+                }
+            }
+
+            // 카메라 연출·시간 조절이 연결되지 않은 씬에서도 오류 없이 건너뛴다.
+            if (shake > 0f && cameraDirector != null)
+            {
+                cameraDirector.Shake(isUltimateAction ? shake * ultimateShakeMultiplier : shake, shakeSeconds);
+            }
+
+            if (timeFx != null)
+            {
+                if (stop > 0f)
+                {
+                    timeFx.HitStop(stop);
+                }
+
+                // 처치: 멈춤이 풀린 뒤 이어서 느리게 흐른다 (멈춤이 슬로모션보다 우선).
+                if (hasKill)
+                {
+                    timeFx.SlowMotion(killHitStopSeconds + killSlowMotionSeconds);
+                }
+            }
+
+            return 0f;
+        }
+
+        // 지속피해 피해 연출인지 (화상·독 발동, 격발로 터진 지속피해).
+        private static bool IsDamageOverTime(FxEntry entry)
+        {
+            return entry.Kind == FxKind.Hit && entry.Damage.IsDamageOverTime;
+        }
+
+        // 지속피해 숫자를 dotPopupStagger 간격으로 하나씩 띄운다. 화면 HP·피해 합계도 숫자가 뜰 때 함께 반영된다.
+        private IEnumerator PlayDotBurst(List<FxEntry> beat)
+        {
+            foreach (FxEntry entry in beat)
+            {
+                ShownHp.Set(entry.Unit, entry.HpAfter, entry.ShieldAfter);
+                Play(entry);
+
+                if (IsVisible(entry.Unit))
+                {
+                    AddToTotal(entry.Damage);
+                }
+
+                yield return new WaitForSeconds(dotPopupStagger);
+            }
+        }
+
+        // 피해 합계에 더한다. 막힌 피해(무적·무효)는 0이라 빠진다. 적이 맞았으면 아군이 준 피해.
+        private void AddToTotal(DamageTakenInfo damage)
+        {
+            if (damageTotal == null || damage.IsBlocked)
+            {
+                return;
+            }
+
+            damageTotal.Add(damage.Amount, alliesDealt: !damage.Target.IsAlly, isBig: damage.IsCritical || damage.IsLethal);
+        }
+
+        private bool IsVisible(BattleUnit unit)
+        {
+            UnitView view = stageView.FindView(unit);
+            return view != null && view.gameObject.activeInHierarchy;
         }
 
         // 연출 하나를 재생한다: 유닛 위치에 파티클 + 머리 위에 숫자·글자.
@@ -217,6 +484,7 @@ namespace Game.UI
             {
                 case FxKind.Hit:
                     PlayHit(entry.Damage, basePosition);
+                    PlayHitMotion(view, entry.Damage);
                     break;
                 case FxKind.Heal:
                     SpawnEffect(healFx, basePosition);
@@ -227,6 +495,25 @@ namespace Game.UI
                     SpawnPopup(basePosition, entry.BuffName, buffColor, 0.7f);
                     break;
             }
+        }
+
+        // 맞은 캡슐의 반응: 처치면 날아가며 넘어지고, 아니면 번쩍 + 밀림. 지속피해는 작게 번쩍·흔들림만.
+        private void PlayHitMotion(UnitView view, DamageTakenInfo damage)
+        {
+            if (damage.IsBlocked)
+            {
+                view.PlayHitReaction(attackerPosition, 0.05f);
+                return;
+            }
+
+            if (damage.IsLethal)
+            {
+                view.PlayKnockdown(damage.IsDamageOverTime ? null : attackerPosition);
+                return;
+            }
+
+            float push = damage.IsDamageOverTime ? 0.08f : damage.IsCritical ? criticalPush : hitPush;
+            view.PlayHitReaction(damage.IsDamageOverTime ? null : attackerPosition, push);
         }
 
         // 피해 종류에 맞는 이펙트와 숫자를 고른다.
@@ -245,8 +532,11 @@ namespace Game.UI
 
             if (damage.IsDamageOverTime)
             {
+                // 화상 빨강·독 초록처럼 지속피해 종류마다 상태효과 데이터에 정한 색. 모르면 기본 지속피해 색.
+                // 넓게 흩뿌려 여러 개가 한꺼번에 떠도 겹치지 않고 "파파팍" 터지는 느낌을 준다.
+                Color color = damage.DamageOverTimeSource != null ? damage.DamageOverTimeSource.DamagePopupColor : damageOverTimeColor;
                 SpawnEffect(damageOverTimeFx, basePosition);
-                SpawnPopup(basePosition, $"{damage.Amount}{shieldText}", damageOverTimeColor, 0.8f);
+                SpawnPopup(basePosition, $"{damage.Amount}{shieldText}", color, 0.9f, dotPopupScatter);
             }
             else if (damage.IsCritical)
             {
@@ -272,15 +562,20 @@ namespace Game.UI
         }
 
         // 머리 위에 숫자·글자를 띄운다.
-        private void SpawnPopup(Vector3 basePosition, string message, Color color, float scale)
+        // scatter: 흩뿌릴 범위 (가로, 세로). 넘기지 않으면(null) 좌우로만 조금.
+        // Vector2?: 값이 없을 수도 있는 2D 값. ?? : 왼쪽이 null이면 오른쪽 기본값을 쓴다.
+        private void SpawnPopup(Vector3 basePosition, string message, Color color, float scale, Vector2? scatter = null)
         {
             if (popupPrefab == null)
             {
                 return;
             }
 
-            // 연달아 뜨는 숫자가 정확히 겹치지 않도록 좌우로 조금 흩뜨린다. Random.Range(a, b): a~b 사이 무작위 실수.
-            Vector3 jitter = new Vector3(Random.Range(-0.3f, 0.3f), 0f, 0f);
+            // 연달아 뜨는 숫자가 정확히 겹치지 않도록 흩뜨린다. Random.Range(a, b): a~b 사이 무작위 실수.
+            // 가로는 카메라 오른쪽 방향, 세로는 위 방향으로 흩뿌려 화면에서 고르게 퍼져 보인다.
+            Vector2 range = scatter ?? new Vector2(0.3f, 0f);
+            Vector3 right = Camera.main != null ? Camera.main.transform.right : Vector3.right;
+            Vector3 jitter = right * Random.Range(-range.x, range.x) + Vector3.up * Random.Range(-range.y * 0.3f, range.y);
             Vector3 position = basePosition + Vector3.up * popupHeight + jitter + GetTowardCamera();
             DamagePopup popup = Instantiate(popupPrefab, position, Quaternion.identity, transform);
             popup.Show(message, color, scale);

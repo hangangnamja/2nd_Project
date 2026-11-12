@@ -198,7 +198,8 @@ namespace Game.UI
 
         private void Place(UnitView view, Vector3 localPosition, Quaternion rotation)
         {
-            view.transform.SetPositionAndRotation(transform.position + localPosition, rotation);
+            // 캡슐을 바로 옮기지 않고 기준 자리로 넘긴다 → 돌진·피격 모션은 이 자리를 기준으로 어긋남만 더한다.
+            view.SetAnchor(transform.position + localPosition, rotation);
             staged.Add(view);
         }
 
