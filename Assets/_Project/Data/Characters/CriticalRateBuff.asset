@@ -61,6 +61,7 @@ MonoBehaviour:
     stacksGainedPerTrigger: 1
     hpThreshold: 0.01
     requiredStatus: {fileID: 11400000, guid: f5fddc48f89189940b600fd9f467f0b1, type: 2}
+    tauntDisplay: {fileID: 0}
     auraModifiers: []
     effects: []
   references:
@@ -86,7 +87,7 @@ MonoBehaviour:
     - rid: 7605779575302521069
       type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
-        status: {fileID: 11400000, guid: e9fcbcb6ffe2eff48bc4db751a40b56a, type: 2}
+        status: {fileID: 11400000, guid: 0752527e817703b4e8789c5262b662fb, type: 2}
         count: 3
         applyToAllAllies: 0
     - rid: 7605779575302521098

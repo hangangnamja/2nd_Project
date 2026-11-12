@@ -40,7 +40,7 @@ MonoBehaviour:
   skill3:
     skillName: "\uACF0\uB3CC\uC774 \uC751\uC6D0\uB2E8"
     targetType: 4
-    cooldown: 5
+    cooldown: 3
     startCooldown: 0
     effects:
     - rid: 7605779530016096392
@@ -58,6 +58,10 @@ MonoBehaviour:
     maxStacks: 0
     stacksPerOwnAction: 0
     stackCostPerTrigger: 0
+    stacksGainedPerTrigger: 0
+    hpThreshold: 0.5
+    requiredStatus: {fileID: 0}
+    tauntDisplay: {fileID: 0}
     auraModifiers: []
     effects:
     - rid: 7605779530016096396
@@ -80,21 +84,25 @@ MonoBehaviour:
       data:
         status: {fileID: 11400000, guid: 178f2cced3933644abc52cf12479f8d7, type: 2}
         count: 1
+        applyToAllAllies: 0
     - rid: 7605779530016096393
       type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         status: {fileID: 11400000, guid: 43abfb427c7086c4ba696acdfc863c45, type: 2}
         count: 1
+        applyToAllAllies: 0
     - rid: 7605779530016096394
       type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         status: {fileID: 11400000, guid: a84fe0d5d140cc1459f781ca36d041d3, type: 2}
         count: 1
+        applyToAllAllies: 0
     - rid: 7605779530016096395
       type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         status: {fileID: 11400000, guid: 60b547e1d8d14ce4084d348b083617a8, type: 2}
         count: 1
+        applyToAllAllies: 0
     - rid: 7605779530016096396
       type: {class: ReduceCooldownEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:

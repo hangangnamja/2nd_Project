@@ -72,6 +72,9 @@ namespace Game.Battle
         // 다음 웨이브의 적이 들어왔을 때 (첫 웨이브는 BattleStarted로 알린다). 화면은 적 캡슐을 새 적으로 교체한다.
         public event Action WaveStarted;
 
+        // 전투 중 유닛이 새로 들어왔을 때 (부하 소환). 화면은 새 유닛의 캡슐을 만들고 지금 장면을 다시 세운다.
+        public event Action UnitsSpawned;
+
         // 웨이브 표시용 (1부터). 전투 시작 전에는 1/1로 보인다.
         // ?. / ??: stageRunner가 아직 없으면(null) 읽지 않고 기본값을 쓴다.
         public int CurrentWaveNumber => (stageRunner?.WaveIndex ?? 0) + 1;
@@ -134,6 +137,10 @@ namespace Game.Battle
             SpawnCurrentWave();
             scheduler = new TurnScheduler(allUnits);
             passiveRunner = new PassiveRunner(services, allUnits);
+
+            // 등장 시 패시브(시작 부하 소환 등)를 화면이 캡슐을 만들기 전에 실행한다 → 소환된 부하도 처음부터 자리에 선다.
+            // new List<>(allUnits): 소환으로 allUnits가 늘어나도 순회가 깨지지 않도록 복사본을 넘긴다.
+            passiveRunner.HandleUnitsEntered(new List<BattleUnit>(allUnits));
 
             // ?.Invoke: 구독자가 하나도 없으면(null) 호출하지 않고 넘어간다. 화면이 없는 씬에서도 안전하게 동작한다.
             BattleStarted?.Invoke();
@@ -493,6 +500,17 @@ namespace Game.Battle
                 }
             }
 
+            // 소환한 유닛이 쓰러졌으면 그 부하들도 함께 퇴장한다 (처치가 아니므로 처치 반응 없음).
+            // 순회가 끝난 뒤에 따로 확인한다 → 같은 공격에서 보스와 부하가 함께 쓰러져도 부하의 처치 사건은 위에서 정상으로 나간다.
+            foreach (BattleUnit unit in allUnits)
+            {
+                if (unit.IsSummon && !unit.IsDead && unit.Summoner.IsDead)
+                {
+                    unit.Vanish();
+                    Log($"  {unit.Name} 퇴장 ({unit.Summoner.Name} 쓰러짐)");
+                }
+            }
+
             // 경계를 펼친 유닛이 쓰러졌으면 경계도 끝난다.
             services.Boundaries.CheckEnd();
         }
@@ -639,6 +657,12 @@ namespace Game.Battle
                 case PatternCondition.SelfBuffCountAtLeast:
                     // Statuses.Buffs.Count: 자신에게 걸린 버프 개수. 같은 버프는 중첩되지 않으므로 곧 "버프 종류 수"다.
                     return enemy.Statuses.Buffs.Count >= pattern.Threshold;
+                case PatternCondition.OwnTurnAtLeast:
+                    // OwnTurnsTaken: 지금 턴까지 시작한 자기 턴 수. 기준 2면 두 번째 자기 턴부터 참 (부하 자폭).
+                    return enemy.OwnTurnsTaken >= pattern.Threshold;
+                case PatternCondition.SummonsBelow:
+                    // 소환한 부하가 기준 수 미만일 때만 소환한다 → 가득 차 있으면 다음 패턴(공격)으로 넘어간다.
+                    return enemy.CountLivingSummons() < pattern.Threshold;
                 default:
                     return true;
             }
@@ -690,7 +714,11 @@ namespace Game.Battle
             // 엑스트라 턴뿐 아니라 변신 3스를 쓴 턴도 포함한다: 변신하는 즉시 엑스트라 턴 상태가 되기 때문이다.
             // (변신 해제는 종결기가 끝난 뒤라, 마지막 엑스트라 턴도 여기서는 아직 변신 상태다.)
             // 쿨타임 감소와 게이지 리셋은 그대로 진행된다 → 변신 스킬 쿨타임이 돌고, 다음 차례는 속도로 다시 얻는다.
-            StatusTurnProcessor.ProcessTurnEnd(actor, services, decreaseDurations: !actor.IsTransformed);
+            // 자기 행동으로 사라진 유닛(부하 자폭)은 지속피해·남은 턴 처리를 건너뛴다 (이미 전장에 없으므로).
+            if (!actor.IsDead)
+            {
+                StatusTurnProcessor.ProcessTurnEnd(actor, services, decreaseDurations: !actor.IsTransformed);
+            }
 
             // 지속피해로 HP가 0이 됐으면 턴 종료 처리가 끝난 뒤 사망을 확정한다.
             ConfirmDeaths();
@@ -918,6 +946,64 @@ namespace Game.Battle
             System.Random random = randomSeed == 0 ? new System.Random() : new System.Random(randomSeed);
             // ResolveTargets: 메서드 이름만 넘기면 델리게이트로 바뀐다 → 효과 블록이 이 대상 결정 규칙을 그대로 빌려 쓴다.
             services = new BattleServices(Log, new BattleEvents(), new ActionQueue(), random, rules, allUnits, ResolveTargets);
+
+            // 소환 블록이 전투 유닛을 새로 만들 수 있도록 이 클래스의 소환 함수를 빌려준다 (대상 결정과 같은 방식).
+            services.Summon = SummonUnit;
+        }
+
+        // ---------- 소환 (보스 3 군단 지휘관) ----------
+
+        // summoner와 같은 편에 data로 부하를 하나 만들어 전투에 넣고, 만든 유닛을 돌려준다.
+        // 처리 순서: 유닛 생성(소환자 레벨) → 부하 표시 → 편 목록에 끼워 넣기 → 전투 유닛 전체 목록에 추가 → 화면에 알림
+        // allUnits는 스케줄러·패시브 처리기·공용 도구가 같은 리스트를 참조하므로, 여기에 넣는 것만으로 행동 순서에 들어간다.
+        // 새 유닛의 남은 거리는 10000(처음부터)이다.
+        private BattleUnit SummonUnit(BattleUnit summoner, CharacterData data)
+        {
+            List<BattleUnit> side = summoner.IsAlly ? allies : enemies;
+            StatScaling scaling = summoner.IsAlly ? rules.GetAllyScaling(summoner.Level) : rules.GetEnemyScaling(summoner.Level);
+
+            var unit = new BattleUnit(data, summoner.IsAlly, formationIndex: side.Count, level: summoner.Level, scaling);
+            unit.MarkAsSummon(summoner);
+            unit.SetTeam(side);
+
+            side.Insert(PickSummonIndex(side, summoner), unit);
+            allUnits.Add(unit);
+
+            Log($"  {summoner.Name}: {unit.Name} 소환");
+
+            // ?.Invoke: 구독자(화면)가 있을 때만 알린다. 화면은 새 유닛의 캡슐을 만들고 지금 장면을 다시 세운다.
+            UnitsSpawned?.Invoke();
+            return unit;
+        }
+
+        // 부하를 끼워 넣을 자리: 소환자의 왼쪽과 오른쪽 중 살아 있는 유닛이 적은 쪽 끝.
+        // 편 목록의 순서가 곧 화면의 줄 순서·확산 공격의 양옆이므로, 번갈아 양쪽에 붙여 소환자가 가운데에 남게 한다.
+        private static int PickSummonIndex(List<BattleUnit> side, BattleUnit summoner)
+        {
+            int summonerIndex = side.IndexOf(summoner);
+            int leftCount = 0;
+            int rightCount = 0;
+
+            for (int i = 0; i < side.Count; i++)
+            {
+                if (side[i].IsDead || i == summonerIndex)
+                {
+                    continue;
+                }
+
+                // 소환자보다 앞이면 왼쪽, 뒤면 오른쪽에 센다.
+                if (i < summonerIndex)
+                {
+                    leftCount++;
+                }
+                else
+                {
+                    rightCount++;
+                }
+            }
+
+            // 왼쪽이 적거나 같으면 맨 앞(0번), 아니면 맨 뒤에 넣는다.
+            return leftCount <= rightCount ? 0 : side.Count;
         }
 
         // 편성 리스트가 비어 있지 않고, 연결이 빠진(null) 슬롯이 없는지 검사한다.
@@ -1037,6 +1123,9 @@ namespace Game.Battle
         {
             stageRunner.MoveToNextWave();
             SpawnCurrentWave();
+
+            // 새 웨이브 적의 등장 시 패시브 (시작 부하 소환). 복사본을 넘겨 소환으로 목록이 늘어나도 안전하게 순회한다.
+            passiveRunner.HandleUnitsEntered(new List<BattleUnit>(enemies));
 
             foreach (BattleUnit ally in allies)
             {

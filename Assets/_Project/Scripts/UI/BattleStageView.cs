@@ -51,6 +51,7 @@ namespace Game.UI
         {
             battleManager.BattleStarted += HandleBattleStarted;
             battleManager.WaveStarted += HandleWaveStarted;
+            battleManager.UnitsSpawned += HandleUnitsSpawned;
             battleManager.StateChanged += RefreshAll;
         }
 
@@ -58,6 +59,7 @@ namespace Game.UI
         {
             battleManager.BattleStarted -= HandleBattleStarted;
             battleManager.WaveStarted -= HandleWaveStarted;
+            battleManager.UnitsSpawned -= HandleUnitsSpawned;
             battleManager.StateChanged -= RefreshAll;
         }
 
@@ -86,6 +88,31 @@ namespace Game.UI
             });
 
             SpawnViews(battleManager.Enemies);
+            Stage(currentLayout, currentActor);
+        }
+
+        // 전투 중 유닛이 들어옴(부하 소환): 아직 캡슐이 없는 유닛만 만들고, 지금 장면을 다시 세워 새 유닛을 자리에 놓는다.
+        // 캡슐 목록 순서는 화면 줄 순서와 무관하다 → 줄 순서는 GetSide가 전투 편 목록 순서대로 다시 정렬해 맞춘다.
+        private void HandleUnitsSpawned()
+        {
+            var newUnits = new List<BattleUnit>();
+            foreach (BattleUnit unit in battleManager.Enemies)
+            {
+                if (FindView(unit) == null)
+                {
+                    newUnits.Add(unit);
+                }
+            }
+
+            foreach (BattleUnit unit in battleManager.Allies)
+            {
+                if (FindView(unit) == null)
+                {
+                    newUnits.Add(unit);
+                }
+            }
+
+            SpawnViews(newUnits);
             Stage(currentLayout, currentActor);
         }
 
@@ -175,16 +202,35 @@ namespace Game.UI
             staged.Add(view);
         }
 
-        // 한쪽 편 캡슐 목록 (편성 순서).
+        // 한쪽 편 캡슐 목록 (전투 편 목록 순서 = 화면 줄 순서).
+        // 소환된 부하는 편 목록의 앞·뒤에 끼워 넣어지므로(보스를 가운데로), 캡슐을 만든 순서가 아니라 편 목록 순서를 따른다.
         private List<UnitView> GetSide(bool isAlly)
         {
-            return views.FindAll(view => view.Unit.IsAlly == isAlly);
+            IReadOnlyList<BattleUnit> units = isAlly ? battleManager.Allies : battleManager.Enemies;
+            var side = new List<UnitView>();
+
+            foreach (BattleUnit unit in units)
+            {
+                UnitView view = FindView(unit);
+                if (view != null)
+                {
+                    side.Add(view);
+                }
+            }
+
+            return side;
         }
 
+        // 이미 캡슐이 있는 유닛은 건너뛴다 (전투 시작 전에 소환 알림으로 먼저 만들어진 부하가 겹치지 않게).
         private void SpawnViews(IReadOnlyList<BattleUnit> units)
         {
             foreach (BattleUnit unit in units)
             {
+                if (FindView(unit) != null)
+                {
+                    continue;
+                }
+
                 UnitView view = Instantiate(unitViewPrefab, transform.position, Quaternion.identity, transform);
                 view.name = $"Unit_{unit.Name}";
                 view.Bind(unit);
