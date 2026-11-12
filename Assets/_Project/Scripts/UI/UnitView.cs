@@ -51,6 +51,9 @@ namespace Game.UI
         // 기간 오라(공연) 표시용 인스턴스. 오라도 버프 칸이 아니라 머리 위 표시에만 쓴다.
         private StatusInstance auraIcon;
 
+        // 시선집중 표시용 인스턴스. 시선집중은 버프 칸이 아니라 "보호막이 있는 동안"의 상태라 표시만 따로 한다.
+        private StatusInstance tauntIcon;
+
         // 이 뷰가 표시할 전투 유닛을 연결한다. 생성 직후 BattleStageView가 한 번 호출한다.
         public void Bind(BattleUnit unit)
         {
@@ -156,6 +159,18 @@ namespace Game.UI
                 }
 
                 statuses.Insert(0, auraIcon);
+            }
+
+            // 시선집중 중(보호막이 있는 동안): 패시브의 표시용 효과를 맨 앞에 보여준다. 보호막이 깨지면 바로 사라진다.
+            StatusEffectData tauntDisplay = Unit.IsTaunting ? Unit.TauntPassive.TauntDisplay : null;
+            if (tauntDisplay != null)
+            {
+                if (tauntIcon == null || tauntIcon.Data != tauntDisplay)
+                {
+                    tauntIcon = new StatusInstance(tauntDisplay, Unit, appliedOrder: 0);
+                }
+
+                statuses.Insert(0, tauntIcon);
             }
 
             return statuses;

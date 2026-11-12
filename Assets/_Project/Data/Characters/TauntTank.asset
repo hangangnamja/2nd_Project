@@ -1,0 +1,97 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0cf10047d4cbc1d4a9d1cde009aa4d18, type: 3}
+  m_Name: TauntTank
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.CharacterData
+  id: TauntTank
+  displayName: "\uCE74\uC774\uC0AC\uB974"
+  role: 2
+  grade: 0
+  illustration: {fileID: 21300000, guid: 94a52bb7c3e06364999681b18649b192, type: 3}
+  maxHp: 1300
+  attack: 80
+  defense: 75
+  baseSpeed: 95
+  critRate: 0.05
+  critDamage: 0.5
+  skill1:
+    skillName: "\uD3C9\uD0C0"
+    targetType: 0
+    cooldown: 0
+    startCooldown: 0
+    effects:
+    - rid: 7605779598317453378
+  skill2:
+    skillName: "\uBC29\uC5B4 \uD0DC\uC138"
+    targetType: 2
+    cooldown: 3
+    startCooldown: 0
+    effects:
+    - rid: 7605779598317453379
+    - rid: 7605779598317453380
+  skill3:
+    skillName: "\uC218\uD638\uC758 \uB9F9\uC138"
+    targetType: 4
+    cooldown: 5
+    startCooldown: 0
+    effects:
+    - rid: 7605779598317453381
+    - rid: 7605779598317453382
+  passives:
+  - passiveName: "\uC2DC\uC120\uC9D1\uC911"
+    trigger: 10
+    execution: 0
+    maxTriggersPerTurn: 0
+    turnLimitScope: 0
+    maxTriggersPerBattle: 0
+    inactiveWhileTransformed: 0
+    maxStacks: 0
+    stacksPerOwnAction: 0
+    stackCostPerTrigger: 0
+    stacksGainedPerTrigger: 0
+    hpThreshold: 0.01
+    requiredStatus: {fileID: 0}
+    tauntDisplay: {fileID: 11400000, guid: 24d613f5b0119ab4485ff48927b26738, type: 2}
+    auraModifiers: []
+    effects: []
+  references:
+    version: 2
+    RefIds:
+    - rid: 7605779598317453378
+      type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        multiplier: 1
+        secondaryMultiplier: 1
+    - rid: 7605779598317453379
+      type: {class: ShieldEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        shieldStatus: {fileID: 11400000, guid: 55d9beca8519a794ea4ca80275f15c29, type: 2}
+        scaleStat: 0
+        maxHpRatio: 0.4
+    - rid: 7605779598317453380
+      type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        status: {fileID: 11400000, guid: 0ff5c2d45f0cad7489bba60946e2602b, type: 2}
+        count: 1
+        applyToAllAllies: 0
+    - rid: 7605779598317453381
+      type: {class: ShieldEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        shieldStatus: {fileID: 11400000, guid: 55d9beca8519a794ea4ca80275f15c29, type: 2}
+        scaleStat: 0
+        maxHpRatio: 0.3
+    - rid: 7605779598317453382
+      type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        status: {fileID: 11400000, guid: 9bbd244bfa249884d901bbeeb2f815d4, type: 2}
+        count: 1
+        applyToAllAllies: 0

@@ -25,14 +25,29 @@ namespace Game.UI
 
             AddEffectLines(status, lines);
 
+            // 보호막은 여러 명이 양을 보탤 수 있으므로 보탠 유닛을 모두 적는다. 그 외에는 부여자 1명.
             // ?.Name: 부여자가 없으면(null) 이름을 읽지 않고 null → 이 줄을 건너뛴다.
-            string sourceName = status.Source?.Name;
+            string sourceName = status.ShieldContributors.Count > 0
+                ? JoinNames(status.ShieldContributors)
+                : status.Source?.Name;
             if (sourceName != null)
             {
                 lines.Add($"부여: {sourceName}");
             }
 
             return string.Join("\n", lines);
+        }
+
+        // 유닛 이름들을 ", "로 잇는다. 예: "도발 탱커, BearBuffer"
+        private static string JoinNames(IReadOnlyList<Game.Battle.BattleUnit> units)
+        {
+            var names = new List<string>();
+            foreach (Game.Battle.BattleUnit unit in units)
+            {
+                names.Add(unit.Name);
+            }
+
+            return string.Join(", ", names);
         }
 
         // 제목 줄: 이름, 분류(버프/개인 버프/디버프), 남은 턴.
@@ -84,6 +99,11 @@ namespace Game.UI
             if (status.HasShield)
             {
                 lines.Add($"보호막 {status.ShieldAmount} 남음");
+            }
+
+            if (data.GrantsDebuffImmunity)
+            {
+                lines.Add("새로 걸리는 디버프 면역");
             }
 
             if (data.RecordsDamageTaken)

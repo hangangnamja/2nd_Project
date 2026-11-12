@@ -63,3 +63,7 @@ Desktop.ini
 
 # 엑셀이 열려 있을 때 생기는 잠금 파일
 ~$*
+
+# Unity가 강제 종료 때 남기는 씬 백업
+/[Aa]ssets/_Recovery/
+/[Aa]ssets/_Recovery.meta

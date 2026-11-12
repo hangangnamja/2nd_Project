@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e7ea1fe386d9a7468a3d5897f0a5561, type: 3}
+  m_Name: Fortify
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StatusEffectData
+  displayName: "\uCCA0\uBCBD"
+  description: "\uB3C4\uBC1C \uD0F1\uCEE4 2\uC2A4 \uC804\uC6A9 \uBC29\uC5B4\uB825
+    \uC99D\uAC00"
+  category: 0
+  stackMode: 1
+  duration: 3
+  features: 1
+  damageAttackRatio: 0
+  damageTargetMaxHpRatio: 0
+  maxHpDamageAttackCap: 0
+  healSourceMaxHpRatio: 0
+  statModifiers:
+  - stat: 1
+    percent: 0.5
+    flat: 0
+  icon: {fileID: 2800000, guid: aa01f22c2946ef94096c79b88fb5643a, type: 3}
+  isPersonal: 0
+  isPermanent: 0
+  convertsTo: {fileID: 0}

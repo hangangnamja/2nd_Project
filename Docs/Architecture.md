@@ -38,7 +38,7 @@
 | 원본 (SO, 에셋) | 런타임 (전투 중 생성) |
 |---|---|
 | `CharacterData`: 등급, 직군, 일러스트(화면 공용, 비면 실루엣), 기본 스탯, 치명, 속도, 1~3스, 패시브, 변신 스킬 세트 | `BattleUnit`: 현재 스탯·HP, 남은 거리, 남은 쿨타임, 상태효과 칸, 패시브 스택·사용 횟수 |
-| `StatusEffectData`: 화상·독·버프의 공통 정의 (지속 턴, 중첩/갱신) + **효과 종류**(스탯 보정·지속피해·지속 회복·행동 불가·지연 버프·피해 기록 중 복수 선택). Inspector는 고른 종류의 칸만 표시 (`StatusEffectDataEditor`) | `StatusInstance`: 실제로 걸린 효과 1개 (정의 참조, 부여자, 남은 턴, 시전 당시 공격력 스냅샷) |
+| `StatusEffectData`: 화상·독·버프의 공통 정의 (지속 턴, 중첩/갱신) + **효과 종류**(스탯 보정·지속피해·지속 회복·행동 불가·지연 버프·피해 기록·디버프 면역 중 복수 선택). Inspector는 고른 종류의 칸만 표시 (`StatusEffectDataEditor`) | `StatusInstance`: 실제로 걸린 효과 1개 (정의 참조, 부여자, 남은 턴, 시전 당시 공격력 스냅샷) |
 | `StageData`: 적 레벨 + 웨이브 목록(웨이브마다 적 편성, 자리별 무적). 보상은 이후 | `StageRunner`: 현재 웨이브, 웨이브 클리어 판정, 다음 웨이브 유무 |
 | `BattleSetup`: 이번 전투의 아군 편성·레벨 + 스테이지 (지금은 테스트 에셋, 이후 로비가 만들어 넘김) | - |
 | `EnemyCharacterData`: `CharacterData` + 행동 패턴 목록 (패턴이 필요한 적만) | `BattleManager.DecideEnemyAction`: 패턴을 순서대로 확인해 스킬·대상 결정 |
@@ -115,7 +115,7 @@ CharacterData (SO 에셋 1개)
 | 공격 | 받은 피해 비례 반격 (`RecordedDamageCounterEffect`) | 피해 기록에 쌓인 받은 피해(최대 HP 대비) × 계수를 공격력 배율로 반격, 기록 삭제 | 하이퍼캐리 반격 태세 |
 | 공격 | 격발 (`DetonateEffect`) | 대상의 지속피해를 즉시 1회씩 발동 (지속피해는 유지) | 격발 딜러 3스·패시브 |
 | 회복·보호 | 회복 (`HealEffect`) | 기준 스탯(공격력·최대 HP·시전자 최대 HP) × 비율 회복. 시전자 자신·아군 전체 옵션 | 아스트라 패시브, 변신 스킬 자가 회복 |
-| 회복·보호 | 보호막 (`ShieldEffect`) | 기준 스탯 × 비율만큼 보호막 버프 | 곰인형 버퍼 2스, 하이퍼캐리 불굴 |
+| 회복·보호 | 보호막 (`ShieldEffect`) | 기준 스탯 × 비율만큼 보호막. 이미 있으면 양을 더함 (`StatusApplier.GrantShield`) | 곰인형 버퍼 2스, 하이퍼캐리 불굴, 도발 탱커 2·3스 |
 | 상태효과 | 상태효과 부여 (`ApplyStatusEffect`) | 상태효과를 개수만큼 부여. 아군 전체 옵션 | 화상·독·버프 부여 전반 |
 | 상태효과 | 버프 강탈 (`StealBuffsEffect`) | 대상 버프 전부 즉시 제거, 턴 종료 단계에 시전자가 획득 | 강탈 딜러 2스 |
 | 상태효과 | 버프 전부 소모 (`ConsumeAllBuffsEffect`) | 시전자 버프 전부 삭제 | 강탈 딜러 3스, 축적 해방 |
@@ -206,6 +206,13 @@ UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
   - 전장 이펙트: 오라 데이터가 프리팹(`FieldEffect`)을 들고, Battle 씬의 `AuraFieldView`가 `StateChanged`마다 켜진 오라의 이펙트를 만들고 꺼진 오라의 이펙트를 지운다. 띠 흐름은 `FieldFxScroller`(텍스처 이동·서서히 나타남), 빛은 가산 HDR 재질 + Bloom
 - "공격하지 않은 턴" 패시브(`OnTurnEndWithoutAttack`, 아스트라): `PassiveRunner`가 자기 스킬 공격 행동을 턴마다 기록하고, `EndTurn`이 지속피해·사망 확정 다음에 `HandleOwnTurnEnd`를 부른다
 - "상태효과 걸린 적 피격" 패시브(`OnAllyHitDebuffedEnemy`, 니콜 이자): `HandleAttackHit`에서 같은 편 전장 유닛의 패시브를 확인해, 맞은 적에게 `requiredStatus`가 있으면 발동. 발동 때 `stacksGainedPerTrigger`만큼 스택을 얻고(쓰는 스택 0), 2스의 스택 비례 피해 블록이 소모
+- 보호막 (기획서 3-7): 유닛당 하나. `StatusApplier.GrantShield`가 보호막이 없으면 새 버프로 걸고, 있으면 그 하나에 양을 더하고 남은 턴을 긴 쪽으로 맞춘다(갱신이라 `BuffGained` 없음)
+  - 양을 보탠 유닛은 `StatusInstance.ShieldContributors`에 남고, "버프 지워짐" 패시브는 `IsGivenBy`로 보탠 유닛 모두를 부여자로 본다
+  - 보호막을 강탈해 받을 때(`Receive`)도 기존 보호막에 합친다
+- 디버프 면역: 상태효과 종류 `DebuffImmunity`. `BattleUnit.IsDebuffImmune`이면 `StatusApplier.Apply`가 새 디버프를 막는다 (빈 결과)
+- 시선집중 (도발 탱커): 패시브 발동 조건 `TauntWhileShielded`(상시). `BattleUnit.IsTaunting` = 전장에 있음 + 그 패시브 + 보호막 있음 (매번 계산, 버프 칸 아님)
+  - `BattleManager.PickSingleOpponent`: 단일·확산의 (메인) 대상은 시선집중 유닛 → 고른 대상 → 무작위 순. 추가 공격도 같은 `ResolveTargets`를 거친다
+  - 아이콘은 패시브의 표시 효과(`TauntDisplay`)를 `UnitView.BuildDisplayedStatuses`가 맨 앞에 넣는다
 - 치명적인 피해(남은 HP 이상)는 `StatusApplier.DealDamage`에서 HP에 넣기 직전에 처리한다
   - 변신 중이면 강제 해제(HP 고정 + 종결기 예약), 아니면 `FatalDamageIncoming` 사건 → 버티기 패시브가 막으면 HP 1
 
@@ -282,8 +289,8 @@ Assets/_Project/
 - 웨이브 진행(`StageRunner`), 승패 판정, 결과 화면(로비 복귀)
 - 적 AI: 패턴 목록(조건 → 스킬·대상), 일반 적 랜덤 공격
 
-### 캐릭터 (8 / 11명)
-- S: 격발 딜러(DotMainAttack), 강탈 딜러(BuffStealAttack), 하이퍼캐리(HyperCarry), 곰인형 버퍼(BearBuffer), 공연 오라 버퍼(Astra)
+### 캐릭터 (9 / 11명)
+- S: 격발 딜러(DotMainAttack), 강탈 딜러(BuffStealAttack), 하이퍼캐리(HyperCarry), 곰인형 버퍼(BearBuffer), 공연 오라 버퍼(Astra), 도발 탱커(TauntTank)
 - A: 독 서브딜러(DotSubAttack), 치명 버퍼(Ally_Support), 돌파 반응 광역 딜러(GeniusAoE)
 - 수치는 전부 테스트 값
 
@@ -305,8 +312,7 @@ Assets/_Project/
 > 기획서 1장 개발 순서 기준. 위에 있을수록 먼저 할 것.
 
 ### 전투 (핵심 재미 검증에 필요)
-- 나머지 캐릭터 3명: S 도발 탱커, S 소생 힐러, A 회복 힐러
-  - 필요한 새 블록·상태효과: 도발(대상 강제)
+- 나머지 캐릭터 2명: S 소생 힐러, A 회복 힐러
 - 자동 전투, 배속, 일시정지 (기획서 3-9·3-11)
 - 전투 UI 정식 배치: 보스 HP바(상단), 현재 행동 캐릭터 패널, 행동 순서 바(초상화), 스킬 이름 알림
 - 연출 정리: HP 표시를 이펙트 재생에 맞춰 줄이기, 공격 모션(대기·공격·피격·사망) 자리

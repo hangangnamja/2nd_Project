@@ -126,6 +126,52 @@ namespace Game.Battle
         // ?.: 경계가 없으면(null) 면역 여부를 읽지 않고 null → == true가 아니므로 false.
         public bool IsCrowdControlImmune => ActiveBoundary?.GrantsCrowdControlImmunity == true;
 
+        // 디버프 면역인지: "디버프 면역" 효과가 든 버프가 걸려 있으면 true (도발 탱커 3스).
+        // 새로 걸리는 디버프만 막고, 이미 걸린 디버프는 그대로 둔다 (StatusApplier.Apply에서 확인).
+        public bool IsDebuffImmune
+        {
+            get
+            {
+                foreach (StatusInstance buff in Statuses.Buffs)
+                {
+                    if (buff.Data.GrantsDebuffImmunity)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+        }
+
+        // 지금 남은 보호막 양 (보호막은 유닛당 하나). 없으면 0. 하단 HP바의 보호막 표시에 쓴다.
+        // ?.: 보호막이 없으면(null) 양을 읽지 않고 null → ?? 0으로 0을 돌려준다.
+        public int ShieldAmount => Statuses.FindShield()?.ShieldAmount ?? 0;
+
+        // ---------- 시선집중 (도발 탱커, 기획서 4-3) ----------
+
+        // 시선집중을 주는 패시브("보호막이 있는 동안 시선집중"). 없으면 null.
+        public PassiveData TauntPassive
+        {
+            get
+            {
+                foreach (PassiveData passive in Data.Passives)
+                {
+                    if (passive.Trigger == PassiveTrigger.TauntWhileShielded)
+                    {
+                        return passive;
+                    }
+                }
+
+                return null;
+            }
+        }
+
+        // 지금 시선집중 중인지: 전장에 있고, 시선집중 패시브가 있고, 보호막이 남아 있을 때.
+        // 보호막이 깨지면 바로 꺼지고, 다시 보호막을 받으면 바로 켜진다 (버프 칸이 아니라 매번 계산하는 상태).
+        // 퇴장(하이퍼캐리 3스)하면 IsOnField가 false라 꺼진다.
+        public bool IsTaunting => IsOnField && TauntPassive != null && ShieldAmount > 0;
+
         // ---------- 경계 (기획서 3-12) ----------
 
         // 이 유닛이 펼친 경계. 없으면 null. 경계의 스탯 보정·면역·머리 위 표시가 이 값을 본다.

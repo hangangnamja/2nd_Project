@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e7ea1fe386d9a7468a3d5897f0a5561, type: 3}
+  m_Name: Taunt
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StatusEffectData
+  displayName: "\uC2DC\uC120\uC9D1\uC911"
+  description: "\uBCF4\uD638\uB9C9\uC774 \uC788\uB294 \uB3D9\uC548 \uC801\uC758 \uB2E8\uC77C\xB7\uD655\uC0B0
+    \uACF5\uACA9\uC774 \uC774 \uC720\uB2DB\uB9CC \uB178\uB9B0\uB2E4. \uBCF4\uD638\uB9C9\uC774
+    \uAE68\uC9C0\uBA74 \uC0AC\uB77C\uC9C4\uB2E4"
+  category: 0
+  stackMode: 1
+  duration: 1
+  features: 0
+  damageAttackRatio: 0
+  damageTargetMaxHpRatio: 0
+  maxHpDamageAttackCap: 0
+  healSourceMaxHpRatio: 0
+  statModifiers: []
+  icon: {fileID: 2800000, guid: ea2f4c93bfee94242b7cbfcc11799f99, type: 3}
+  isPersonal: 1
+  isPermanent: 1
+  convertsTo: {fileID: 0}

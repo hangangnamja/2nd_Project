@@ -199,8 +199,11 @@ namespace Game.Battle
             switch (skill.TargetType)
             {
                 case SkillTargetType.EnemySingle:
-                case SkillTargetType.EnemyAll:
                 case SkillTargetType.EnemyBlast:
+                    // 상대편에 시선집중 중인 유닛이 있으면 그 유닛만 고를 수 있다 (적이 시선집중을 쓰는 경우 대비).
+                    BattleUnit taunter = FindTaunter(CurrentActor.IsAlly ? enemies : allies);
+                    return isOpponent && (taunter == null || unit == taunter);
+                case SkillTargetType.EnemyAll:
                     return isOpponent;
                 case SkillTargetType.AllySingle:
                 case SkillTargetType.AllyAll:
@@ -793,11 +796,34 @@ namespace Game.Battle
                     // ?? caster: 고른 대상이 없으면(적 AI) 자기 자신에게 쓴다.
                     return new List<BattleUnit> { chosenTarget ?? caster };
                 case SkillTargetType.EnemyBlast:
-                    return GetBlastTargets(opponents, chosenTarget ?? PickRandomAlive(opponents));
+                    return GetBlastTargets(opponents, PickSingleOpponent(opponents, chosenTarget));
                 default:
-                    // ?? : 고른 대상이 없으면(적 AI) 상대편 중 무작위 1명을 고른다.
-                    return new List<BattleUnit> { chosenTarget ?? PickRandomAlive(opponents) };
+                    return new List<BattleUnit> { PickSingleOpponent(opponents, chosenTarget) };
             }
+        }
+
+        // 단일·확산 공격의 (메인) 대상을 정한다.
+        //  1) 상대편에 시선집중 중인 유닛이 있으면 무조건 그 유닛 (도발 탱커, 기획서 4-3). 고른 대상·추가 공격의 노리던 대상보다 우선
+        //  2) 고른 대상이 있으면 그 대상
+        //  3) 없으면(적 AI) 상대편 중 무작위 1명
+        // ??: 왼쪽이 null이면 오른쪽 값을 쓴다 → 위 순서대로 처음으로 null이 아닌 값이 대상이 된다.
+        private BattleUnit PickSingleOpponent(List<BattleUnit> opponents, BattleUnit chosenTarget)
+        {
+            return FindTaunter(opponents) ?? chosenTarget ?? PickRandomAlive(opponents);
+        }
+
+        // 시선집중 중인 유닛을 편성 순서대로 찾는다 (여럿이면 앞 번호). 없으면 null.
+        private static BattleUnit FindTaunter(List<BattleUnit> units)
+        {
+            foreach (BattleUnit unit in units)
+            {
+                if (unit.IsTaunting)
+                {
+                    return unit;
+                }
+            }
+
+            return null;
         }
 
         // 확산 대상: 메인 대상 + 살아 있는 적 중 편성 순서상 바로 앞·뒤 (기획서 4-3 독 서브딜러 2스).

@@ -37,10 +37,38 @@ namespace Game.Battle.Status
         public int ShieldAmount { get; private set; }
         public bool HasShield => ShieldAmount > 0;
 
-        // 보호막 양을 정한다. 같은 보호막을 다시 걸면(갱신) 남은 양과 새 양 중 큰 쪽을 남긴다 → 약한 보호막으로 덮어써 손해 보지 않는다.
-        public void SetShieldAtLeast(int amount)
+        // 이 보호막에 양을 보탠 유닛들 (처음 건 유닛 포함). 보호막은 유닛당 하나로 합쳐지므로 여러 명이 보탤 수 있다.
+        // 보호막이 깨지면 보탠 유닛 모두의 "자신이 건 버프가 지워질 때" 패시브가 반응한다 (곰인형 버퍼).
+        private readonly System.Collections.Generic.List<BattleUnit> shieldContributors =
+            new System.Collections.Generic.List<BattleUnit>();
+
+        public System.Collections.Generic.IReadOnlyList<BattleUnit> ShieldContributors => shieldContributors;
+
+        // 보호막 양을 더한다 (기획서 3-7: 보호막은 유닛당 하나, 새로 받으면 양이 쌓인다).
+        // 같은 스킬을 다시 써도 그만큼 더해진다 → 쿨타임이 보호막이 불어나는 속도를 제한한다.
+        // contributor: 이번에 보탠 유닛. 처음 보태는 유닛만 목록에 넣는다 (Contains로 중복 확인).
+        public void AddShield(int amount, BattleUnit contributor)
         {
-            ShieldAmount = System.Math.Max(ShieldAmount, amount);
+            ShieldAmount += amount;
+
+            if (contributor != null && !shieldContributors.Contains(contributor))
+            {
+                shieldContributors.Add(contributor);
+            }
+        }
+
+        // 다른 보호막이 합쳐질 때 남은 턴을 긴 쪽으로 맞춘다. 순번도 새로 매겨 "방금 걸린 효과"로 취급한다.
+        // Math.Max: 둘 중 큰 값. 예: 남은 1턴 보호막에 2턴짜리 보호막이 합쳐지면 → 2턴
+        public void ExtendRemaining(int turns, long appliedOrder)
+        {
+            RemainingTurns = System.Math.Max(RemainingTurns, turns);
+            AppliedOrder = appliedOrder;
+        }
+
+        // 이 효과를 unit이 걸었는지(보호막이면 양을 보탰는지). "자신이 건 버프가 지워질 때" 패시브 판단에 쓴다.
+        public bool IsGivenBy(BattleUnit unit)
+        {
+            return Source == unit || shieldContributors.Contains(unit);
         }
 
         // 피해를 보호막으로 흡수하고, 흡수하지 못한 나머지 피해를 돌려준다.

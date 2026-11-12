@@ -40,6 +40,14 @@ namespace Game.UI
         [SerializeField] private Image hpFill;
         [SerializeField] private Text hpText;
 
+        [Tooltip("보호막이 있을 때 HP바를 감싸는 막대 (HP바보다 조금 크게, Image Type = Filled, 가로). 보호막 양 / 최대 HP만큼 채워진다")]
+        [Label("보호막 막대")]
+        [SerializeField] private Image shieldFill;
+
+        [Tooltip("보호막이 있을 때 HP 숫자 대신 보호막 숫자를 보여줄 글자 색")]
+        [Label("보호막 숫자 색")]
+        [SerializeField] private Color shieldTextColor = new Color(0.75f, 0.9f, 1f);
+
         [SerializeField] private GameObject actingFrame;
         [SerializeField] private GameObject targetMark;
 
@@ -78,6 +86,9 @@ namespace Game.UI
         // 꾹 눌렀을 때 알린다 (PartyBarView가 상세 창을 연다). event Action<카드>: 구독한 함수에 이 카드를 넘겨 부른다.
         public event Action<PartyCardView> LongPressed;
 
+        // 보호막이 없을 때의 HP 숫자 색 (Bind에서 씬 값을 기억).
+        private Color hpTextColor = Color.white;
+
         // 누르고 있는 시간. 음수면 누르고 있지 않음.
         private float pressTime = -1f;
 
@@ -88,6 +99,9 @@ namespace Game.UI
         public void Bind(BattleUnit unit)
         {
             Unit = unit;
+
+            // 씬에서 정한 HP 숫자 색을 기억해 둔다 → 보호막이 사라지면 이 색으로 되돌린다.
+            hpTextColor = hpText.color;
             nameText.text = unit.Name;
 
             // 일러스트가 있으면 머리 부분을, 없으면 직군 색 판을 보여준다. Show는 그림이 없으면 false.
@@ -102,10 +116,7 @@ namespace Game.UI
         {
             ShowStatuses(statuses);
 
-            // HP 비율 = 현재 HP / 최대 HP. fillAmount는 0~1 사이 값만큼 막대를 채운다.
-            float ratio = Unit.MaxHp > 0 ? (float)Unit.CurrentHp / Unit.MaxHp : 0f;
-            hpFill.fillAmount = ratio;
-            hpText.text = $"{Unit.CurrentHp}";
+            ShowHp();
 
             // 스택형 패시브가 있으면 이름 뒤에 현재 스택을 붙인다 (예: "격발 ★1/2"). 머리 위 이름표 대신 여기서 보여준다.
             nameText.text = $"{Unit.Name}{BuildStackText()}";
@@ -116,6 +127,30 @@ namespace Game.UI
 
             // 쓰러졌거나 퇴장했으면 반투명하게 (alpha 0.35).
             group.alpha = Unit.IsDead || Unit.IsExited ? 0.35f : 1f;
+        }
+
+        // HP바와 보호막을 그린다.
+        //  - HP 막대: 현재 HP / 최대 HP. fillAmount는 0~1 사이 값만큼 막대를 채운다
+        //  - 보호막이 있으면: HP바를 감싸는 보호막 막대를 보호막 양 / 최대 HP만큼 채우고(넘치면 꽉 참), 숫자는 HP 대신 보호막 양
+        //    보호막이 먼저 깎이므로, 지금 맞으면 줄어들 숫자를 보여주는 것이다
+        private void ShowHp()
+        {
+            float hpRatio = Unit.MaxHp > 0 ? (float)Unit.CurrentHp / Unit.MaxHp : 0f;
+            hpFill.fillAmount = hpRatio;
+
+            int shield = Unit.ShieldAmount;
+            bool hasShield = shield > 0 && !Unit.IsDead;
+
+            if (shieldFill != null)
+            {
+                shieldFill.gameObject.SetActive(hasShield);
+
+                // Mathf.Clamp01: 0~1로 자른다 → 보호막이 최대 HP보다 커도 막대는 꽉 찬 데서 멈춘다.
+                shieldFill.fillAmount = Unit.MaxHp > 0 ? Mathf.Clamp01((float)shield / Unit.MaxHp) : 0f;
+            }
+
+            hpText.text = hasShield ? $"{shield}" : $"{Unit.CurrentHp}";
+            hpText.color = hasShield ? shieldTextColor : hpTextColor;
         }
 
         // 스택을 쓰는 패시브마다 " ★현재/최대"를 붙인 글자. 스택 패시브가 없으면 빈 글자.
