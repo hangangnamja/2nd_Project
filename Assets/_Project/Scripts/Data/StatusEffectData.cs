@@ -37,6 +37,7 @@ namespace Game.Data
         [InspectorName("지연 버프")] ConvertOnRemove = 1 << 4,     // 지연 버프 (지워지면 다른 버프로 바뀜)
         [InspectorName("피해 기록")] RecordDamage = 1 << 5,        // 피해 기록 (반격 태세)
         [InspectorName("디버프 면역")] DebuffImmunity = 1 << 6,    // 디버프 면역 (새로 걸리는 디버프를 막음, 도발 탱커 3스)
+        [InspectorName("피해 무효")] BlockDamage = 1 << 7,         // 피해 무효 (모든 피해 0, 힐러 3스 무적)
     }
 
     // 상태효과(화상, 독, 버프 등)의 공통 정의. 여러 캐릭터가 같은 에셋을 공유한다.
@@ -126,6 +127,9 @@ namespace Game.Data
 
         // 이 버프가 걸려 있는 동안 새 디버프가 걸리지 않는다. 추가 설정 칸은 없다.
         public bool GrantsDebuffImmunity => Has(StatusFeatures.DebuffImmunity);
+
+        // 이 버프가 걸려 있는 동안 어떤 피해(지속피해 포함)도 받지 않는다. 보호막도 깎이지 않는다.
+        public bool BlocksAllDamage => Has(StatusFeatures.BlockDamage);
         public StatusEffectData ConvertsTo => Has(StatusFeatures.ConvertOnRemove) ? convertsTo : null;
 
         // Array.Empty: 스탯 보정을 고르지 않았으면 빈 목록을 돌려준다 (새 리스트를 매번 만들지 않음).

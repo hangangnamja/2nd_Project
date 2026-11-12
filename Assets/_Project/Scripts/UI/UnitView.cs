@@ -93,7 +93,8 @@ namespace Game.UI
                 return;
             }
 
-            targetRing.gameObject.SetActive(isTargetable && !Unit.IsDead);
+            // 쓰러진 유닛도 부활 스킬의 대상이면 고리를 보여준다 (isTargetable이 이미 스킬 규칙을 확인함).
+            targetRing.gameObject.SetActive(isTargetable);
             targetRing.color = Unit.IsAlly ? allyTargetColor : enemyTargetColor;
         }
 

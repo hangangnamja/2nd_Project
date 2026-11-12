@@ -185,6 +185,7 @@ namespace Game.UI
             {
                 case SkillTargetType.AllyAll:
                 case SkillTargetType.AllySingle:
+                case SkillTargetType.AllySingleOrFallen:
                     Apply(StageLayout.TeamLine, actor, teamLineShot);
                     break;
                 case SkillTargetType.Self:

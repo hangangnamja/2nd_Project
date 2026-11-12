@@ -121,8 +121,8 @@ namespace Game.Battle.Status
             bool isCritical = false,
             bool isDamageOverTime = false)
         {
-            // 무적(보스 스테이지 버프몹)은 어떤 피해도 받지 않는다. 보호막·피해 기록도 건드리지 않는다.
-            if (target.IsInvulnerable)
+            // 무적(보스 스테이지 버프몹, 힐러 3스의 무적 버프)은 어떤 피해도 받지 않는다. 보호막·피해 기록도 건드리지 않는다.
+            if (target.IsDamageImmune)
             {
                 absorbed = 0;
                 services.Events.RaiseDamageTaken(new DamageTakenInfo(target, 0, 0, isCritical, isDamageOverTime, isBlocked: true));
