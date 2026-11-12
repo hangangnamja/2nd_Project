@@ -881,6 +881,11 @@ namespace Game.Battle
         private void ApplyActionAdvance(double ratio)
         {
             RemainingDistance = Math.Max(0d, RemainingDistance - TurnScheduler.TrackLength * ratio);
+            TotalActionAdvanced += ratio;
         }
+
+        // 지금까지 받은 행동 당기기 비율의 합 (1.0 = 100%). 행동 순서 바(TurnOrderView)가 지난번과 비교해
+        // 늘어난 만큼 "+30%"처럼 보여주는 표시용 값이다. 전투 계산에는 쓰지 않는다.
+        public double TotalActionAdvanced { get; private set; }
     }
 }
