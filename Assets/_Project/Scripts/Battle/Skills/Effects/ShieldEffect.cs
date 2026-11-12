@@ -7,10 +7,11 @@ using UnityEngine;
 namespace Game.Battle.Effects
 {
     // 대상에게 보호막 버프를 건다 (곰인형 버퍼 2스 등, 여러 캐릭터가 공용으로 쓰는 블록).
-    // 보호막 양 = 시전자 최대 HP × 비율. 피해는 보호막이 먼저 흡수하고, 다 깎이거나 남은 턴이 끝나면 버프가 사라진다.
+    // 보호막 양 = 기준 스탯 × 비율. 피해는 보호막이 먼저 흡수하고, 다 깎이거나 남은 턴이 끝나면 버프가 사라진다.
+    // 보호막은 유닛당 하나: 이미 보호막이 있으면 양이 더해지고 남은 턴은 긴 쪽으로 맞춰진다 (아이콘도 하나).
     // 보호막은 버프 칸을 쓰는 일반 버프라서 강탈 딜러 3스의 소모 대상이기도 하다.
     // 효과 블록 드롭다운에 보여줄 분류/이름과 설명 (SubclassMenuAttribute).
-    [SubclassMenu("회복·보호/보호막", "보호막 버프 부여. 양 = 기준 스탯 × 비율. 피해를 먼저 흡수하고 다 깎이거나 만료되면 사라진다", 210)]
+    [SubclassMenu("회복·보호/보호막", "보호막 부여. 양 = 기준 스탯 × 비율. 이미 보호막이 있으면 양이 더해진다. 피해를 먼저 흡수하고 다 깎이거나 만료되면 사라진다", 210)]
     [Serializable]
     public class ShieldEffect : SkillEffect
     {
@@ -49,11 +50,9 @@ namespace Game.Battle.Effects
 
             foreach (BattleUnit target in context.Targets)
             {
-                StatusAddResult result = StatusApplier.Apply(target, shieldStatus, context.Caster, context.Services);
-
-                // 이미 같은 보호막이 있으면 갱신된 그 인스턴스에, 남은 양과 새 양 중 큰 값을 남긴다.
-                result.Instance.SetShieldAtLeast(amount);
-                context.Log($"  {target.Name}에게 {shieldStatus.DisplayName} {result.Instance.ShieldAmount}");
+                // 보호막은 유닛당 하나: 이미 보호막이 있으면(다른 스킬·다른 캐릭터가 건 것이라도) 그 양에 더해진다.
+                StatusInstance shield = StatusApplier.GrantShield(target, shieldStatus, amount, context.Caster, context.Services);
+                context.Log($"  {target.Name}에게 {shieldStatus.DisplayName} +{amount} (합계 {shield.ShieldAmount})");
             }
         }
     }

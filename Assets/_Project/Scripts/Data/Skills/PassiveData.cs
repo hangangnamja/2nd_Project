@@ -43,6 +43,10 @@ namespace Game.Data
         // 같은 편 아군(자신 포함)의 공격 판정이 "필요한 상태효과"가 걸린 적에게 들어갈 때마다 (광역이면 대상마다).
         // 추가 공격의 판정도 포함한다. 효과 대상 = 맞은 적. 니콜 패시브 "이자": 방어력 감소가 걸린 적이 맞을 때마다 스택 +1
         [InspectorName("상태효과 걸린 적이 아군에게 맞을 때")] OnAllyHitDebuffedEnemy,
+
+        // 상시: 이 캐릭터에게 보호막이 있는 동안 "시선집중" (도발 탱커). 사건에 반응하지 않으므로 효과 목록·실행 방식은 쓰지 않는다.
+        // 시선집중 중에는 상대의 단일·확산 공격이 이 캐릭터만 노린다. 버프 칸이 아니라 아이콘만 표시한다 (표시용 효과).
+        [InspectorName("보호막이 있는 동안 시선집중 (상시)")] TauntWhileShielded,
     }
 
     // 턴당 횟수 제한을 어느 턴 기준으로 세는지.
@@ -130,6 +134,11 @@ namespace Game.Data
         [Label("필요한 상태효과")]
         [SerializeField] private StatusEffectData requiredStatus;
 
+        [Header("시선집중 (발동 조건이 '보호막이 있는 동안 시선집중'일 때만)")]
+        [Tooltip("시선집중 중 머리 위·초상화 카드에 보여줄 표시용 효과 (버프 칸을 쓰지 않음, 아이콘·툴팁용)")]
+        [Label("표시 효과")]
+        [SerializeField] private StatusEffectData tauntDisplay;
+
         [Header("오라 (발동 조건이 '오라 (상시)'일 때만)")]
         [Tooltip("아군 전원(자신 포함)에게 적용할 스탯 보정. 예: 지속피해 증가 +20%")]
         [SerializeField] private List<StatModifier> auraModifiers = new List<StatModifier>();
@@ -152,6 +161,7 @@ namespace Game.Data
         public int StacksGainedPerTrigger => stacksGainedPerTrigger;
         public StatusEffectData RequiredStatus => requiredStatus;
         public float HpThreshold => hpThreshold;
+        public StatusEffectData TauntDisplay => tauntDisplay;
         public IReadOnlyList<StatModifier> AuraModifiers => auraModifiers;
         public IReadOnlyList<SkillEffect> Effects => effects;
     }

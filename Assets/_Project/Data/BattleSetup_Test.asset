@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: BattleSetup_Test
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.BattleSetup
   allyParty:
-  - {fileID: 11400000, guid: 033421e72036eea4a8c6c907397e96ea, type: 2}
+  - {fileID: 11400000, guid: 8545e9f7091b4be4ab5466072e394403, type: 2}
   - {fileID: 11400000, guid: 2f677f8251338f548b38f185b10f804a, type: 2}
   - {fileID: 11400000, guid: 3ac05b34f6b0d6844bb9fbff35d5dbfb, type: 2}
   allyLevel: 60
-  stage: {fileID: 11400000, guid: 7de1e41aa274baa49bc9d6623f21b631, type: 2}
+  stage: {fileID: 11400000, guid: dda399e5596206540b034c5405e6b297, type: 2}

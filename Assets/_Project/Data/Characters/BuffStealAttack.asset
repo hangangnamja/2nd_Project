@@ -20,7 +20,7 @@ MonoBehaviour:
   maxHp: 1000
   attack: 120
   defense: 50
-  baseSpeed: 115
+  baseSpeed: 100
   critRate: 0.8
   critDamage: 1
   skill1:
@@ -57,6 +57,9 @@ MonoBehaviour:
     maxStacks: 0
     stacksPerOwnAction: 0
     stackCostPerTrigger: 0
+    stacksGainedPerTrigger: 0
+    hpThreshold: 0.5
+    requiredStatus: {fileID: 0}
     auraModifiers: []
     effects:
     - rid: 7605779530016096344
@@ -70,6 +73,9 @@ MonoBehaviour:
     maxStacks: 0
     stacksPerOwnAction: 0
     stackCostPerTrigger: 0
+    stacksGainedPerTrigger: 0
+    hpThreshold: 0.5
+    requiredStatus: {fileID: 0}
     auraModifiers: []
     effects:
     - rid: 7605779530016096345
@@ -101,8 +107,10 @@ MonoBehaviour:
       type: {class: ActionAdvanceEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         ratio: 0.3
+        targetCaster: 0
     - rid: 7605779530016096345
       type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         status: {fileID: 11400000, guid: 16f47f7ec3b41064692a6ffba791443b, type: 2}
         count: 1
+        applyToAllAllies: 0

@@ -28,13 +28,15 @@ namespace Game.Data
     [Flags]
     public enum StatusFeatures
     {
-        None = 0,
-        StatModifiers = 1 << 0,     // 스탯 보정 (공격력 증가 등)
-        DamageOverTime = 1 << 1,    // 지속피해 (화상·독)
-        HealOverTime = 1 << 2,      // 지속 회복 (소생)
-        SkipTurn = 1 << 3,          // 행동 불가 (기절)
-        ConvertOnRemove = 1 << 4,   // 지연 버프 (지워지면 다른 버프로 바뀜)
-        RecordDamage = 1 << 5,      // 피해 기록 (반격 태세)
+        // [InspectorName]: Inspector 드롭다운에 보일 한국어 이름. 저장 값(비트)과는 무관하다.
+        [InspectorName("없음")] None = 0,
+        [InspectorName("스탯 보정")] StatModifiers = 1 << 0,       // 스탯 보정 (공격력 증가 등)
+        [InspectorName("지속피해")] DamageOverTime = 1 << 1,       // 지속피해 (화상·독)
+        [InspectorName("지속 회복")] HealOverTime = 1 << 2,        // 지속 회복 (소생)
+        [InspectorName("행동 불가")] SkipTurn = 1 << 3,            // 행동 불가 (기절)
+        [InspectorName("지연 버프")] ConvertOnRemove = 1 << 4,     // 지연 버프 (지워지면 다른 버프로 바뀜)
+        [InspectorName("피해 기록")] RecordDamage = 1 << 5,        // 피해 기록 (반격 태세)
+        [InspectorName("디버프 면역")] DebuffImmunity = 1 << 6,    // 디버프 면역 (새로 걸리는 디버프를 막음, 도발 탱커 3스)
     }
 
     // 상태효과(화상, 독, 버프 등)의 공통 정의. 여러 캐릭터가 같은 에셋을 공유한다.
@@ -121,6 +123,9 @@ namespace Game.Data
 
         public bool SkipsTurn => Has(StatusFeatures.SkipTurn);
         public bool RecordsDamageTaken => Has(StatusFeatures.RecordDamage);
+
+        // 이 버프가 걸려 있는 동안 새 디버프가 걸리지 않는다. 추가 설정 칸은 없다.
+        public bool GrantsDebuffImmunity => Has(StatusFeatures.DebuffImmunity);
         public StatusEffectData ConvertsTo => Has(StatusFeatures.ConvertOnRemove) ? convertsTo : null;
 
         // Array.Empty: 스탯 보정을 고르지 않았으면 빈 목록을 돌려준다 (새 리스트를 매번 만들지 않음).

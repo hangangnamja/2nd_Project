@@ -11,7 +11,8 @@ namespace Game.Battle.Status
     {
         // target에게 상태효과를 새로 건다. 새 버프면 "버프 획득" 사건을 알린다 (갱신은 알리지 않음).
         // 행동 제어 면역(변신 중 하이퍼캐리)인 대상에게 행동 제어 효과(기절 등)는 걸리지 않는다.
-        // 이때 결과의 Instance가 null이므로, 결과를 쓰는 쪽은 null을 확인해야 한다 (행동 제어 효과만 해당).
+        // 디버프 면역인 대상에게 디버프도 걸리지 않는다.
+        // 이때 결과의 Instance가 null이므로, 결과를 쓰는 쪽은 null을 확인해야 한다 (행동 제어 효과·디버프만 해당).
         public static StatusAddResult Apply(BattleUnit target, StatusEffectData data, BattleUnit source, BattleServices services)
         {
             if (data.IsCrowdControl && target.IsCrowdControlImmune)
@@ -22,14 +23,55 @@ namespace Game.Battle.Status
                 return default;
             }
 
+            // 디버프 면역(도발 탱커 3스) 중에는 새 디버프가 걸리지 않는다. 이미 걸린 디버프는 지우지 않는다.
+            // 결과는 위와 같이 빈 결과(Instance = null)다.
+            if (data.Category == StatusCategory.Debuff && target.IsDebuffImmune)
+            {
+                services.Log($"  {target.Name}: {data.DisplayName} 면역 (디버프 면역)");
+                return default;
+            }
+
             StatusAddResult result = target.Statuses.Add(data, source);
             ReportResult(target, result, services);
             return result;
         }
 
+        // target에게 보호막을 준다 (기획서 3-7: 보호막은 유닛당 하나, 아이콘도 하나).
+        //  - 보호막이 없으면: shieldData로 새 보호막 버프를 걸고 amount만큼 채운다 (새 버프 → "버프 획득" 사건)
+        //  - 이미 있으면: 어떤 보호막이든 그 하나에 양을 더하고 남은 턴을 긴 쪽으로 맞춘다 (갱신 → "버프 획득" 사건 없음)
+        // 돌려주는 값은 양이 쌓인 보호막 인스턴스다.
+        public static StatusInstance GrantShield(BattleUnit target, StatusEffectData shieldData, int amount, BattleUnit source, BattleServices services)
+        {
+            StatusInstance existing = target.Statuses.FindShield();
+            if (existing == null)
+            {
+                StatusAddResult result = target.Statuses.Add(shieldData, source);
+                result.Instance.AddShield(amount, source);
+                ReportResult(target, result, services);
+                return result.Instance;
+            }
+
+            existing.AddShield(amount, source);
+            existing.ExtendRemaining(shieldData.Duration, StatusContainer.TakeAppliedOrder());
+
+            // 갱신이지만 받은 연출(버프 이펙트)은 보여준다. 새 버프가 아니므로 BuffGained(강탈 딜러 가속)는 알리지 않는다.
+            services.Events.RaiseBuffApplied(target, existing);
+            return existing;
+        }
+
         // 빼앗아 온 효과를 남은 턴 그대로 target에게 넣는다 (버프 강탈).
+        // 보호막을 빼앗았고 이미 보호막이 있으면 따로 칸을 차지하지 않고 기존 보호막에 양·남은 턴을 합친다 (유닛당 하나).
         public static StatusAddResult Receive(BattleUnit target, StatusInstance incoming, BattleServices services)
         {
+            StatusInstance existingShield = incoming.HasShield ? target.Statuses.FindShield() : null;
+            if (existingShield != null)
+            {
+                existingShield.AddShield(incoming.ShieldAmount, incoming.Source);
+                existingShield.ExtendRemaining(incoming.RemainingTurns, StatusContainer.TakeAppliedOrder());
+                services.Events.RaiseBuffApplied(target, existingShield);
+                return new StatusAddResult(existingShield, isNew: false, pushedOut: null);
+            }
+
             StatusAddResult result = target.Statuses.Receive(incoming);
             ReportResult(target, result, services);
             return result;

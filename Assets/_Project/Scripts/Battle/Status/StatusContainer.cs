@@ -80,6 +80,26 @@ namespace Game.Battle.Status
             return GetSlots(instance.Data.Category).Remove(instance);
         }
 
+        // 지금 걸린 보호막 버프를 찾는다. 보호막은 유닛당 하나로 합쳐지므로 많아야 1개다. 없으면 null.
+        public StatusInstance FindShield()
+        {
+            foreach (StatusInstance buff in buffs)
+            {
+                if (buff.HasShield)
+                {
+                    return buff;
+                }
+            }
+
+            return null;
+        }
+
+        // 보호막을 더할 때 쓸 부여 순번을 하나 받는다 (ExtendRemaining에 넘김).
+        public static long TakeAppliedOrder()
+        {
+            return nextAppliedOrder++;
+        }
+
         // 같은 정의(같은 에셋)의 효과를 찾는다. 없으면 null.
         public StatusInstance Find(StatusEffectData data)
         {
@@ -126,7 +146,7 @@ namespace Game.Battle.Status
         }
 
         // 피해를 보호막 버프로 먼저 흡수하고, 남은 피해를 돌려준다. 다 깨진 보호막은 칸에서 빼고 broken에 담는다.
-        // 보호막이 여럿이면 먼저 걸린 것부터 깎는다 (버프 목록은 들어온 순서대로 쌓인다).
+        // 보호막은 유닛당 하나로 합쳐지므로(StatusApplier.GrantShield) 보통 1개만 깎인다.
         public int AbsorbWithShields(int damage, List<StatusInstance> broken)
         {
             foreach (StatusInstance buff in buffs)

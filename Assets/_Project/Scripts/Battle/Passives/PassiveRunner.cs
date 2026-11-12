@@ -148,15 +148,16 @@ namespace Game.Battle
 
         // 버프가 지워짐: 그 버프를 건 유닛(부여자)의 "자신이 건 버프가 지워질 때" 패시브를 자신에게 실행한다 (곰인형 버퍼).
         // 버프 3개가 한꺼번에 지워지면 사건이 3번 오지만, 횟수 제한(자기 턴 사이 1회)으로 1번만 발동한다.
+        // 보호막은 여러 명이 양을 보탤 수 있어(유닛당 하나로 합쳐짐), 보탠 유닛 모두를 부여자로 본다 (IsGivenBy).
         private void HandleBuffRemoved(BattleUnit holder, StatusInstance buff)
         {
-            BattleUnit caster = buff.Source;
-            if (caster == null || caster.IsDead)
+            foreach (BattleUnit unit in allUnits)
             {
-                return;
+                if (!unit.IsDead && buff.IsGivenBy(unit))
+                {
+                    ActivateOwnPassives(unit, PassiveTrigger.OnOwnBuffRemoved);
+                }
             }
-
-            ActivateOwnPassives(caster, PassiveTrigger.OnOwnBuffRemoved);
         }
 
         // 새 버프를 얻음: 받은 유닛 본인의 "버프 획득 시" 패시브를 자신에게 실행한다 (강탈 딜러 버프 가속).
