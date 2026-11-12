@@ -11,11 +11,15 @@ namespace Game.Battle.Status
 
         // 부여 당시 시전자의 최종 공격력 (스냅샷, 버프 포함). 이후 시전자의 공격력이 바뀌어도 이 효과의 피해는 그대로다.
         // 그래서 "공격력 버프를 받고 화상을 거는" 순서가 의미를 가진다 (기획서 3-7).
-        public int SnapshotAttack { get; }
+        // 스택 효과는 다시 걸릴 때 더 높은 공격력으로 바뀔 수 있다 (AddStack).
+        public int SnapshotAttack { get; private set; }
 
         // 부여 당시 시전자의 최대 HP (스냅샷). 지속 회복(소생)의 회복량 기준이다.
         // 강탈로 다른 유닛에게 넘어가도 처음 건 시전자의 값을 그대로 쓴다.
-        public int SnapshotMaxHp { get; }
+        public int SnapshotMaxHp { get; private set; }
+
+        // 쌓인 스택 수 (스택 방식 효과만 1보다 커진다, 화상·독). 지속피해는 1스택 피해 × 이 값.
+        public int Stacks { get; private set; } = 1;
 
         // 몇 번째로 걸린 효과인지. 칸이 가득 차 밀어낼 때 "남은 턴이 같으면 먼저 걸린 것부터" 비교에 쓴다.
         public long AppliedOrder { get; private set; }
@@ -108,6 +112,22 @@ namespace Game.Battle.Status
         {
             AppliedOrder = appliedOrder;
         }
+
+        // 스택 방식 효과를 다시 걸었을 때: 스택 +1(최대 스택까지), 남은 턴은 처음 값으로 되돌린다 (기획서 3-8).
+        // 스냅샷은 더 높은 쪽을 남긴다 → 공격력 버프를 받고 걸면 쌓인 스택 전체가 강해지고, 약할 때 걸어도 손해가 없다.
+        // Math.Min: 최대 스택을 넘지 않게 자른다. Math.Max: 둘 중 큰 값.
+        public void AddStack(BattleUnit source, long appliedOrder)
+        {
+            Stacks = System.Math.Min(Data.MaxStacks, Stacks + 1);
+            SnapshotAttack = System.Math.Max(SnapshotAttack, source.Attack);
+            SnapshotMaxHp = System.Math.Max(SnapshotMaxHp, source.MaxHp);
+            Refresh(appliedOrder);
+        }
+
+        // 아이콘 숫자: 스택 효과는 "×스택", 영구 표시는 빈 글자, 나머지는 남은 턴.
+        public string IconText => Data.IsPermanent ? string.Empty
+            : Data.UsesStackCount ? $"×{Stacks}"
+            : RemainingTurns.ToString();
 
         // 표시 전용 인스턴스(칸에 넣지 않는 아이콘)의 남은 턴 숫자를 정한다. 예: 부하 자폭 카운트다운.
         // 상태효과 칸에 걸린 실제 효과에는 쓰지 않는다 (만료 처리가 꼬이므로).

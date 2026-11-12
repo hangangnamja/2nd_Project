@@ -17,11 +17,12 @@ MonoBehaviour:
     \uBC1B\uB294\uB2E4"
   category: 1
   stackMode: 0
+  maxStacks: 99
   duration: 3
   features: 2
   damageAttackRatio: 0
-  damageTargetMaxHpRatio: 0.06
-  maxHpDamageAttackCap: 3
+  damageTargetMaxHpRatio: 0.05
+  maxHpDamageAttackCap: 0
   healSourceMaxHpRatio: 0
   statModifiers: []
   icon: {fileID: 2800000, guid: f9a5f7f349b0d5143a464ed7ea89e2c0, type: 3}

@@ -137,8 +137,14 @@ namespace Game.Battle
         // 무적이라 피해를 받지 않았는지 (보스 스테이지 버프몹)
         public bool IsBlocked { get; }
 
-        public DamageTakenInfo(BattleUnit target, int amount, int absorbed, bool isCritical, bool isDamageOverTime, bool isBlocked)
+        // 막혔을 때 피해 숫자 대신 보여줄 글자 ("무적", 피격 무효면 "무효")
+        public string BlockedLabel { get; }
+
+        // blockedLabel: 기본값(null)이면 "무적"으로 보여준다. 피격 무효(보스 2)만 "무효"를 넘긴다.
+        public DamageTakenInfo(BattleUnit target, int amount, int absorbed, bool isCritical, bool isDamageOverTime, bool isBlocked, string blockedLabel = null)
         {
+            // ??: 왼쪽이 null이면 오른쪽 값을 쓴다.
+            BlockedLabel = blockedLabel ?? "무적";
             Target = target;
             Amount = amount;
             Absorbed = absorbed;

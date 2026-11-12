@@ -110,12 +110,14 @@ CharacterData (SO 에셋 1개)
 | 분류 | 이름 (클래스) | 하는 일 | 사용 예 |
 |---|---|---|---|
 | 공격 | 피해 (`DamageEffect`) | 공격력 × 배율 피해. 확산은 메인 배율·양옆 배율을 따로 정함 | 대부분의 공격 스킬 |
+| 공격 | 대상 최대 HP 비례 피해 (`MaxHpDamageEffect`) | 대상 최대 HP × 비율 피해. 공격력·치명·방어력 무시, 대상 쪽 보정·보호막은 적용 | 보스 2 디버프 없는 턴 공격 |
 | 공격 | 버프 수 비례 피해 (`BuffScalingDamageEffect`) | 기본 배율 + 버프 1개당 배율 × 시전자 버프 개수 | 강탈 딜러 3스 |
 | 공격 | 패시브 스택 비례 피해 (`PassiveStackDamageEffect`) | 기본 배율 + 스택 1개당 배율 × 시전자 패시브 스택, 피해 뒤 스택 전부 소모 | 니콜 2스 (이자 정산) |
 | 공격 | 받은 피해 비례 반격 (`RecordedDamageCounterEffect`) | 피해 기록에 쌓인 받은 피해(최대 HP 대비) × 계수를 공격력 배율로 반격, 기록 삭제 | 하이퍼캐리 반격 태세 |
 | 공격 | 격발 (`DetonateEffect`) | 대상의 지속피해를 즉시 1회씩 발동 (지속피해는 유지) | 격발 딜러 3스·패시브 |
 | 회복·보호 | 회복 (`HealEffect`) | 기준 스탯(공격력·최대 HP·시전자 최대 HP) × 비율 회복. 시전자 자신·아군 전체 옵션 | 아스트라 패시브, 변신 스킬 자가 회복 |
 | 회복·보호 | 보호막 (`ShieldEffect`) | 기준 스탯 × 비율만큼 보호막. 이미 있으면 양을 더함 (`StatusApplier.GrantShield`) | 곰인형 버퍼 2스, 하이퍼캐리 불굴, 도발 탱커 2·3스 |
+| 회복·보호 | 피격 무효 충전 (`HitBlockEffect`) | 시전자의 피격 무효를 횟수만큼 채움 (`BattleUnit.ChargeHitBlock`, 쌓이지 않음). 피해만 0, 효과는 들어감 | (지금 쓰는 캐릭터 없음) |
 | 회복·보호 | 부활 (`ReviveEffect`) | 쓰러진 대상을 최대 HP × 비율로 부활 (`BattleUnit.Revive`). 살아 있는 대상은 건너뜀 | 부활 힐러 3스·패시브 |
 | 상태효과 | 디버프 제거 (`RemoveDebuffsEffect`) | 대상 디버프를 전부 또는 가장 최근 1개 제거 | 부활 힐러 2스·3스 |
 | 상태효과 | 상태효과 부여 (`ApplyStatusEffect`) | 상태효과를 개수만큼 부여. 아군 전체 옵션 | 화상·독·버프 부여 전반 |
@@ -237,6 +239,12 @@ UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
   - 경계마다 블록 하위 클래스 + 런타임 `Boundary` 하위 클래스: 스탯 보정(`StatModifiers`), 행동 제어 면역, 표시용 효과(`DisplayStatus`), 끝날 조건(`ShouldEnd`)
     - 펼치면 주인의 `BattleUnit.ActiveBoundary`가 되어 스탯 계산(상태효과 칸 밖 보정)·면역(`IsCrowdControlImmune`)·머리 위 아이콘(`UnitView`)에 반영된다. 버프 칸이 아니라 강탈·소모·만료 대상이 아니다
   - `BattleManager`가 변신 해제·사망 확정 직후 `Boundaries.CheckEnd()`를 불러 끝날 조건을 확인한다
+- 스택 효과 (기획서 3-7, 지금 쓰는 효과 없음): 상태효과 중첩 방식 `StackCount`면 `StatusContainer.Add`가 기존 칸의 `StatusInstance.AddStack`(스택 +1·최대 스택·남은 턴 갱신·스냅샷은 높은 쪽)만 부른다
+  - 지속피해는 `DamageCalculator.CalculateDamageOverTime`에 스택 수를 넘겨 1스택 피해 × 스택. 아이콘 숫자는 `StatusInstance.IconText`("×스택")
+- 적 패턴 조건 `SelfDebuffCountBelow`(자신의 디버프 N개 미만, 스택 효과는 1칸 = 1개): 보스 2의 디버프 없는 턴 공격
+- 피격 무효 (지금 쓰는 보스 없음): `BattleUnit.HitBlockCharges`(버프 칸 밖의 횟수)를 `StatusApplier.DealDamage`가 무적 확인 다음에 1회 쓰고 피해를 0으로 바꾼다 (보호막·피해 기록·HP 돌파 사건 없음, 연출은 `DamageTakenInfo.BlockedLabel` "무효")
+  - 피해 함수만 막으므로 같은 스킬의 다른 효과 블록은 그대로 실행된다. 충전은 패시브 발동 조건 `OnOwnTurnStart`(자기 턴 시작 시, `BattleManager.BeginTurn` → `PassiveRunner.HandleOwnTurnStart`)
+  - 아이콘은 충전 블록의 표시 효과를 `UnitView.BuildDisplayedStatuses`가 남은 횟수와 함께 맨 앞에 넣는다
 - 무적(`IsInvulnerable`)은 스테이지 설정으로 정해진다: 피해 0, 승리 판정에서 제외 (무적이 아닌 적 전멸 = 승리)
   - 피해를 막는 판정은 `IsDamageImmune` = 스테이지 무적 또는 "피해 무효" 버프(힐러 3스 무적). 버프 무적은 승리 판정과 무관
 - 소환 (보스 3): `BattleManager.SummonUnit`이 부하를 만들어 편 목록(소환자 왼쪽·오른쪽 번갈아)과 `allUnits`에 넣고 `UnitsSpawned`로 화면(`BattleStageView`)에 알린다
@@ -312,12 +320,13 @@ Assets/_Project/
 
 ### 캐릭터 (10 / 11명)
 - S: 격발 딜러(DotMainAttack), 강탈 딜러(BuffStealAttack), 하이퍼캐리(HyperCarry), 곰인형 버퍼(BearBuffer), 공연 오라 버퍼(Astra), 도발 탱커(TauntTank), 부활 힐러(ReviveHealer)
-- A: 독 서브딜러(DotSubAttack), 치명 버퍼(Ally_Support), 돌파 반응 광역 딜러(GeniusAoE)
+- A: 독 서브딜러(DotSubAttack), 안젤리카(Ally_Support, 치명 버퍼 → 회복 직군으로 테스트 중), 돌파 반응 광역 딜러(GeniusAoE)
 - 수치는 전부 테스트 값
 
 ### 스테이지·적
 - 기본 스테이지 1-1 ~ 1-7: 테스트 적(잡몹·정예·보스)으로 2웨이브 구성
 - 보스 1 축적의 수호자(지금은 `Stage_BuffEnemy` 2웨이브, `Stage_Boss1`은 테스트용): 무적 버프몹 2 + 보스, 축적 해방(광역 + 기절 + 버프 소모)
+- 보스 2 갑각의 거체(`Stage_Boss2`, 보스전 2번째 칸, 2웨이브): HP 2배, 디버프가 없는 턴에 아군 전체 최대 HP 40% 피해
 - 보스 3 군단 지휘관(`Stage_Boss3`, 보스전 3번째 칸, 2웨이브): 등장 때 부하 2마리, 부하(자폭병) 소환·최대 4, 부하가 있는 동안 피해 감소 50%, 부하는 2번째 자기 턴에 자폭(광역 + 기절)
 
 ### 화면
@@ -334,14 +343,13 @@ Assets/_Project/
 > 기획서 1장 개발 순서 기준. 위에 있을수록 먼저 할 것.
 
 ### 전투 (핵심 재미 검증에 필요)
-- A 회복 힐러: 뺄지, 치명 버퍼(Ally_Support)를 힐러로 바꿀지 미정
+- A 회복 힐러: 안젤리카(Ally_Support)를 회복 직군으로 바꿔 테스트 중, 스킬 구성 미정
 - 자동 전투, 배속, 일시정지 (기획서 3-9·3-11)
 - 전투 UI 정식 배치: 현재 행동 캐릭터 패널, 행동 순서 바(초상화), 스킬 이름 알림 (보스 HP바는 구현)
 - 연출 정리: HP 표시를 이펙트 재생에 맞춰 줄이기, 공격 모션(대기·공격·피격·사망) 자리
 - 방어력 관통 (기획서 10장 미정)
 
 ### 보스·스테이지
-- 보스 2 재생하는 거체(지속피해 파티용): 매 턴 회복 + 무효화 보호막 (보호막 방식 미정)
 - 보스 AI를 Unity Behavior 패키지로 교체 (지금은 패턴 목록)
 - 기본 스테이지 정식 적 데이터(스테이지 보스 포함)와 수치, 3분 목표 밸런스
 - 별 미션 3개(사이클 제한 등)와 기록 저장

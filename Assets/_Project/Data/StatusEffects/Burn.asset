@@ -17,6 +17,7 @@ MonoBehaviour:
     \uD53C\uD574\uB97C \uBC1B\uB294\uB2E4"
   category: 1
   stackMode: 0
+  maxStacks: 99
   duration: 3
   features: 2
   damageAttackRatio: 0.6

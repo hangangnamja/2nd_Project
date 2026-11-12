@@ -209,6 +209,17 @@ namespace Game.Battle
             }
         }
 
+        // 턴이 시작될 때 BattleManager가 부른다: 행동하는 유닛의 "자기 턴 시작 시" 패시브를 자신에게 실행한다 (보스 2 피격 무효 충전).
+        public void HandleOwnTurnStart(BattleUnit actor)
+        {
+            if (actor.IsDead)
+            {
+                return;
+            }
+
+            ActivateOwnPassives(actor, PassiveTrigger.OnOwnTurnStart);
+        }
+
         // 정규 턴이 끝날 때 BattleManager가 부른다: 이번 턴에 공격하지 않았으면 "공격하지 않은 턴" 패시브를 발동한다 (아스트라).
         // 공연·기절로 스킵된 턴도 공격하지 않은 턴이다.
         public void HandleOwnTurnEnd(BattleUnit actor)

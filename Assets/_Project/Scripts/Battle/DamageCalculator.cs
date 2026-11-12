@@ -61,6 +61,15 @@ namespace Game.Battle
             return new DamageResult(FinalizeDamage(damage), isCritical);
         }
 
+        // 대상 최대 HP 비례 피해 (보스 2 "디버프가 없는 턴" 공격). 최대 HP × 비율 × 대상 쪽 보정.
+        // 공격력·피해 증가·치명·방어력을 쓰지 않는다 → 아군 레벨·방어력과 상관없이 항상 "최대 HP의 몇 %"가 들어간다.
+        // 받는 피해 증가·피해 감소(대상 쪽)만 적용하므로 피해 감소 버프로는 줄일 수 있다. 보호막은 DealDamage에서 따로 흡수한다.
+        public static DamageResult CalculateTargetMaxHpDamage(BattleUnit target, float maxHpRatio)
+        {
+            double damage = target.MaxHp * (double)maxHpRatio * GetTargetSideMultiplier(target);
+            return new DamageResult(FinalizeDamage(damage), isCritical: false);
+        }
+
         // 지속피해(화상, 독) 1회 피해를 계산한다 (기획서 3-8).
         // 기본 피해(화상 = 공격력 비례, 독 = 대상 최대 HP 비례)는 상태효과 데이터가 정하고,
         // 공격자 쪽은 부여 당시 공격력(스냅샷)만 반영한다. 피해 증가 버프와 치명타는 적용하지 않는다.
@@ -71,9 +80,11 @@ namespace Game.Battle
             int snapshotAttack,
             BattleUnit source,
             BattleUnit target,
-            BattleRulesData rules)
+            BattleRulesData rules,
+            int stacks = 1)
         {
-            double damage = status.GetDamageOverTimeBase(snapshotAttack, target.MaxHp)
+            // stacks: 스택 방식 효과(화상·독)의 쌓인 수. 1스택 기본 피해(독은 상한 포함) × 스택 수 → 상한도 스택에 비례해 커진다.
+            double damage = status.GetDamageOverTimeBase(snapshotAttack, target.MaxHp) * stacks
                 * (1d + source.DamageOverTimeBonus)
                 * GetDefenseMultiplier(source.Level, target, rules)
                 * GetTargetSideMultiplier(target);

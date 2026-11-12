@@ -59,7 +59,8 @@ namespace Game.UI
                 : "버프";
 
             string duration = data.IsPermanent ? "영구" : $"남은 {status.RemainingTurns}턴";
-            return $"<b>{data.DisplayName}</b> ({category} · {duration})";
+            string stacks = data.UsesStackCount ? $" ×{status.Stacks}" : string.Empty;
+            return $"<b>{data.DisplayName}{stacks}</b> ({category} · {duration})";
         }
 
         // 실제 효과를 한 줄씩 붙인다: 지연 버프, 스탯 보정, 지속피해, 보호막, 피해 기록.
@@ -80,7 +81,7 @@ namespace Game.UI
 
             if (data.DamageAttackRatio > 0f)
             {
-                lines.Add($"턴 종료 시 피해 (부여 당시 공격력 {ToPercent(data.DamageAttackRatio)})");
+                lines.Add($"턴 종료 시 피해 (부여 당시 공격력 {ToPercent(data.DamageAttackRatio)}{PerStack(data)})");
             }
 
             if (data.DamageTargetMaxHpRatio > 0f)
@@ -88,7 +89,7 @@ namespace Game.UI
                 string cap = data.MaxHpDamageAttackCap > 0f
                     ? $", 상한 부여자 공격력 {ToPercent(data.MaxHpDamageAttackCap)}"
                     : string.Empty;
-                lines.Add($"턴 종료 시 피해 (최대 HP {ToPercent(data.DamageTargetMaxHpRatio)}{cap})");
+                lines.Add($"턴 종료 시 피해 (최대 HP {ToPercent(data.DamageTargetMaxHpRatio)}{cap}{PerStack(data)})");
             }
 
             if (data.HealsOverTime)
@@ -115,6 +116,12 @@ namespace Game.UI
             {
                 lines.Add($"받은 피해 기록 중: {status.RecordedDamage}");
             }
+        }
+
+        // 스택 효과의 피해 줄 끝에 붙는 글자: 위 수치가 1스택 기준이고 스택 수만큼 곱해진다는 표시.
+        private static string PerStack(StatusEffectData data)
+        {
+            return data.UsesStackCount ? $" × 스택, 최대 {data.MaxStacks}스택" : string.Empty;
         }
 
         // 스탯 보정 한 줄을 글로 만든다. 예: 공격력 +30%, 속도 +10, 방어력 -20%

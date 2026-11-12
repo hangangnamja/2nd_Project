@@ -206,6 +206,14 @@ namespace Game.UI
                 statuses.Insert(0, countdown);
             }
 
+            // 피격 무효(보스 2): 남은 횟수가 있을 때만, 남은 턴 자리에 남은 횟수를 적어 맨 앞에 보여준다.
+            if (Unit.HitBlockCharges > 0 && Unit.HitBlockDisplay != null)
+            {
+                StatusInstance hitBlock = GetDisplayIcon(Unit.HitBlockDisplay);
+                hitBlock.SetRemainingTurnsForDisplay(Unit.HitBlockCharges);
+                statuses.Insert(0, hitBlock);
+            }
+
             return statuses;
         }
 
