@@ -188,13 +188,24 @@ namespace Game.Battle
         {
             SkillData skill = GetSelectedSkill();
 
-            // 쓰러졌거나 퇴장한 유닛은 고를 수 없다.
-            if (skill == null || unit == null || !unit.IsOnField)
+            if (skill == null || unit == null)
             {
                 return false;
             }
 
             bool isOpponent = unit.IsAlly != CurrentActor.IsAlly;
+
+            // 쓰러진 아군도 고를 수 있는 스킬(부활): 퇴장하지 않은 아군이면 살아 있든 쓰러졌든 고를 수 있다.
+            if (skill.TargetType == SkillTargetType.AllySingleOrFallen)
+            {
+                return !isOpponent && !unit.IsExited;
+            }
+
+            // 그 외 스킬은 쓰러졌거나 퇴장한 유닛을 고를 수 없다.
+            if (!unit.IsOnField)
+            {
+                return false;
+            }
 
             switch (skill.TargetType)
             {
@@ -233,6 +244,7 @@ namespace Game.Battle
             return skill != null
                 && (skill.TargetType == SkillTargetType.EnemySingle
                     || skill.TargetType == SkillTargetType.AllySingle
+                    || skill.TargetType == SkillTargetType.AllySingleOrFallen
                     || skill.TargetType == SkillTargetType.EnemyBlast);
         }
 
@@ -793,6 +805,7 @@ namespace Game.Battle
                 case SkillTargetType.Self:
                     return new List<BattleUnit> { caster };
                 case SkillTargetType.AllySingle:
+                case SkillTargetType.AllySingleOrFallen:
                     // ?? caster: 고른 대상이 없으면(적 AI) 자기 자신에게 쓴다.
                     return new List<BattleUnit> { chosenTarget ?? caster };
                 case SkillTargetType.EnemyBlast:

@@ -172,16 +172,18 @@ namespace Game.Battle
             ActivateOwnPassives(receiver, PassiveTrigger.OnBuffGained);
         }
 
-        // 사망 확정: 처치한 유닛의 "처치 시" 패시브를 자신에게 실행한다 (강탈 딜러 추격).
-        // killer가 null이면(피해 없이 쓰러짐) 반응할 유닛이 없다. 처치자가 이미 쓰러졌어도 반응하지 않는다.
+        // 사망 확정: 처치한 유닛의 "처치 시" 패시브(강탈 딜러 추격)를 먼저 실행하고,
+        // 그다음 쓰러진 유닛 본인의 "자신이 쓰러졌을 때" 패시브(힐러 자가 부활)를 실행한다.
+        // 처치 반응이 먼저인 이유: 부활해도 "처치했다"는 사실은 그대로라 처치 보상은 그대로 받는다 (기획서 3-9).
+        // killer가 null이면(피해 없이 쓰러짐) 처치 반응은 없다. 처치자가 이미 쓰러졌어도 반응하지 않는다.
         private void HandleUnitKilled(BattleUnit victim, BattleUnit killer)
         {
-            if (killer == null || killer.IsDead)
+            if (killer != null && !killer.IsDead)
             {
-                return;
+                ActivateOwnPassives(killer, PassiveTrigger.OnKill);
             }
 
-            ActivateOwnPassives(killer, PassiveTrigger.OnKill);
+            ActivateOwnPassives(victim, PassiveTrigger.OnOwnDeath);
         }
 
         // owner가 가진 패시브 중 trigger와 맞는 것을 자기 자신을 대상으로 발동한다.

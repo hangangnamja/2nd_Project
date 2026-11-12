@@ -1,0 +1,125 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0cf10047d4cbc1d4a9d1cde009aa4d18, type: 3}
+  m_Name: ReviveHealer
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.CharacterData
+  id: ReviveHealer
+  displayName: "\uD53C\uB2C9\uC2A4"
+  role: 3
+  grade: 0
+  illustration: {fileID: 21300000, guid: b1b0a620357f42349be150153f058d01, type: 3}
+  maxHp: 1100
+  attack: 85
+  defense: 55
+  baseSpeed: 105
+  critRate: 0.05
+  critDamage: 0.5
+  skill1:
+    skillName: "\uD3C9\uD0C0"
+    targetType: 0
+    cooldown: 0
+    startCooldown: 0
+    effects:
+    - rid: 7605779598317453436
+    - rid: 7605779598317453437
+  skill2:
+    skillName: "\uCE58\uC720\uC758 \uC190\uAE38"
+    targetType: 3
+    cooldown: 3
+    startCooldown: 0
+    effects:
+    - rid: 7605779598317453438
+    - rid: 7605779598317453439
+    - rid: 7605779598317453440
+  skill3:
+    skillName: "\uAE30\uC801"
+    targetType: 6
+    cooldown: 6
+    startCooldown: 0
+    effects:
+    - rid: 7605779598317453441
+    - rid: 7605779598317453442
+    - rid: 7605779598317453443
+  passives:
+  - passiveName: "\uB418\uC0B4\uC544\uB098\uB294 \uBE5B"
+    trigger: 11
+    execution: 0
+    maxTriggersPerTurn: 0
+    turnLimitScope: 0
+    maxTriggersPerBattle: 1
+    inactiveWhileTransformed: 0
+    maxStacks: 0
+    stacksPerOwnAction: 0
+    stackCostPerTrigger: 0
+    stacksGainedPerTrigger: 0
+    hpThreshold: 0.01
+    requiredStatus: {fileID: 0}
+    tauntDisplay: {fileID: 0}
+    auraModifiers: []
+    effects:
+    - rid: 7605779598317453444
+    - rid: 7605779598317453445
+  references:
+    version: 2
+    RefIds:
+    - rid: 7605779598317453436
+      type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        multiplier: 1
+        secondaryMultiplier: 1
+    - rid: 7605779598317453437
+      type: {class: HealEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        scaleStat: 2
+        ratio: 0.1
+        healCaster: 0
+        healAllAllies: 1
+    - rid: 7605779598317453438
+      type: {class: HealEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        scaleStat: 2
+        ratio: 0.25
+        healCaster: 0
+        healAllAllies: 0
+    - rid: 7605779598317453439
+      type: {class: ShieldEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        shieldStatus: {fileID: 11400000, guid: 55d9beca8519a794ea4ca80275f15c29, type: 2}
+        scaleStat: 0
+        maxHpRatio: 0.2
+    - rid: 7605779598317453440
+      type: {class: RemoveDebuffsEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        removeAll: 1
+    - rid: 7605779598317453441
+      type: {class: ReviveEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        hpRatio: 0.5
+    - rid: 7605779598317453442
+      type: {class: RemoveDebuffsEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        removeAll: 1
+    - rid: 7605779598317453443
+      type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        status: {fileID: 11400000, guid: 53e97d957ac27864ba531ea059d0f6c1, type: 2}
+        count: 1
+        applyToAllAllies: 0
+    - rid: 7605779598317453444
+      type: {class: ReviveEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        hpRatio: 0.5
+    - rid: 7605779598317453445
+      type: {class: ActionAdvanceEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        ratio: 0.5
+        targetCaster: 1

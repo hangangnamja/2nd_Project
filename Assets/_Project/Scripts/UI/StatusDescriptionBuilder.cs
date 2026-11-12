@@ -101,6 +101,11 @@ namespace Game.UI
                 lines.Add($"보호막 {status.ShieldAmount} 남음");
             }
 
+            if (data.BlocksAllDamage)
+            {
+                lines.Add("모든 피해 무효");
+            }
+
             if (data.GrantsDebuffImmunity)
             {
                 lines.Add("새로 걸리는 디버프 면역");

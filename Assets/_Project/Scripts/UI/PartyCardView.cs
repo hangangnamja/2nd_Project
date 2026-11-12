@@ -126,7 +126,9 @@ namespace Game.UI
             button.interactable = isTargetable;
 
             // 쓰러졌거나 퇴장했으면 반투명하게 (alpha 0.35).
-            group.alpha = Unit.IsDead || Unit.IsExited ? 0.35f : 1f;
+            // 쓰러졌어도 부활 스킬로 고를 수 있으면 덜 흐리게(0.75) 해서 누를 수 있는 카드임을 보여준다.
+            bool isFaded = Unit.IsDead || Unit.IsExited;
+            group.alpha = !isFaded ? 1f : isTargetable ? 0.75f : 0.35f;
         }
 
         // HP바와 보호막을 그린다.

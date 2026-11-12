@@ -262,6 +262,29 @@ namespace Game.Battle
         // 무적인 적은 승리 조건(적 전멸)에서도 빠진다 → 보스만 쓰러뜨리면 클리어.
         public bool IsInvulnerable { get; private set; }
 
+        // 지금 피해를 받지 않는지: 스테이지 무적(버프몹) 또는 "피해 무효" 효과가 든 버프(힐러 3스 무적 1턴).
+        // 버프로 얻은 무적은 피해만 막고 승리 조건에서는 빠지지 않는다 → 승리 판정은 IsInvulnerable(스테이지 설정)만 본다.
+        public bool IsDamageImmune
+        {
+            get
+            {
+                if (IsInvulnerable)
+                {
+                    return true;
+                }
+
+                foreach (StatusInstance buff in Statuses.Buffs)
+                {
+                    if (buff.Data.BlocksAllDamage)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+        }
+
         // 무적으로 만든다. 전투 시작 때 스테이지 설정을 보고 BattleManager가 호출한다.
         public void MakeInvulnerable()
         {
@@ -284,6 +307,27 @@ namespace Game.Battle
             }
 
             IsDead = true;
+            return true;
+        }
+
+        // 쓰러진 유닛을 부활시킨다 (기획서 3-9 부활 규칙). 쓰러지지 않았으면 아무것도 하지 않고 false.
+        //  - HP: 최대 HP × hpRatio (최소 1). 예: 최대 HP 8000 × 0.5 = 4000
+        //  - 버프·디버프: 쓰러질 때 모두 사라진 것으로 보고 비운다 (알림 없음)
+        //  - 쿨타임·패시브 스택: 그대로 유지
+        //  - 행동 게이지: 처음부터 (남은 거리 10000). 패시브의 게이지 증가는 부활 뒤 따로 당긴다
+        public bool Revive(float hpRatio)
+        {
+            if (!IsDead)
+            {
+                return false;
+            }
+
+            IsDead = false;
+            Statuses.Clear();
+
+            // Math.Max(1, …): 비율이 아주 작아도 HP 0으로 부활해 바로 다시 쓰러지는 일이 없게 한다.
+            CurrentHp = Math.Max(1, (int)(MaxHp * (double)hpRatio));
+            RemainingDistance = TurnScheduler.TrackLength;
             return true;
         }
 

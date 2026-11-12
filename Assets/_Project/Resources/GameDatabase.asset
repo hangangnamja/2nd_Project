@@ -23,6 +23,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: ef06f3ccc980448b918f05c06d11706f, type: 2}
   - {fileID: 11400000, guid: 949da07b8335206448fa0d45cd8f41a2, type: 2}
   - {fileID: 11400000, guid: 09fbca6237897b84b972a5c5fd4730db, type: 2}
+  - {fileID: 11400000, guid: d7f2fc6a3e14d234ba76e8b3e4c9823c, type: 2}
   stageCatalog: {fileID: 11400000, guid: ab03e04c1f72e714a80ef2ac02e39394, type: 2}
   gachaRules: {fileID: 11400000, guid: 9b3a483ca766a0549a9e6812deac2db3, type: 2}
   weapons:

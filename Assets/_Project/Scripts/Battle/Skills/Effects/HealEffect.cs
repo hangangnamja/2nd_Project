@@ -39,7 +39,7 @@ namespace Game.Battle.Effects
         [Label("아군 전체 회복")]
         [SerializeField] private bool healAllAllies;
 
-        // 대상마다 회복량을 계산해 적용한다. HP가 0인 대상은 회복하지 않는다 (게임에 부활 없음).
+        // 대상마다 회복량을 계산해 적용한다. HP가 0인 대상은 회복하지 않는다 (부활은 부활 블록만 한다).
         // 사망 확정 전(같은 공격 안에서 HP 0)이라도 회복하면 사실상 부활이 되므로 IsDown으로 막는다.
         public override void Apply(SkillContext context)
         {

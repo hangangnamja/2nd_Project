@@ -40,6 +40,9 @@ namespace Game.UI
         // 이번 장면에서 화면에 세운 유닛 캡슐. 나머지는 숨긴다 (쓰러짐·퇴장도 숨김).
         private readonly HashSet<UnitView> staged = new HashSet<UnitView>();
 
+        // 편 전원이 한 줄로 설 때(TeamLine) 쓰러진 아군이 서 있던 빈자리. 부활 스킬로 고를 수 있을 때만 흐리게 보인다.
+        private readonly HashSet<UnitView> fallenSlots = new HashSet<UnitView>();
+
         // 마지막으로 세운 장면. 웨이브가 바뀌어 적 캡슐을 새로 만들면 같은 장면으로 다시 세운다.
         private StageLayout currentLayout = StageLayout.Overview;
         private BattleUnit currentActor;
@@ -102,6 +105,7 @@ namespace Game.UI
             currentLayout = layout;
             currentActor = actor;
             staged.Clear();
+            fallenSlots.Clear();
 
             switch (layout)
             {
@@ -110,7 +114,8 @@ namespace Game.UI
                     break;
                 case StageLayout.TeamLine:
                     // ?? true: 행동 유닛이 없으면 아군 줄을 세운다.
-                    StageLine(GetSide(actor?.IsAlly ?? true), Vector3.zero, teamLineSpacing, faceCamera: true, cameraInFront: true);
+                    // 쓰러진 아군도 자기 자리를 지켜 빈자리로 남긴다 → 부활 스킬을 고르면 그 자리를 눌러 대상으로 고를 수 있다.
+                    StageLine(GetSide(actor?.IsAlly ?? true), Vector3.zero, teamLineSpacing, faceCamera: true, cameraInFront: true, keepFallenSlots: true);
                     break;
                 default:
                     StageLine(GetSide(isAlly: true), Vector3.zero, teamLineSpacing, faceCamera: false, cameraInFront: false);
@@ -137,10 +142,13 @@ namespace Game.UI
         // 한쪽 편 유닛들을 center를 가운데로 가로 한 줄로 세운다 (편성 0번이 화면 왼쪽).
         // faceCamera: 원점 쪽(-z)을 보게 할지. cameraInFront: 카메라가 줄 앞(+z)에서 -z를 보는 장면인지(TeamLine).
         // 쓰러지거나 퇴장한 유닛은 빼고 남은 유닛끼리 가운데 정렬한다.
-        private void StageLine(List<UnitView> side, Vector3 center, float spacing, bool faceCamera, bool cameraInFront)
+        // keepFallenSlots: 쓰러진 유닛도 줄에 자리를 남긴다 (fallenSlots에 넣어 두고, 보일지는 RefreshAll이 정함).
+        private void StageLine(List<UnitView> side, Vector3 center, float spacing, bool faceCamera, bool cameraInFront, bool keepFallenSlots = false)
         {
-            // FindAll(조건): 화면에 세울 수 있는(살아 있고 퇴장하지 않은) 유닛만 모은다.
-            List<UnitView> standing = side.FindAll(view => view.Unit.IsOnField);
+            // FindAll(조건): 화면에 세울 유닛을 모은다. 기본은 살아 있고 퇴장하지 않은 유닛,
+            // keepFallenSlots면 쓰러진 유닛도 포함한다 (퇴장한 유닛은 언제나 뺀다).
+            List<UnitView> standing = side.FindAll(view =>
+                view.Unit.IsOnField || (keepFallenSlots && view.Unit.IsDead && !view.Unit.IsExited));
 
             // Quaternion.Euler(0, 180, 0): y축으로 반 바퀴 → -z(카메라·행동 유닛 쪽)를 바라본다.
             Quaternion facing = faceCamera ? Quaternion.Euler(0f, 180f, 0f) : Quaternion.identity;
@@ -153,6 +161,11 @@ namespace Game.UI
                 // 가운데 정렬: (i - (인원 - 1) / 2) × 간격 → 인원이 몇 명이든 줄의 가운데가 center.
                 float x = (i - (standing.Count - 1) * 0.5f) * spacing * direction;
                 Place(standing[i], center + new Vector3(x, 0f, 0f), facing);
+
+                if (standing[i].Unit.IsDead)
+                {
+                    fallenSlots.Add(standing[i]);
+                }
             }
         }
 
@@ -186,7 +199,14 @@ namespace Game.UI
             {
                 // SetActive(false): 오브젝트를 끄면 그려지지 않고 콜라이더도 꺼져 클릭 대상에서도 빠진다.
                 // 쓰러진 유닛은 이번 장면에 세웠더라도 그 공격의 연출이 끝난 뒤 다음 장면부터 빠진다 (사망 이펙트가 보이도록 지금은 둔다).
-                bool isVisible = staged.Contains(view) && !view.Unit.IsExited;
+                // 플레이어 입력을 기다리는 중일 때만, 선택된 스킬로 고를 수 있는 유닛을 강조한다.
+                bool isTargetable = battleManager.IsWaitingForPlayer && battleManager.IsValidTarget(view.Unit);
+
+                // 쓰러진 아군의 빈자리는 지금 고른 스킬로 고를 수 있을 때(부활)만 보인다.
+                // 부활해 살아났으면 빈자리가 아니므로 일반 유닛처럼 보인다.
+                bool isHiddenFallenSlot = fallenSlots.Contains(view) && view.Unit.IsDead && !isTargetable;
+
+                bool isVisible = staged.Contains(view) && !view.Unit.IsExited && !isHiddenFallenSlot;
                 view.gameObject.SetActive(isVisible);
                 if (!isVisible)
                 {
@@ -194,9 +214,6 @@ namespace Game.UI
                 }
 
                 bool isActing = view.Unit == battleManager.CurrentActor;
-
-                // 플레이어 입력을 기다리는 중일 때만, 선택된 스킬로 고를 수 있는 유닛을 강조한다.
-                bool isTargetable = battleManager.IsWaitingForPlayer && battleManager.IsValidTarget(view.Unit);
                 view.Refresh(isActing, isTargetable);
             }
         }

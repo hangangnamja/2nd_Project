@@ -47,6 +47,10 @@ namespace Game.Data
         // 상시: 이 캐릭터에게 보호막이 있는 동안 "시선집중" (도발 탱커). 사건에 반응하지 않으므로 효과 목록·실행 방식은 쓰지 않는다.
         // 시선집중 중에는 상대의 단일·확산 공격이 이 캐릭터만 노린다. 버프 칸이 아니라 아이콘만 표시한다 (표시용 효과).
         [InspectorName("보호막이 있는 동안 시선집중 (상시)")] TauntWhileShielded,
+
+        // 이 캐릭터의 사망이 확정된 직후 (처치 반응 다음). 효과 대상 = 자신. 힐러 자가 부활: 부활 + 행동 게이지 증가
+        // 부활처럼 결과를 크게 바꾸므로 반드시 전투당 횟수 제한(1회)을 둔다.
+        [InspectorName("자신이 쓰러졌을 때")] OnOwnDeath,
     }
 
     // 턴당 횟수 제한을 어느 턴 기준으로 세는지.
@@ -106,7 +110,7 @@ namespace Game.Data
 
         // 스택: 정해진 때에 쌓이고, 발동할 때 소모된다. 스택이 모자라면 발동하지 않는다.
         // 예: 격발 딜러 패시브 2 = 자기 행동마다 1개(최대 2개), 발동 시 1개 소모
-        [Header("스택 (0이면 스택 없이 발동)")]
+        // 스택 (0이면 스택 없이 발동) (PassiveDataDrawer가 발동 조건에 맞을 때만 이 칸을 보여준다)
         [Tooltip("최대 스택 수. 0이면 스택을 쓰지 않는다")]
         [Label("최대 스택", Min = 0f)]
         [SerializeField] private int maxStacks;
@@ -124,22 +128,22 @@ namespace Game.Data
         [Label("발동마다 얻는 스택", Min = 0f)]
         [SerializeField] private int stacksGainedPerTrigger;
 
-        [Header("HP 돌파 (발동 조건이 '적 HP 기준선 돌파 시'일 때만)")]
+        // HP 돌파 (발동 조건이 '적 HP 기준선 돌파 시'일 때만) (PassiveDataDrawer가 발동 조건에 맞을 때만 이 칸을 보여준다)
         [Tooltip("적 HP가 최대 HP의 이 비율 초과에서 이하로 내려갈 때 1회 쌓인다 (0.5 = 50%)")]
         [Label("HP 기준선", Min = 0.01f, Max = 1f)]
         [SerializeField] private float hpThreshold = 0.5f;
 
-        [Header("필요한 상태효과 (발동 조건이 '상태효과 걸린 적이 아군에게 맞을 때'일 때만)")]
+        // 필요한 상태효과 (발동 조건이 '상태효과 걸린 적이 아군에게 맞을 때'일 때만) (PassiveDataDrawer가 발동 조건에 맞을 때만 이 칸을 보여준다)
         [Tooltip("맞은 적에게 이 상태효과가 걸려 있을 때만 발동한다 (같은 에셋인지로 판단)")]
         [Label("필요한 상태효과")]
         [SerializeField] private StatusEffectData requiredStatus;
 
-        [Header("시선집중 (발동 조건이 '보호막이 있는 동안 시선집중'일 때만)")]
+        // 시선집중 (발동 조건이 '보호막이 있는 동안 시선집중'일 때만) (PassiveDataDrawer가 발동 조건에 맞을 때만 이 칸을 보여준다)
         [Tooltip("시선집중 중 머리 위·초상화 카드에 보여줄 표시용 효과 (버프 칸을 쓰지 않음, 아이콘·툴팁용)")]
         [Label("표시 효과")]
         [SerializeField] private StatusEffectData tauntDisplay;
 
-        [Header("오라 (발동 조건이 '오라 (상시)'일 때만)")]
+        // 오라 (발동 조건이 '오라 (상시)'일 때만) (PassiveDataDrawer가 발동 조건에 맞을 때만 이 칸을 보여준다)
         [Tooltip("아군 전원(자신 포함)에게 적용할 스탯 보정. 예: 지속피해 증가 +20%")]
         [SerializeField] private List<StatModifier> auraModifiers = new List<StatModifier>();
 

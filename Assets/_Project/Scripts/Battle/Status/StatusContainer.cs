@@ -74,6 +74,39 @@ namespace Game.Battle.Status
             return removed;
         }
 
+        // 버프·디버프를 모두 비운다 (부활: 쓰러질 때 걸려 있던 효과는 모두 사라진 것으로 본다, 기획서 3-9).
+        // "지워짐" 알림을 보내지 않는다 → 사망으로 사라진 효과처럼 지연 버프 변환·곰인형 패시브가 반응하지 않는다.
+        public void Clear()
+        {
+            buffs.Clear();
+            debuffs.Clear();
+        }
+
+        // 디버프를 하나(가장 최근에 걸린 것) 또는 전부 칸에서 빼고, 뺀 목록을 돌려준다 (디버프 제거 블록).
+        // 가장 최근 것: 디버프 목록은 걸린 순서대로 쌓이므로 맨 끝이 가장 최근이다.
+        public List<StatusInstance> RemoveDebuffs(bool removeAll)
+        {
+            var removed = new List<StatusInstance>();
+            if (debuffs.Count == 0)
+            {
+                return removed;
+            }
+
+            if (removeAll)
+            {
+                removed.AddRange(debuffs);
+                debuffs.Clear();
+            }
+            else
+            {
+                StatusInstance latest = debuffs[debuffs.Count - 1];
+                debuffs.RemoveAt(debuffs.Count - 1);
+                removed.Add(latest);
+            }
+
+            return removed;
+        }
+
         // 특정 효과 하나를 칸에서 뺀다 (반격 태세처럼 쓰고 나면 사라지는 효과). 실제로 있었으면 true.
         public bool RemoveInstance(StatusInstance instance)
         {
