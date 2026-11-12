@@ -91,6 +91,7 @@ MonoBehaviour:
     threshold: 0
     skillNumber: 1
     target: 0
+  isBoss: 1
   countdownDisplay: {fileID: 0}
   countdownTurns: 2
   references:

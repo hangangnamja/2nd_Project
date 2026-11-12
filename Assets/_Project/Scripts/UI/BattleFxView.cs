@@ -138,9 +138,23 @@ namespace Game.UI
         //  - 광역기로 적 3명이 맞음 → 한 박자에 동시 재생
         //  - 같은 적이 화상 3개로 3번 맞음 → 박자 3개로 하나씩 재생 (발동 횟수가 보이도록)
         //  - 타격 뒤 버프 → 종류가 달라 다음 박자 (발동 순서가 보이도록)
+        //  - 한 스킬이 같은 유닛에게 버프 여러 개 → 한 박자, 버프 이름을 한 글자 묶음으로 합침 (니콜 3스 치명 확률·가속, 수나 3스 4개)
         private void Enqueue(FxEntry entry)
         {
             List<FxEntry> last = beats.Count > 0 ? beats[beats.Count - 1] : null;
+
+            // 버프는 효과마다 하나씩 따로 보여주면 같은 스킬의 버프가 박자를 나눠 따로따로 떠서 느리다 → 같은 유닛의 버프 글자에 이어 붙인다.
+            // FindIndex(조건): 조건이 맞는 첫 원소의 위치, 없으면 -1.
+            if (last != null && last[0].Kind == FxKind.Buff && entry.Kind == FxKind.Buff)
+            {
+                int sameUnit = last.FindIndex(other => other.Unit == entry.Unit);
+                if (sameUnit >= 0)
+                {
+                    FxEntry merged = last[sameUnit];
+                    last[sameUnit] = new FxEntry(FxKind.Buff, merged.Unit, buffName: $"{merged.BuffName}\n{entry.BuffName}");
+                    return;
+                }
+            }
 
             // Exists(조건): 조건(람다식)이 true인 원소가 하나라도 있으면 true → 이미 그 유닛의 연출이 있는 박자인지 확인
             bool canJoin = last != null

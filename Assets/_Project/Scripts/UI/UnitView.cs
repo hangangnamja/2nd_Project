@@ -95,7 +95,16 @@ namespace Game.UI
             // URP Lit 셰이더는 기본 색(_BaseColor)을 material.color로 바꿀 수 있다.
             bodyRenderer.material.color = PickColor(isActing);
 
-            statusBar.Show(BuildDisplayedStatuses());
+            // 아군은 화면 아래 초상화 카드(PartyCardView), 보스는 상단 보스 HP바(BossHpBarView)에서 버프·디버프를 보여주므로
+            // 머리 위 줄을 끈다. 나머지 적만 머리 위에 표시.
+            // 패턴 매칭 is: 데이터가 EnemyCharacterData이고 보스 표시가 켜져 있으면 보스.
+            bool isBoss = Unit.Data is EnemyCharacterData enemyData && enemyData.IsBoss;
+            bool showsOverhead = !Unit.IsAlly && !isBoss;
+            statusBar.gameObject.SetActive(showsOverhead);
+            if (showsOverhead)
+            {
+                statusBar.Show(BuildDisplayedStatuses());
+            }
             ShowTargetRing(isTargetable);
         }
 
