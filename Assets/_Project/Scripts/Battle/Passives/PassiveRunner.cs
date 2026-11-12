@@ -198,6 +198,17 @@ namespace Game.Battle
             }
         }
 
+        // 유닛들이 전장에 등장했을 때 BattleManager가 부른다 (전투 시작은 전원, 웨이브 시작은 새 적).
+        // 각 유닛의 "등장 시" 패시브를 자신에게 실행한다 (군단 지휘관의 시작 부하 소환).
+        // entered는 호출하는 쪽이 복사해 넘긴 목록이다 → 등장 효과가 부하를 소환해 원래 편 목록이 늘어나도 순회가 깨지지 않는다.
+        public void HandleUnitsEntered(IReadOnlyList<BattleUnit> entered)
+        {
+            foreach (BattleUnit unit in entered)
+            {
+                ActivateOwnPassives(unit, PassiveTrigger.OnEnter);
+            }
+        }
+
         // 정규 턴이 끝날 때 BattleManager가 부른다: 이번 턴에 공격하지 않았으면 "공격하지 않은 턴" 패시브를 발동한다 (아스트라).
         // 공연·기절로 스킵된 턴도 공격하지 않은 턴이다.
         public void HandleOwnTurnEnd(BattleUnit actor)

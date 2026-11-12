@@ -51,8 +51,22 @@ namespace Game.UI
         // 기간 오라(공연) 표시용 인스턴스. 오라도 버프 칸이 아니라 머리 위 표시에만 쓴다.
         private StatusInstance auraIcon;
 
-        // 시선집중 표시용 인스턴스. 시선집중은 버프 칸이 아니라 "보호막이 있는 동안"의 상태라 표시만 따로 한다.
-        private StatusInstance tauntIcon;
+        // 상시 패시브·자폭 카운트다운 표시용 인스턴스 (표시 효과 데이터마다 하나). 버프 칸이 아니라 표시만 따로 한다.
+        // 같은 표시를 다시 만들지 않아야 툴팁이 갱신마다 바뀌지 않는다.
+        private readonly Dictionary<StatusEffectData, StatusInstance> displayIcons = new Dictionary<StatusEffectData, StatusInstance>();
+
+        // 표시 효과 데이터에 맞는 표시용 인스턴스를 꺼낸다. 처음이면 만들어 둔다.
+        private StatusInstance GetDisplayIcon(StatusEffectData display)
+        {
+            // TryGetValue: 이미 만든 인스턴스가 있으면 icon에 담고 true.
+            if (!displayIcons.TryGetValue(display, out StatusInstance icon))
+            {
+                icon = new StatusInstance(display, Unit, appliedOrder: 0);
+                displayIcons[display] = icon;
+            }
+
+            return icon;
+        }
 
         // 이 뷰가 표시할 전투 유닛을 연결한다. 생성 직후 BattleStageView가 한 번 호출한다.
         public void Bind(BattleUnit unit)
@@ -162,16 +176,25 @@ namespace Game.UI
                 statuses.Insert(0, auraIcon);
             }
 
-            // 시선집중 중(보호막이 있는 동안): 패시브의 표시용 효과를 맨 앞에 보여준다. 보호막이 깨지면 바로 사라진다.
-            StatusEffectData tauntDisplay = Unit.IsTaunting ? Unit.TauntPassive.TauntDisplay : null;
-            if (tauntDisplay != null)
+            // 조건이 맞아 켜진 상시 패시브(시선집중, 부하가 있는 동안 피해 감소): 표시용 효과를 맨 앞에 보여준다.
+            // 조건이 꺼지면(보호막 깨짐, 부하 전멸) 다음 갱신에서 바로 사라진다.
+            foreach (PassiveData passive in Unit.GetActiveConditionalPassives())
             {
-                if (tauntIcon == null || tauntIcon.Data != tauntDisplay)
+                StatusEffectData display = passive.DisplayStatus;
+                if (display != null)
                 {
-                    tauntIcon = new StatusInstance(tauntDisplay, Unit, appliedOrder: 0);
+                    statuses.Insert(0, GetDisplayIcon(display));
                 }
+            }
 
-                statuses.Insert(0, tauntIcon);
+            // 자폭 카운트다운(부하): 남은 턴 = 자폭하는 자기 턴 번호 - 지금까지 시작한 자기 턴 수. 예: 2번째 턴에 자폭, 1턴 지남 → 1
+            if (Unit.Data is EnemyCharacterData enemyData && enemyData.CountdownDisplay != null)
+            {
+                StatusInstance countdown = GetDisplayIcon(enemyData.CountdownDisplay);
+
+                // Math.Max(1, …): 자폭하는 턴에도 0이 아니라 1로 보여 "이번 턴에 터짐"을 나타낸다.
+                countdown.SetRemainingTurnsForDisplay(System.Math.Max(1, enemyData.CountdownTurns - Unit.OwnTurnsTaken));
+                statuses.Insert(0, countdown);
             }
 
             return statuses;

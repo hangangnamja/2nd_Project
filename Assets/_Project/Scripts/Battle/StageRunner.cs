@@ -35,11 +35,12 @@ namespace Game.Battle
 
         // 현재 웨이브가 끝났는지: 쓰러뜨려야 하는 적(무적이 아닌 적)이 모두 쓰러졌을 때.
         // 무적인 적(보스 스테이지 버프몹)은 죽일 수 없으므로 조건에서 뺀다 → 보스만 쓰러뜨리면 웨이브 클리어.
+        // 전투 중 소환된 부하도 뺀다 (군단 지휘관: 보스만 잡으면 클리어).
         public static bool IsWaveCleared(IReadOnlyList<BattleUnit> enemies)
         {
             foreach (BattleUnit enemy in enemies)
             {
-                if (!enemy.IsInvulnerable && !enemy.IsDead)
+                if (!enemy.IsInvulnerable && !enemy.IsSummon && !enemy.IsDead)
                 {
                     return false;
                 }

@@ -109,6 +109,13 @@ namespace Game.Battle.Status
             AppliedOrder = appliedOrder;
         }
 
+        // 표시 전용 인스턴스(칸에 넣지 않는 아이콘)의 남은 턴 숫자를 정한다. 예: 부하 자폭 카운트다운.
+        // 상태효과 칸에 걸린 실제 효과에는 쓰지 않는다 (만료 처리가 꼬이므로).
+        public void SetRemainingTurnsForDisplay(int turns)
+        {
+            RemainingTurns = turns;
+        }
+
         // 갱신형 효과를 다시 걸었을 때 남은 턴을 처음 값으로 되돌린다.
         // 부여 순서도 새로 매겨, 밀어내기 판정에서 "방금 걸린 효과"로 취급되게 한다.
         public void Refresh(long appliedOrder)

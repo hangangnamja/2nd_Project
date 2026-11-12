@@ -1,0 +1,115 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e992233e7e3770a46b319cf2760de460, type: 3}
+  m_Name: Boss3_Commander
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.EnemyCharacterData
+  id: Boss3_Commander
+  displayName: "\uAD70\uB2E8 \uC9C0\uD718\uAD00"
+  role: 1
+  grade: 0
+  illustration: {fileID: 0}
+  maxHp: 12500
+  attack: 296
+  defense: 48
+  baseSpeed: 100
+  critRate: 0.05
+  critDamage: 0.5
+  skill1:
+    skillName: "\uC9C0\uD718\uBD09 \uAC15\uD0C0"
+    targetType: 0
+    cooldown: 0
+    startCooldown: 0
+    effects:
+    - rid: 7605779598317453486
+  skill2:
+    skillName: "\uBD80\uD558 \uC18C\uD658"
+    targetType: 2
+    cooldown: 2
+    startCooldown: 1
+    effects:
+    - rid: 7605779598317453487
+  skill3:
+    skillName: "\uC5C6\uC74C"
+    targetType: 0
+    cooldown: 0
+    startCooldown: 0
+    effects: []
+  passives:
+  - passiveName: "\uC9C0\uD718"
+    trigger: 12
+    execution: 0
+    maxTriggersPerTurn: 0
+    turnLimitScope: 0
+    maxTriggersPerBattle: 0
+    inactiveWhileTransformed: 0
+    maxStacks: 0
+    stacksPerOwnAction: 0
+    stackCostPerTrigger: 0
+    stacksGainedPerTrigger: 0
+    hpThreshold: 0
+    requiredStatus: {fileID: 0}
+    tauntDisplay: {fileID: 11400000, guid: 7463562ef1d178d4dae4eeaa21069482, type: 2}
+    auraModifiers:
+    - stat: 7
+      percent: 0.5
+      flat: 0
+    effects: []
+  - passiveName: "\uAD70\uB2E8 \uC9D1\uACB0"
+    trigger: 13
+    execution: 0
+    maxTriggersPerTurn: 0
+    turnLimitScope: 0
+    maxTriggersPerBattle: 1
+    inactiveWhileTransformed: 0
+    maxStacks: 0
+    stacksPerOwnAction: 0
+    stackCostPerTrigger: 0
+    stacksGainedPerTrigger: 0
+    hpThreshold: 0
+    requiredStatus: {fileID: 0}
+    tauntDisplay: {fileID: 0}
+    auraModifiers: []
+    effects:
+    - rid: 7605779598317453500
+  patterns:
+  - patternName: "\uBD80\uD558 4\uB9C8\uB9AC \uBBF8\uB9CC \u2192 \uC18C\uD658"
+    condition: 3
+    threshold: 4
+    skillNumber: 2
+    target: 0
+  - patternName: "\uD3C9\uC18C \uB2E8\uC77C \uACF5\uACA9"
+    condition: 0
+    threshold: 0
+    skillNumber: 1
+    target: 0
+  countdownDisplay: {fileID: 0}
+  countdownTurns: 2
+  references:
+    version: 2
+    RefIds:
+    - rid: 7605779598317453486
+      type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        multiplier: 1
+        secondaryMultiplier: 1
+    - rid: 7605779598317453487
+      type: {class: SummonEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        summonData: {fileID: 11400000, guid: fd7f0b24c28cd4043a639f34baef9764, type: 2}
+        count: 2
+        maxOnField: 4
+    - rid: 7605779598317453500
+      type: {class: SummonEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        summonData: {fileID: 11400000, guid: fd7f0b24c28cd4043a639f34baef9764, type: 2}
+        count: 2
+        maxOnField: 4

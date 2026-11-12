@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e7ea1fe386d9a7468a3d5897f0a5561, type: 3}
+  m_Name: CommanderGuard
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StatusEffectData
+  displayName: "\uC9C0\uD718"
+  description: "\uBD80\uD558\uAC00 \uD55C \uB9C8\uB9AC\uB77C\uB3C4 \uC788\uB294 \uB3D9\uC548
+    \uBC1B\uB294 \uD53C\uD574\uAC00 50% \uAC10\uC18C\uD55C\uB2E4"
+  category: 0
+  stackMode: 1
+  duration: 1
+  features: 0
+  damageAttackRatio: 0
+  damageTargetMaxHpRatio: 0
+  maxHpDamageAttackCap: 0
+  healSourceMaxHpRatio: 0
+  statModifiers: []
+  icon: {fileID: 2800000, guid: d5d5994e94544bc584147b36ca99d6ef, type: 3}
+  isPersonal: 1
+  isPermanent: 1
+  convertsTo: {fileID: 0}

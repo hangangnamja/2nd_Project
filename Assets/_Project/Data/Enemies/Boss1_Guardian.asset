@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.EnemyCharacterData
   displayName: "\uCD95\uC801\uC758 \uC218\uD638\uC790"
   role: 1
-  maxHp: 4986
+  maxHp: 12500
   attack: 296
   defense: 48
   baseSpeed: 90

@@ -28,6 +28,10 @@ namespace Game.Battle
         // "다른 스킬 사용" 블록처럼 효과 안에서 다른 스킬의 대상을 다시 정해야 할 때 쓴다 (대상 결정 규칙을 한 곳에 두기 위해 함수를 넘겨받음).
         public Func<BattleUnit, SkillTargetType, BattleUnit, System.Collections.Generic.List<BattleUnit>> ResolveTargets { get; }
 
+        // 부하를 소환하는 함수 (BattleManager.SummonUnit). Func<소환자, 부하 데이터, 만든 유닛>.
+        // 전투 유닛 목록·화면 갱신은 BattleManager가 맡으므로 소환 블록은 이 함수만 부른다. 생성자 뒤에 BattleManager가 연결한다.
+        public Func<BattleUnit, CharacterData, BattleUnit> Summon { get; set; }
+
         // 전투 시작 시 BattleManager가 한 번 만든다.
         // units는 BattleManager의 유닛 목록을 그대로 참조하므로, 유닛을 나중에 채워 넣어도 최신 목록을 본다.
         public BattleServices(

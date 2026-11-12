@@ -22,3 +22,5 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 8203e269e566e1d4191268f9146aa83f, type: 2}
   bossStages:
   - {fileID: 11400000, guid: 7de1e41aa274baa49bc9d6623f21b631, type: 2}
+  - {fileID: 0}
+  - {fileID: 11400000, guid: 99d971f1fc660a04292ab568122e406c, type: 2}

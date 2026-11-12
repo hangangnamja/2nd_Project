@@ -621,12 +621,33 @@ namespace Game.Battle
             }
         }
 
-        // 상태효과 칸 밖의 보정을 꺼낸다: 살아 있는 같은 편의 오라 패시브 + 경계 스탯 보정.
+        // 상태효과 칸 밖의 보정을 꺼낸다: 살아 있는 같은 편의 오라 패시브 + 경계 스탯 보정 + 부하가 있는 동안의 자기 보정.
         private System.Collections.Generic.IEnumerable<StatModifier> GetNonStatusModifiers(StatType stat)
         {
             foreach (StatModifier modifier in GetAuraModifiers(stat))
             {
                 yield return modifier;
+            }
+
+            // "소환한 부하가 있는 동안" 패시브: 부하가 한 마리라도 전장에 있으면 자신에게만 보정을 건다 (군단 지휘관 피해 감소 50%).
+            // 부하 수와 상관없이 같은 값이다. 버프 칸이 아니므로 강탈되지 않는다.
+            if (!IsDead && CountLivingSummons() > 0)
+            {
+                foreach (PassiveData passive in Data.Passives)
+                {
+                    if (passive.Trigger != PassiveTrigger.WhileSummonsAlive)
+                    {
+                        continue;
+                    }
+
+                    foreach (StatModifier modifier in passive.AuraModifiers)
+                    {
+                        if (modifier.Stat == stat)
+                        {
+                            yield return modifier;
+                        }
+                    }
+                }
             }
 
             // 경계를 펼친 동안 경계 스탯 보정(공격력·방어력·최대 HP 증가)도 함께 적용한다.
@@ -742,6 +763,64 @@ namespace Game.Battle
         public void BeginOwnTurn()
         {
             IsTakingTurn = true;
+            OwnTurnsTaken++;
+        }
+
+        // 이 유닛이 지금까지 시작한 자기 턴 수 (지금 턴 포함, 추가 턴도 1로 셈).
+        // 적 패턴 "자기 턴 N번째 이상"(부하 자폭)과 자폭 카운트다운 표시에 쓴다.
+        public int OwnTurnsTaken { get; private set; }
+
+        // ---------- 소환 (보스 3 군단 지휘관) ----------
+
+        // 이 유닛을 소환한 유닛. 스테이지에서 처음부터 나온 유닛이면 null.
+        public BattleUnit Summoner { get; private set; }
+
+        // 전투 중 소환된 부하인지. 부하는 승리 조건(무적이 아닌 적 전멸)에서 빠진다 → 보스만 쓰러뜨리면 클리어.
+        public bool IsSummon => Summoner != null;
+
+        // 소환한 유닛을 기록한다. BattleManager가 부하를 만들 때 한 번 호출한다.
+        public void MarkAsSummon(BattleUnit summoner)
+        {
+            Summoner = summoner;
+        }
+
+        // 처치가 아닌 방식으로 전장에서 사라진다 (부하 자폭, 소환한 보스가 쓰러질 때 함께 퇴장).
+        // 사망 확정(ConfirmDeathIfDown)을 거치지 않으므로 처치 사건이 나가지 않는다 → 강탈 딜러 추격 같은 처치 반응이 없다.
+        public void Vanish()
+        {
+            CurrentHp = 0;
+            IsDead = true;
+        }
+
+        // 이 유닛이 소환한 부하 중 전장에 남은 수. 소환 상한·"부하가 있는 동안" 패시브에 쓴다.
+        public int CountLivingSummons()
+        {
+            int count = 0;
+            foreach (BattleUnit unit in team)
+            {
+                if (unit.Summoner == this && unit.IsOnField)
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
+        // 지금 조건이 맞아 켜져 있는 상시 패시브 (시선집중, 부하가 있는 동안 보정). 머리 위 표시 아이콘에 쓴다.
+        public System.Collections.Generic.IEnumerable<PassiveData> GetActiveConditionalPassives()
+        {
+            foreach (PassiveData passive in Data.Passives)
+            {
+                bool isActive = passive.Trigger == PassiveTrigger.TauntWhileShielded ? IsTaunting
+                    : passive.Trigger == PassiveTrigger.WhileSummonsAlive && !IsDead && CountLivingSummons() > 0;
+
+                if (isActive)
+                {
+                    // yield return: 목록을 한꺼번에 만들지 않고, 조건에 맞는 패시브를 하나씩 돌려준다.
+                    yield return passive;
+                }
+            }
         }
 
         // 자기 턴 종료(게이지 리셋 이후)를 표시하고, 보류해 둔 행동 당기기를 적용한다.

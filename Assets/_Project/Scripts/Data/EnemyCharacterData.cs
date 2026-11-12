@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Game.Core;
 using UnityEngine;
 
 namespace Game.Data
@@ -13,6 +14,19 @@ namespace Game.Data
         [Header("행동 패턴 (위에서부터 확인, 조건이 맞는 첫 패턴 실행)")]
         [SerializeField] private List<EnemyPattern> patterns = new List<EnemyPattern>();
 
+        // 자폭 카운트다운 표시 (부하): 머리 위에 "몇 턴 뒤 무언가 한다"를 남은 턴 숫자로 보여 준다. 비우면 표시 안 함.
+        // 실제 행동은 패턴(자기 턴 N번째 이상)이 정하고, 이 칸은 표시만 한다 → 패턴의 N과 같은 값을 넣는다.
+        [Header("카운트다운 표시 (선택)")]
+        [Tooltip("머리 위에 남은 턴과 함께 보여줄 표시용 효과 (예: 자폭 준비). 비우면 표시 안 함")]
+        [Label("표시 효과")]
+        [SerializeField] private StatusEffectData countdownDisplay;
+
+        [Tooltip("몇 번째 자기 턴에 행동하는지 (패턴의 '자기 턴 N번째 이상'과 같은 값)")]
+        [Label("행동하는 자기 턴", Min = 1f)]
+        [SerializeField] private int countdownTurns = 2;
+
         public IReadOnlyList<EnemyPattern> Patterns => patterns;
+        public StatusEffectData CountdownDisplay => countdownDisplay;
+        public int CountdownTurns => countdownTurns;
     }
 }

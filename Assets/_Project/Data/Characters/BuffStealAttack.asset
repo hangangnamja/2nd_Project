@@ -42,10 +42,11 @@ MonoBehaviour:
     skillName: "\uC77C\uACA9"
     targetType: 0
     cooldown: 3
-    startCooldown: 0
+    startCooldown: 1
     effects:
     - rid: 7605779530016096342
     - rid: 7605779530016096343
+    - rid: 7605779598317453519
   passives:
   - passiveName: "\uBC84\uD504 \uAC00\uC18D"
     trigger: 3
@@ -60,6 +61,7 @@ MonoBehaviour:
     stacksGainedPerTrigger: 0
     hpThreshold: 0.5
     requiredStatus: {fileID: 0}
+    tauntDisplay: {fileID: 0}
     auraModifiers: []
     effects:
     - rid: 7605779530016096344
@@ -76,6 +78,7 @@ MonoBehaviour:
     stacksGainedPerTrigger: 0
     hpThreshold: 0.5
     requiredStatus: {fileID: 0}
+    tauntDisplay: {fileID: 0}
     auraModifiers: []
     effects:
     - rid: 7605779530016096345
@@ -114,3 +117,6 @@ MonoBehaviour:
         status: {fileID: 11400000, guid: 16f47f7ec3b41064692a6ffba791443b, type: 2}
         count: 1
         applyToAllAllies: 0
+    - rid: 7605779598317453519
+      type: {class: StealBuffsEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data: 

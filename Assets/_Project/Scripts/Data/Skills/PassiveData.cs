@@ -51,6 +51,14 @@ namespace Game.Data
         // 이 캐릭터의 사망이 확정된 직후 (처치 반응 다음). 효과 대상 = 자신. 힐러 자가 부활: 부활 + 행동 게이지 증가
         // 부활처럼 결과를 크게 바꾸므로 반드시 전투당 횟수 제한(1회)을 둔다.
         [InspectorName("자신이 쓰러졌을 때")] OnOwnDeath,
+
+        // 상시: 이 캐릭터가 소환한 부하가 한 마리라도 전장에 있는 동안 자신에게 "오라 스탯 보정" 칸의 보정을 건다.
+        // 부하 수와 상관없이 같은 값. 군단 지휘관: 부하가 있는 동안 받는 피해 50% 감소. 표시 효과가 있으면 아이콘을 띄운다.
+        [InspectorName("소환한 부하가 있는 동안 (상시)")] WhileSummonsAlive,
+
+        // 이 캐릭터가 전장에 등장할 때 1번 (전투 시작, 또는 자기 웨이브가 시작될 때). 효과 대상 = 자신.
+        // 군단 지휘관: 등장하면서 부하 2마리를 소환 → 부하를 데리고 시작한다. 전투 중 소환된 부하에게는 발동하지 않는다.
+        [InspectorName("등장 시 (전투·웨이브 시작)")] OnEnter,
     }
 
     // 턴당 횟수 제한을 어느 턴 기준으로 세는지.
@@ -139,7 +147,8 @@ namespace Game.Data
         [SerializeField] private StatusEffectData requiredStatus;
 
         // 시선집중 (발동 조건이 '보호막이 있는 동안 시선집중'일 때만) (PassiveDataDrawer가 발동 조건에 맞을 때만 이 칸을 보여준다)
-        [Tooltip("시선집중 중 머리 위·초상화 카드에 보여줄 표시용 효과 (버프 칸을 쓰지 않음, 아이콘·툴팁용)")]
+        // 필드 이름(tauntDisplay)은 에셋에 저장된 이름이라 그대로 두고, 상시 패시브 공용 표시 효과로 쓴다.
+        [Tooltip("상시 패시브가 켜져 있는 동안 머리 위·초상화 카드에 보여줄 표시용 효과 (버프 칸을 쓰지 않음, 아이콘·툴팁용). 시선집중·부하가 있는 동안 패시브에서 쓴다")]
         [Label("표시 효과")]
         [SerializeField] private StatusEffectData tauntDisplay;
 
@@ -165,7 +174,7 @@ namespace Game.Data
         public int StacksGainedPerTrigger => stacksGainedPerTrigger;
         public StatusEffectData RequiredStatus => requiredStatus;
         public float HpThreshold => hpThreshold;
-        public StatusEffectData TauntDisplay => tauntDisplay;
+        public StatusEffectData DisplayStatus => tauntDisplay;
         public IReadOnlyList<StatModifier> AuraModifiers => auraModifiers;
         public IReadOnlyList<SkillEffect> Effects => effects;
     }

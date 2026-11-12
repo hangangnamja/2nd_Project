@@ -119,7 +119,7 @@ CharacterData (SO 에셋 1개)
 | 회복·보호 | 부활 (`ReviveEffect`) | 쓰러진 대상을 최대 HP × 비율로 부활 (`BattleUnit.Revive`). 살아 있는 대상은 건너뜀 | 부활 힐러 3스·패시브 |
 | 상태효과 | 디버프 제거 (`RemoveDebuffsEffect`) | 대상 디버프를 전부 또는 가장 최근 1개 제거 | 부활 힐러 2스·3스 |
 | 상태효과 | 상태효과 부여 (`ApplyStatusEffect`) | 상태효과를 개수만큼 부여. 아군 전체 옵션 | 화상·독·버프 부여 전반 |
-| 상태효과 | 버프 강탈 (`StealBuffsEffect`) | 대상 버프 전부 즉시 제거, 턴 종료 단계에 시전자가 획득 | 강탈 딜러 2스 |
+| 상태효과 | 버프 강탈 (`StealBuffsEffect`) | 대상 버프 전부 즉시 제거, 턴 종료 단계에 시전자가 획득 | 강탈 딜러 2스·3스 (3스는 버프 전부 소모 뒤) |
 | 상태효과 | 버프 전부 소모 (`ConsumeAllBuffsEffect`) | 시전자 버프 전부 삭제 | 강탈 딜러 3스, 축적 해방 |
 | 턴·행동 | 행동 당기기 (`ActionAdvanceEffect`) | 행동 게이지를 비율만큼 당김. 시전자 자신 옵션 | 니콜 패시브(자신) |
 | 턴·행동 | 추가 턴 (`GrantExtraTurnEffect`) | 이번 턴이 끝난 뒤 한 번 더 행동 (같은 턴 중복은 1회) | - |
@@ -130,6 +130,8 @@ CharacterData (SO 에셋 1개)
 | 변신·전장 | 변신 (`TransformEffect`) | 시전자 변신 (스킬 교체, 턴 제한·종결기는 변신 설정) | 하이퍼캐리 3스 |
 | 변신·전장 | 아군 퇴장 (`ExitAlliesEffect`) | 시전자 외 아군 퇴장, 변신 해제·사망 때 복귀 | 하이퍼캐리 3스 |
 | 변신·전장 | 경계: 고립 (`IsolationBoundaryEffect`) | 스탯 보정 + 행동 제어 면역 경계 (경계는 한 번에 하나) | 하이퍼캐리 3스 |
+| 변신·전장 | 부하 소환 (`SummonEffect`) | 시전자 편에 부하를 소환 (`BattleServices.Summon` → `BattleManager.SummonUnit`). 시전자가 소환한 부하는 최대 수까지 | 군단 지휘관 2스 |
+| 변신·전장 | 자폭 (사라짐) (`SelfDestructEffect`) | 시전자가 처치가 아닌 방식으로 사라짐 (`BattleUnit.Vanish`). 효과 목록 맨 끝에 둠 | 자폭병 2스 |
 | 변신·전장 | 기간 오라 (`StartAuraEffect`) | 정해진 턴 동안 같은 편 전원 스탯 보정 오라, 주인 턴 스킵 옵션 | 아스트라 3스 공연 |
 
 ---
@@ -233,6 +235,14 @@ UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
   - `BattleManager`가 변신 해제·사망 확정 직후 `Boundaries.CheckEnd()`를 불러 끝날 조건을 확인한다
 - 무적(`IsInvulnerable`)은 스테이지 설정으로 정해진다: 피해 0, 승리 판정에서 제외 (무적이 아닌 적 전멸 = 승리)
   - 피해를 막는 판정은 `IsDamageImmune` = 스테이지 무적 또는 "피해 무효" 버프(힐러 3스 무적). 버프 무적은 승리 판정과 무관
+- 소환 (보스 3): `BattleManager.SummonUnit`이 부하를 만들어 편 목록(소환자 왼쪽·오른쪽 번갈아)과 `allUnits`에 넣고 `UnitsSpawned`로 화면(`BattleStageView`)에 알린다
+  - 부하는 `BattleUnit.Summoner`를 가져 `IsSummon` → 승리 조건(`StageRunner.IsWaveCleared`)에서 빠지고, 소환자가 쓰러지면 `ConfirmDeaths`에서 함께 `Vanish`
+  - `Vanish`는 처치 사건 없이 사라지는 처리 (자폭·함께 퇴장). 자기 턴 중에 사라진 유닛은 턴 종료의 지속피해·남은 턴 처리를 건너뛴다
+  - 패시브 발동 조건 `WhileSummonsAlive`(상시): 소환한 부하가 있는 동안 "오라 스탯 보정" 칸을 자신에게만 적용 (`GetNonStatusModifiers`)
+  - 패시브 발동 조건 `OnEnter`(등장 시): 전투 시작(전원)·웨이브 시작(새 적) 때 `PassiveRunner.HandleUnitsEntered`가 실행 → 시작 부하 소환. 화면 캡슐을 만들기 전에 실행해 부하가 처음부터 자리에 선다
+  - 적 패턴 조건 `OwnTurnAtLeast`(자기 턴 N번째 이상, `BattleUnit.OwnTurnsTaken`)·`SummonsBelow`(소환한 부하 N마리 미만)
+  - 카운트다운 아이콘: `EnemyCharacterData`의 표시 효과·행동 턴으로 `UnitView`가 남은 턴(행동 턴 - 지난 자기 턴)을 그린다
+- 상시 패시브 아이콘: `BattleUnit.GetActiveConditionalPassives`(시선집중·부하가 있는 동안)의 표시 효과(`PassiveData.DisplayStatus`)를 `UnitView`가 맨 앞에 넣는다
 - 부활 (기획서 3-9): `BattleUnit.Revive`가 `IsDead`를 풀고 HP·상태효과(비움)·남은 거리(10000)를 정한다. 쿨타임·스택은 유지
   - 자가 부활은 패시브 발동 조건 `OnOwnDeath`: `ConfirmDeaths`의 처치 사건 → `PassiveRunner`가 처치자 반응 다음에 쓰러진 본인의 패시브를 실행
   - 쓰러진 아군을 고르는 대상 규칙 `AllySingleOrFallen`: `IsValidTarget`이 퇴장하지 않은 아군이면 쓰러졌어도 허용
@@ -304,9 +314,10 @@ Assets/_Project/
 ### 스테이지·적
 - 기본 스테이지 1-1 ~ 1-7: 테스트 적(잡몹·정예·보스)으로 2웨이브 구성
 - 보스 1 축적의 수호자(지금은 `Stage_BuffEnemy` 2웨이브, `Stage_Boss1`은 테스트용): 무적 버프몹 2 + 보스, 축적 해방(광역 + 기절 + 버프 소모)
+- 보스 3 군단 지휘관(`Stage_Boss3`, 보스전 3번째 칸, 2웨이브): 등장 때 부하 2마리, 부하(자폭병) 소환·최대 4, 부하가 있는 동안 피해 감소 50%, 부하는 2번째 자기 턴에 자폭(광역 + 기절)
 
 ### 화면
-- 전투 HUD: 웨이브·사이클, 스킬 버튼·쿨타임, 대상 선택, 행동 순서 목록(임시 세로 목록), 상태효과 아이콘·툴팁, 전투 로그
+- 전투 HUD: 웨이브·사이클, 스킬 버튼·쿨타임, 대상 선택, 행동 순서 목록(임시 세로 목록), 상태효과 아이콘·툴팁 (전투 로그는 화면에서 숨김, 콘솔에만)
 - 전투 임시 연출: 타격·치명·지속피해·회복·버프 이펙트 + 피해 숫자, 행동 단위로 순서대로 재생 (3장 "연출 재생")
 - 로비: 메인 화면(출격·모집·인벤토리 연결), 스테이지 선택(지도·보스 탭·상세 패널), 편성(4칸·보유 목록·저장)
 - 인벤토리: 무기·재료 탭, 정렬, 상세 패널, 일괄 분해(등급 선택), 무기 칸 200·자동 분해, 세이브 버전 2
@@ -327,7 +338,6 @@ Assets/_Project/
 
 ### 보스·스테이지
 - 보스 2 재생하는 거체(지속피해 파티용): 매 턴 회복 + 무효화 보호막 (보호막 방식 미정)
-- 보스 3 군단 지휘관(하이퍼캐리 파티용): 부하 소환(웨이브 교체 처리 재사용), 부하 생존 시 피해 감소
 - 보스 AI를 Unity Behavior 패키지로 교체 (지금은 패턴 목록)
 - 기본 스테이지 정식 적 데이터(스테이지 보스 포함)와 수치, 3분 목표 밸런스
 - 별 미션 3개(사이클 제한 등)와 기록 저장

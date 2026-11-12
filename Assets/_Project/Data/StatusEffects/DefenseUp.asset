@@ -16,7 +16,7 @@ MonoBehaviour:
   description: "\uBC29\uC5B4\uB825\uC774 50% \uC99D\uAC00\uD55C\uB2E4"
   category: 0
   stackMode: 1
-  duration: 2
+  duration: 3
   features: 1
   damageAttackRatio: 0
   damageTargetMaxHpRatio: 0
