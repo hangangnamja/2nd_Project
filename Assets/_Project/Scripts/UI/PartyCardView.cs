@@ -179,7 +179,8 @@ namespace Game.UI
         }
 
         // 한 줄: 앞에서부터 칸 수만큼 아이콘을 채우고, 남는 효과가 있으면 "…"을 켠다.
-        private static void ShowRow(List<StatusInstance> statuses, List<StatusSlot> slots, GameObject moreMark, Color color)
+        // 보스 HP바(BossHpBarView)도 같은 칸 구조로 버프·디버프 줄을 그리므로 public으로 연다.
+        public static void ShowRow(List<StatusInstance> statuses, List<StatusSlot> slots, GameObject moreMark, Color color)
         {
             for (int i = 0; i < slots.Count; i++)
             {

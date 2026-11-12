@@ -14,6 +14,13 @@ namespace Game.Data
         [Header("행동 패턴 (위에서부터 확인, 조건이 맞는 첫 패턴 실행)")]
         [SerializeField] private List<EnemyPattern> patterns = new List<EnemyPattern>();
 
+        // 보스면 전투 화면 위쪽 가운데에 큰 HP바·버프 줄(BossHpBarView)로 보여준다 (기획서 3-11).
+        [Tooltip("체크하면 전투 화면 상단에 보스 HP바로 표시한다")]
+        [Label("보스 (상단 HP바)")]
+        [SerializeField] private bool isBoss;
+
+        public bool IsBoss => isBoss;
+
         // 자폭 카운트다운 표시 (부하): 머리 위에 "몇 턴 뒤 무언가 한다"를 남은 턴 숫자로 보여 준다. 비우면 표시 안 함.
         // 실제 행동은 패턴(자기 턴 N번째 이상)이 정하고, 이 칸은 표시만 한다 → 패턴의 N과 같은 값을 넣는다.
         [Header("카운트다운 표시 (선택)")]

@@ -12,8 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e992233e7e3770a46b319cf2760de460, type: 3}
   m_Name: Boss1_Guardian
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.EnemyCharacterData
+  id: 
   displayName: "\uCD95\uC801\uC758 \uC218\uD638\uC790"
   role: 1
+  grade: 1
+  illustration: {fileID: 0}
   maxHp: 12500
   attack: 296
   defense: 48
@@ -55,6 +58,9 @@ MonoBehaviour:
     threshold: 0
     skillNumber: 1
     target: 0
+  isBoss: 1
+  countdownDisplay: {fileID: 0}
+  countdownTurns: 2
   references:
     version: 2
     RefIds:
@@ -78,6 +84,7 @@ MonoBehaviour:
       data:
         status: {fileID: 11400000, guid: f1fa4cf29ade1b34e899309dd9fcb892, type: 2}
         count: 1
+        applyToAllAllies: 0
     - rid: 7605779530016096614
       type: {class: ConsumeAllBuffsEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data: 
