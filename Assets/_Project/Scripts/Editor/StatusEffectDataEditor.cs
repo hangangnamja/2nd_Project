@@ -36,6 +36,12 @@ namespace Game.EditorTools
             if (IsDebuff())
             {
                 Draw("stackMode");
+
+                // 스택 방식(enumValueIndex 2 = StackCount)일 때만 최대 스택 칸을 보여준다.
+                if (serializedObject.FindProperty("stackMode").enumValueIndex == (int)StatusStackMode.StackCount)
+                {
+                    Draw("maxStacks");
+                }
             }
 
             Draw("duration");

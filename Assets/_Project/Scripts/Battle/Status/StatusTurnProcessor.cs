@@ -53,7 +53,7 @@ namespace Game.Battle.Status
         }
 
         // 걸려 있는 지속피해 효과를 하나씩 1회 발동시키고, 발동한 개수를 돌려준다.
-        // 중첩된 화상 3개면 3번 피해를 받는다. 턴 종료 처리와 격발이 함께 쓴다.
+        // 칸 하나 = 1번 발동: 스택 방식 화상 ×5는 1번에 5스택분 피해, 칸마다 걸린 효과(중첩 방식)는 칸 수만큼. 턴 종료 처리와 격발이 함께 쓴다.
         // logPrefix: 로그 앞에 붙일 표시 (격발이면 "[격발] ")
         public static int TriggerDamageOverTime(BattleUnit unit, BattleServices services, string logPrefix)
         {
@@ -79,13 +79,15 @@ namespace Game.Battle.Status
                     instance.SnapshotAttack,
                     instance.Source,
                     unit,
-                    services.Rules);
+                    services.Rules,
+                    instance.Stacks);
 
                 // 지속피해의 처치자는 그 효과를 건 유닛으로 본다. 보호막이 있으면 먼저 흡수한다.
                 int dealt = StatusApplier.DealDamage(unit, damage, instance.Source, services, out int absorbed, isDamageOverTime: true);
                 triggeredCount++;
                 string shieldText = absorbed > 0 ? $" (보호막 {absorbed} 흡수)" : string.Empty;
-                services.Log($"  {logPrefix}{unit.Name}: {data.DisplayName} {dealt} 피해{shieldText} (HP {unit.CurrentHp}/{unit.MaxHp})");
+                string stackText = data.UsesStackCount ? $" ×{instance.Stacks}" : string.Empty;
+                services.Log($"  {logPrefix}{unit.Name}: {data.DisplayName}{stackText} {dealt} 피해{shieldText} (HP {unit.CurrentHp}/{unit.MaxHp})");
             }
 
             return triggeredCount;

@@ -199,7 +199,8 @@ namespace Game.UI
 
                 // 개인 버프(경계·오라 표시 등)는 검은 그림, 나머지는 흰 그림 (머리 위 상태효과 줄과 같은 규칙).
                 slot.glyph.color = data.IsPersonal ? Color.black : Color.white;
-                slot.turns.text = data.IsPermanent ? string.Empty : statuses[i].RemainingTurns.ToString();
+                // 남은 턴 (스택 효과는 "×스택").
+                slot.turns.text = statuses[i].IconText;
             }
 
             moreMark.SetActive(statuses.Count > slots.Count);

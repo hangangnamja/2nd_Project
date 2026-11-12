@@ -57,6 +57,10 @@ MonoBehaviour:
     maxStacks: 0
     stacksPerOwnAction: 0
     stackCostPerTrigger: 1
+    stacksGainedPerTrigger: 0
+    hpThreshold: 0.5
+    requiredStatus: {fileID: 0}
+    tauntDisplay: {fileID: 0}
     auraModifiers: []
     effects:
     - rid: 7605779465967763817
@@ -70,10 +74,14 @@ MonoBehaviour:
     maxStacks: 2
     stacksPerOwnAction: 1
     stackCostPerTrigger: 1
+    stacksGainedPerTrigger: 0
+    hpThreshold: 0.5
+    requiredStatus: {fileID: 0}
+    tauntDisplay: {fileID: 0}
     auraModifiers: []
     effects:
     - rid: 7605779465967763934
-    - rid: 7605779465967763935
+    - rid: 7605779598317453581
   references:
     version: 2
     RefIds:
@@ -87,6 +95,7 @@ MonoBehaviour:
       data:
         status: {fileID: 11400000, guid: d5f4a9fc67ebae341881825b057d391d, type: 2}
         count: 1
+        applyToAllAllies: 0
     - rid: 7605779465967763912
       type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
@@ -97,6 +106,7 @@ MonoBehaviour:
       data:
         status: {fileID: 11400000, guid: d5f4a9fc67ebae341881825b057d391d, type: 2}
         count: 1
+        applyToAllAllies: 0
     - rid: 7605779465967763914
       type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
@@ -110,6 +120,6 @@ MonoBehaviour:
       data:
         multiplier: 0.5
         secondaryMultiplier: 0.5
-    - rid: 7605779465967763935
+    - rid: 7605779598317453581
       type: {class: DetonateEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data: 

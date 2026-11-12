@@ -14,11 +14,16 @@ namespace Game.Data
     // 같은 효과를 다시 걸었을 때의 처리 방식 (기획서 3-7).
     public enum StatusStackMode
     {
-        // 걸 때마다 새 인스턴스가 칸을 하나씩 차지한다 (화상, 독).
-        Stack,
+        // 걸 때마다 새 인스턴스가 칸을 하나씩 차지한다.
+        [InspectorName("중첩 (걸 때마다 새 칸)")] Stack,
 
         // 이미 걸려 있으면 새로 추가하지 않고 남은 턴만 처음 값으로 되돌린다.
-        Refresh,
+        [InspectorName("갱신")] Refresh,
+
+        // 스택: 1칸에 모아 걸 때마다 스택 +1(최대 스택까지), 남은 턴은 처음 값으로 되돌린다 (화상, 독).
+        // 스택마다 턴을 따로 세지 않으므로 남은 턴이 끝나면 스택이 한꺼번에 사라진다. 지속피해는 1스택 피해 × 스택 수.
+        // 에셋에는 숫자 순서로 저장되므로 새 방식은 맨 뒤에 추가한다.
+        [InspectorName("스택 (1칸에 숫자로 쌓임)")] StackCount,
     }
 
     // 상태효과가 가진 효과 종류. 여러 개를 함께 고를 수 있다 (예: 스탯 보정 + 행동 불가).
@@ -56,6 +61,9 @@ namespace Game.Data
         [SerializeField] private StatusCategory category = StatusCategory.Debuff;
         [Tooltip("디버프 전용. 버프는 같은 버프끼리 중첩되지 않으므로 이 값과 관계없이 항상 갱신형이다")]
         [SerializeField] private StatusStackMode stackMode = StatusStackMode.Stack;
+
+        [Tooltip("스택 방식일 때 쌓을 수 있는 최대 스택 (화상·독 = 99)")]
+        [SerializeField, Min(1)] private int maxStacks = 99;
 
         [Tooltip("지속 턴 수 (효과를 가진 유닛의 자기 턴 기준)")]
         [SerializeField, Min(1)] private int duration = 3;
@@ -107,6 +115,10 @@ namespace Game.Data
         public StatusCategory Category => category;
         public StatusStackMode StackMode => stackMode;
         public int Duration => duration;
+        public int MaxStacks => maxStacks;
+
+        // 1칸에 스택으로 쌓이는 디버프인지 (버프는 항상 갱신형이라 해당 없음).
+        public bool UsesStackCount => category == StatusCategory.Debuff && stackMode == StatusStackMode.StackCount;
         public Texture2D Icon => icon;
         public StatusFeatures Features => features;
 

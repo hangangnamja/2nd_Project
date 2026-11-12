@@ -58,10 +58,13 @@ MonoBehaviour:
     maxStacks: 0
     stacksPerOwnAction: 0
     stackCostPerTrigger: 0
+    stacksGainedPerTrigger: 0
     hpThreshold: 0.5
+    requiredStatus: {fileID: 0}
+    tauntDisplay: {fileID: 0}
     auraModifiers:
     - stat: 8
-      percent: 0.2
+      percent: 0.3
       flat: 0
     effects: []
   references:

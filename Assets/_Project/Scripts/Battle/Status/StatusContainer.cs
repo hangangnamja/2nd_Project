@@ -26,6 +26,17 @@ namespace Game.Battle.Status
         {
             List<StatusInstance> slots = GetSlots(data.Category);
 
+            // 스택 방식(화상·독): 이미 걸려 있으면 칸을 더 쓰지 않고 그 칸의 스택만 +1, 남은 턴은 처음 값으로.
+            if (data.UsesStackCount)
+            {
+                StatusInstance stacked = FindByData(slots, data);
+                if (stacked != null)
+                {
+                    stacked.AddStack(source, nextAppliedOrder++);
+                    return new StatusAddResult(stacked, isNew: false, pushedOut: null);
+                }
+            }
+
             if (IsRefreshOnly(data))
             {
                 StatusInstance existing = FindByData(slots, data);

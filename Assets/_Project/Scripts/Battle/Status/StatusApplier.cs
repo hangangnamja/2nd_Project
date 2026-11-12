@@ -129,6 +129,18 @@ namespace Game.Battle.Status
                 return 0;
             }
 
+            // 피격 무효(보스 2): 남은 횟수가 있으면 이 피해 1번을 0으로 만들고 1회 줄인다.
+            // 지속피해 1개 발동, 격발로 터지는 지속피해 1개, 광역기의 대상 1명분이 각각 1회 → 타수가 많은 지속피해 파티가 빨리 벗긴다.
+            // 피해만 막는다: 이 함수는 피해만 다루므로, 같은 스킬의 화상 부여·강탈 같은 효과 블록은 그대로 들어간다.
+            // 보호막·피해 기록·HP 돌파 사건도 건드리지 않는다 (맞은 피해가 없으므로).
+            if (target.TryConsumeHitBlock())
+            {
+                absorbed = 0;
+                services.Log($"  {target.Name}: 피격 무효 (남은 {target.HitBlockCharges}회)");
+                services.Events.RaiseDamageTaken(new DamageTakenInfo(target, 0, 0, isCritical, isDamageOverTime, isBlocked: true, blockedLabel: "무효"));
+                return 0;
+            }
+
             RecordDamageTaken(target, amount);
 
             var broken = new List<StatusInstance>();

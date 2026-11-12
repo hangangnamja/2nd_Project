@@ -237,7 +237,7 @@ namespace Game.UI
             if (damage.IsBlocked)
             {
                 SpawnEffect(hitFx, basePosition);
-                SpawnPopup(basePosition, "무적", blockedColor, 0.8f);
+                SpawnPopup(basePosition, damage.BlockedLabel, blockedColor, 0.8f);
                 return;
             }
 

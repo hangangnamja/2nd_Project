@@ -114,7 +114,7 @@ namespace Game.UI
             }
 
             // 영구 표시(무적 등)는 남은 턴이 없으므로 숫자를 비운다.
-            icon.TurnText.text = status.Data.IsPermanent ? string.Empty : status.RemainingTurns.ToString();
+            icon.TurnText.text = status.IconText;
         }
 
         // 필요한 개수만큼 블럭이 준비되어 있도록 부족한 만큼 새로 만든다.

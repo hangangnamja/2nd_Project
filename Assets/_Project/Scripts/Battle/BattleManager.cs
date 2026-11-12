@@ -345,6 +345,9 @@ namespace Game.Battle
             // 자기 턴 표시: 이 턴 중에 얻은 행동 당기기는 턴 종료 리셋 뒤로 미뤄진다 (기획서 4-3 강탈 딜러 패시브 1).
             CurrentActor.BeginOwnTurn();
 
+            // "자기 턴 시작 시" 패시브 (보스 2 피격 무효 충전). 턴당 횟수 초기화 뒤라 매 턴 발동할 수 있다.
+            passiveRunner.HandleOwnTurnStart(CurrentActor);
+
             // 변신 중인 유닛이 속도로 차례를 얻으면, 그 턴은 정규 턴이 아니라 엑스트라 턴이다 (기획서 4-3).
             // 엑스트라 턴을 1 세고, 턴 종료 때 버프·디버프 남은 턴을 줄이지 않는다.
             // 변신 3스를 쓴 턴은 변신 전에 시작했으므로 세지 않는다 → 변신 후 엑스트라 턴을 제한 횟수만큼 온전히 쓴다.
@@ -663,6 +666,10 @@ namespace Game.Battle
                 case PatternCondition.SummonsBelow:
                     // 소환한 부하가 기준 수 미만일 때만 소환한다 → 가득 차 있으면 다음 패턴(공격)으로 넘어간다.
                     return enemy.CountLivingSummons() < pattern.Threshold;
+                case PatternCondition.SelfDebuffCountBelow:
+                    // Statuses.Debuffs.Count: 자신에게 걸린 디버프 칸 수. 기준 1이면 "디버프가 하나도 없을 때"만 참.
+                    // 행동을 고르는 시점(턴 시작)에 확인하므로, 지속피해는 아직 발동 전이라 걸려 있는 그대로 센다.
+                    return enemy.Statuses.Debuffs.Count < pattern.Threshold;
                 default:
                     return true;
             }

@@ -148,6 +148,35 @@ namespace Game.Battle
         // ?.: 보호막이 없으면(null) 양을 읽지 않고 null → ?? 0으로 0을 돌려준다.
         public int ShieldAmount => Statuses.FindShield()?.ShieldAmount ?? 0;
 
+        // ---------- 피격 무효 (보스 2, 기획서 6장) ----------
+
+        // 남은 피격 무효 횟수. 0보다 크면 다음 피해 1번을 0으로 바꾸고 1 줄어든다.
+        // 버프 칸이 아니라 유닛이 직접 들고 있는 값이라 강탈·소모·디버프 제거·만료로 없어지지 않는다.
+        public int HitBlockCharges { get; private set; }
+
+        // 피격 무효를 머리 위·보스 바에 보여줄 표시용 효과 (충전한 효과 블록이 정해 준다). 없으면 표시 안 함.
+        public StatusEffectData HitBlockDisplay { get; private set; }
+
+        // 피격 무효를 count회로 채운다 (보스 2 패시브: 자기 턴 시작마다 4회).
+        // Math.Max: 이미 더 많이 남아 있으면 줄이지 않는다 → "충전"은 늘리기만 하고 쌓이지는 않는다.
+        public void ChargeHitBlock(int count, StatusEffectData display)
+        {
+            HitBlockCharges = Math.Max(HitBlockCharges, count);
+            HitBlockDisplay = display;
+        }
+
+        // 피격 무효가 남았으면 1회 쓰고 true. StatusApplier.DealDamage가 피해를 넣기 직전에 부른다.
+        public bool TryConsumeHitBlock()
+        {
+            if (HitBlockCharges <= 0)
+            {
+                return false;
+            }
+
+            HitBlockCharges--;
+            return true;
+        }
+
         // ---------- 시선집중 (도발 탱커, 기획서 4-3) ----------
 
         // 시선집중을 주는 패시브("보호막이 있는 동안 시선집중"). 없으면 null.

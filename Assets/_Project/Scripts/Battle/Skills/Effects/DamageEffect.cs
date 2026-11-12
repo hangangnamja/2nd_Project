@@ -52,8 +52,9 @@ namespace Game.Battle.Effects
         }
 
         // 피해 적용 공통 흐름: 대상마다 calculate로 피해를 구하고 → 보호막·HP에 적용 → 로그 → 공격 판정 사건.
-        // calculate: 대상 하나를 받아 피해 결과를 돌려주는 함수 (배율 방식 / 기본 피해 방식에 따라 다르게 넘긴다).
-        private static void ApplyDamageWith(SkillContext context, Func<BattleUnit, DamageResult> calculate)
+        // calculate: 대상 하나를 받아 피해 결과를 돌려주는 함수 (배율 방식 / 기본 피해 방식 / 대상 최대 HP 비례에 따라 다르게 넘긴다).
+        // 다른 피해 블록(MaxHpDamageEffect)도 같은 흐름을 쓰도록 public으로 연다.
+        public static void ApplyDamageWith(SkillContext context, Func<BattleUnit, DamageResult> calculate)
         {
             foreach (BattleUnit target in context.Targets)
             {
