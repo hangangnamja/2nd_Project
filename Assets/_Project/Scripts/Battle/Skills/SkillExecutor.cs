@@ -24,7 +24,7 @@ namespace Game.Battle
             SkillData skill = caster.GetSkill(slot);
             services.Log($"{caster.Name}: {skill.SkillName}");
 
-            ExecuteEffects(caster, skill.Effects, targets, primaryTarget, services, ActionSource.Skill);
+            ExecuteEffects(caster, skill.Effects, targets, primaryTarget, services, ActionSource.Skill, slot, skill.SkillName);
             caster.StartCooldown(slot, usedTransformedSkill);
 
             // 스킬이 끝난 뒤 "자기 행동" 사건을 알린다. 이번 행동으로 쌓인 스택은 다음 아군 행동부터 쓸 수 있다.
@@ -39,9 +39,18 @@ namespace Game.Battle
             IReadOnlyList<BattleUnit> targets,
             BattleUnit primaryTarget,
             BattleServices services,
-            ActionSource source)
+            ActionSource source,
+            int skillSlot = -1,
+            string skillName = null)
         {
             var context = new SkillContext(caster, targets, primaryTarget, services, source);
+
+            // 행동(스킬·추가 공격)이면 시작을 알린다 → 연출(BattleFxView)이 돌진 모션·3스 컷인을 이 순서에 끼워 넣는다.
+            // skillSlot·skillName: 기본값(-1, null)이면 칸 번호가 없는 행동(추가 공격 등)으로 본다.
+            if (source != ActionSource.PassiveEffect)
+            {
+                services.Events.RaiseActionStarted(new ActionStartInfo(caster, targets, primaryTarget, source, skillSlot, skillName));
+            }
 
             foreach (SkillEffect effect in effects)
             {

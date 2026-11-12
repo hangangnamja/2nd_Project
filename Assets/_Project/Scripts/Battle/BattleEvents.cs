@@ -12,6 +12,15 @@ namespace Game.Battle
         // 유닛이 자기 행동으로 스킬을 사용했을 때 (추가 턴 포함, 추가 공격 제외). Action<사용자>
         public event Action<BattleUnit> SkillUsed;
 
+        // 행동 하나(스킬·추가 공격)가 효과를 실행하기 직전 (연출용: 돌진 모션, 3스 컷인).
+        // 패시브에 붙은 효과(화상 부여 등)는 행동이 아니므로 알리지 않는다.
+        public event Action<ActionStartInfo> ActionStarted;
+
+        public void RaiseActionStarted(ActionStartInfo info)
+        {
+            ActionStarted?.Invoke(info);
+        }
+
         // 공격 판정 1회가 대상 하나에게 들어갔을 때. Action<공격자, 맞은 대상>
         public event Action<BattleUnit, BattleUnit> AttackHit;
 
@@ -140,9 +149,31 @@ namespace Game.Battle
         // 막혔을 때 피해 숫자 대신 보여줄 글자 ("무적", 피격 무효면 "무효")
         public string BlockedLabel { get; }
 
+        // 이 피해로 HP가 0이 됐는지 (처치 순간 연출: 슬로모션·날려 보내기). 이미 HP 0이던 대상을 또 맞힌 것은 false.
+        public bool IsLethal { get; }
+
+        // 피해 전후의 HP·보호막 (화면 HP바를 타격 연출 순간에 맞춰 줄이는 데 쓴다). 막힌 피해는 전후가 같다.
+        // 지속피해를 일으킨 상태효과 (화상·독). 피해 숫자 색을 고르는 데 쓴다. 일반 피해면 null.
+        public Game.Data.StatusEffectData DamageOverTimeSource { get; }
+
+        public int HpBefore { get; }
+        public int HpAfter { get; }
+        public int ShieldBefore { get; }
+        public int ShieldAfter { get; }
+
         // blockedLabel: 기본값(null)이면 "무적"으로 보여준다. 피격 무효(보스 2)만 "무효"를 넘긴다.
-        public DamageTakenInfo(BattleUnit target, int amount, int absorbed, bool isCritical, bool isDamageOverTime, bool isBlocked, string blockedLabel = null)
+        public DamageTakenInfo(BattleUnit target, int amount, int absorbed, bool isCritical, bool isDamageOverTime, bool isBlocked, string blockedLabel = null, bool isLethal = false, int hpBefore = -1, Game.Data.StatusEffectData damageOverTimeSource = null)
         {
+            DamageOverTimeSource = damageOverTimeSource;
+            IsLethal = isLethal;
+
+            // 이 정보는 피해를 HP에 넣은 직후에 만들어지므로 지금 값 = 피해 후 값.
+            // 보호막은 흡수한 만큼 줄었으므로 전 값 = 지금 + 흡수량. HP 전 값은 매개변수 hpBefore로 받는다.
+            HpAfter = target.CurrentHp;
+            // hpBefore: 기본값 -1이면 넘겨받지 않은 것 → HP가 바뀌지 않은 피해(막힘)로 보고 지금 값을 쓴다.
+            HpBefore = hpBefore >= 0 ? hpBefore : target.CurrentHp;
+            ShieldAfter = target.ShieldAmount;
+            ShieldBefore = target.ShieldAmount + absorbed;
             // ??: 왼쪽이 null이면 오른쪽 값을 쓴다.
             BlockedLabel = blockedLabel ?? "무적";
             Target = target;
@@ -151,6 +182,31 @@ namespace Game.Battle
             IsCritical = isCritical;
             IsDamageOverTime = isDamageOverTime;
             IsBlocked = isBlocked;
+        }
+    }
+
+    // 행동 시작 연출 정보. readonly struct: 만든 뒤 바뀌지 않는 값 묶음.
+    public readonly struct ActionStartInfo
+    {
+        public BattleUnit Caster { get; }
+        public IReadOnlyList<BattleUnit> Targets { get; }
+
+        // 확산 스킬의 메인 대상 (없으면 null)
+        public BattleUnit PrimaryTarget { get; }
+        public ActionSource Source { get; }
+
+        // 스킬 칸 번호 (0 = 1스, 2 = 3스). 추가 공격·연동 스킬은 -1
+        public int SkillSlot { get; }
+        public string SkillName { get; }
+
+        public ActionStartInfo(BattleUnit caster, IReadOnlyList<BattleUnit> targets, BattleUnit primaryTarget, ActionSource source, int skillSlot, string skillName)
+        {
+            Caster = caster;
+            Targets = targets;
+            PrimaryTarget = primaryTarget;
+            Source = source;
+            SkillSlot = skillSlot;
+            SkillName = skillName;
         }
     }
 

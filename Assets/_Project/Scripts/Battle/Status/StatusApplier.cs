@@ -110,6 +110,7 @@ namespace Game.Battle.Status
         // 돌려주는 값·피해 숫자는 남은 HP와 상관없는 원래 피해다: HP 9000에 15000을 맞으면 피해는 15000, HP는 0에서 멈춘다.
         // 스킬 피해와 지속피해가 모두 이 함수를 거친다. 깨진 보호막은 "지워짐"으로 알린다.
         // absorbed: 보호막이 흡수한 양 (로그용)
+        // damageOverTimeSource: 지속피해면 그 상태효과 (피해 숫자 색을 고르는 데만 씀). 일반 피해는 null.
         // isCritical·isDamageOverTime: 계산에는 쓰지 않고, 화면의 피해 숫자 모양을 고르도록 연출 사건에 그대로 넘긴다.
         // 기본값(= false)이 있는 매개변수라, 넘기지 않으면 일반 피해로 본다.
         public static int DealDamage(
@@ -119,13 +120,14 @@ namespace Game.Battle.Status
             BattleServices services,
             out int absorbed,
             bool isCritical = false,
-            bool isDamageOverTime = false)
+            bool isDamageOverTime = false,
+            StatusEffectData damageOverTimeSource = null)
         {
             // 무적(보스 스테이지 버프몹, 힐러 3스의 무적 버프)은 어떤 피해도 받지 않는다. 보호막·피해 기록도 건드리지 않는다.
             if (target.IsDamageImmune)
             {
                 absorbed = 0;
-                services.Events.RaiseDamageTaken(new DamageTakenInfo(target, 0, 0, isCritical, isDamageOverTime, isBlocked: true));
+                services.Events.RaiseDamageTaken(new DamageTakenInfo(target, 0, 0, isCritical, isDamageOverTime, isBlocked: true, damageOverTimeSource: damageOverTimeSource));
                 return 0;
             }
 
@@ -137,7 +139,7 @@ namespace Game.Battle.Status
             {
                 absorbed = 0;
                 services.Log($"  {target.Name}: 피격 무효 (남은 {target.HitBlockCharges}회)");
-                services.Events.RaiseDamageTaken(new DamageTakenInfo(target, 0, 0, isCritical, isDamageOverTime, isBlocked: true, blockedLabel: "무효"));
+                services.Events.RaiseDamageTaken(new DamageTakenInfo(target, 0, 0, isCritical, isDamageOverTime, isBlocked: true, blockedLabel: "무효", damageOverTimeSource: damageOverTimeSource));
                 return 0;
             }
 
@@ -172,7 +174,9 @@ namespace Game.Battle.Status
                 services.Events.RaiseHpLowered(target, attacker, hpBefore, isDamageOverTime);
             }
 
-            services.Events.RaiseDamageTaken(new DamageTakenInfo(target, shownDamage, absorbed, isCritical, isDamageOverTime, isBlocked: false));
+            // hpBefore > 0 && 지금 HP 0: 이번 피해로 쓰러진 것 → 처치 연출. 버티기(HP 1)로 막혔으면 HP가 남아 false.
+            bool isLethal = hpBefore > 0 && target.CurrentHp == 0;
+            services.Events.RaiseDamageTaken(new DamageTakenInfo(target, shownDamage, absorbed, isCritical, isDamageOverTime, isBlocked: false, isLethal: isLethal, hpBefore: hpBefore, damageOverTimeSource: damageOverTimeSource));
             return shownDamage;
         }
 

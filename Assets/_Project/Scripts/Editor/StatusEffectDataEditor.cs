@@ -78,6 +78,7 @@ namespace Game.EditorTools
                 Draw("damageAttackRatio", "공격력 비례");
                 Draw("damageTargetMaxHpRatio", "대상 최대 HP 비례");
                 Draw("maxHpDamageAttackCap", "HP 비례 상한 (공격력 배율)");
+                Draw("damagePopupColor", "피해 숫자 색");
             }
 
             if (Has(features, StatusFeatures.HealOverTime))

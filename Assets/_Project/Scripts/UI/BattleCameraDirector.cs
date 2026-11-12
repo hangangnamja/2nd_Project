@@ -114,6 +114,12 @@ namespace Game.UI
         private Vector3 moveVelocity;
         private float fovVelocity;
 
+        // 화면 흔들림: 세기, 지속 시간, 끝나는 시각(unscaledTime 기준), 지난 프레임에 더한 흔들림.
+        private float shakeStrength;
+        private float shakeSeconds = 1f;
+        private float shakeEndTime;
+        private Vector3 appliedShake;
+
         // 진행 중인 페이드 전환. 새 전환이 오면 멈추고 새로 시작한다.
         private Coroutine transition;
 
@@ -262,6 +268,9 @@ namespace Game.UI
             Vector3 position = GetShotPosition(currentShot);
             targetCamera.transform.SetPositionAndRotation(position, GetShotRotation(currentShot, position));
             targetCamera.fieldOfView = currentShot.FieldOfView;
+
+            // 카메라를 새 자리에 바로 놓았으므로, 지난 흔들림을 빼는 처리가 새 자리를 어긋나게 하지 않도록 비운다.
+            appliedShake = Vector3.zero;
             moveVelocity = Vector3.zero;
             fovVelocity = 0f;
         }
@@ -270,13 +279,18 @@ namespace Game.UI
         // LateUpdate: 모든 Update가 끝난 뒤 카메라를 움직여, 같은 프레임 안에서 흔들리지 않게 한다.
         private void LateUpdate()
         {
+            Transform cameraTransform = targetCamera.transform;
+
+            // 지난 프레임에 더한 흔들림을 먼저 빼서, 아래 부드러운 이동이 흔들린 위치를 기준으로 계산하지 않게 한다.
+            cameraTransform.position -= appliedShake;
+            appliedShake = Vector3.zero;
+
             // 페이드 중에는 움직이지 않는다 (덮인 사이에 Restage가 카메라를 바로 놓는다).
             if (currentShot == null || transition != null)
             {
                 return;
             }
 
-            Transform cameraTransform = targetCamera.transform;
 
             // Vector3.SmoothDamp(현재, 목표, ref 속도, 시간): 처음엔 빠르게, 도착할수록 느려지며 목표에 다가간다.
             cameraTransform.position = Vector3.SmoothDamp(cameraTransform.position, GetShotPosition(currentShot), ref moveVelocity, moveSeconds);
@@ -286,6 +300,42 @@ namespace Game.UI
             cameraTransform.rotation = Quaternion.Slerp(cameraTransform.rotation, GetShotRotation(currentShot, cameraTransform.position), follow);
 
             targetCamera.fieldOfView = Mathf.SmoothDamp(targetCamera.fieldOfView, currentShot.FieldOfView, ref fovVelocity, moveSeconds);
+
+            ApplyShake(cameraTransform);
+        }
+
+        // 화면 흔들림을 시작한다 (BattleFxView가 타격 세기에 맞춰 부름). 이미 더 센 흔들림 중이면 센 쪽을 유지한다.
+        // strength: 흔들리는 최대 거리, seconds: 지속 시간. 시간은 timeScale과 무관하게 흘러 히트스톱 중에도 흔들린다.
+        public void Shake(float strength, float seconds)
+        {
+            if (strength < shakeStrength * GetShakeRemainRatio())
+            {
+                return;
+            }
+
+            shakeStrength = strength;
+            shakeSeconds = Mathf.Max(0.01f, seconds);
+            shakeEndTime = Time.unscaledTime + shakeSeconds;
+        }
+
+        // 남은 흔들림 비율 (1 = 막 시작, 0 = 끝).
+        private float GetShakeRemainRatio()
+        {
+            return Mathf.Clamp01((shakeEndTime - Time.unscaledTime) / shakeSeconds);
+        }
+
+        // 카메라 위치에 이번 프레임의 흔들림을 더한다. 남은 비율이 줄수록 약해진다.
+        // Random.insideUnitSphere: 반지름 1 공 안의 무작위 점 → 매 프레임 다른 방향으로 떨린다.
+        private void ApplyShake(Transform cameraTransform)
+        {
+            float remain = GetShakeRemainRatio();
+            if (remain <= 0f)
+            {
+                return;
+            }
+
+            appliedShake = UnityEngine.Random.insideUnitSphere * (shakeStrength * remain);
+            cameraTransform.position += appliedShake;
         }
 
         private Vector3 GetShotPosition(CameraShot shot)

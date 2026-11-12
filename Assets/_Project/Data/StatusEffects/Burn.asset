@@ -23,6 +23,7 @@ MonoBehaviour:
   damageAttackRatio: 0.6
   damageTargetMaxHpRatio: 0
   maxHpDamageAttackCap: 0
+  damagePopupColor: {r: 1, g: 0.3, b: 0.22, a: 1}
   healSourceMaxHpRatio: 0
   statModifiers: []
   icon: {fileID: 2800000, guid: 766777b3356653147b557e3f35572737, type: 3}

@@ -83,7 +83,7 @@ namespace Game.Battle.Status
                     instance.Stacks);
 
                 // 지속피해의 처치자는 그 효과를 건 유닛으로 본다. 보호막이 있으면 먼저 흡수한다.
-                int dealt = StatusApplier.DealDamage(unit, damage, instance.Source, services, out int absorbed, isDamageOverTime: true);
+                int dealt = StatusApplier.DealDamage(unit, damage, instance.Source, services, out int absorbed, isDamageOverTime: true, damageOverTimeSource: data);
                 triggeredCount++;
                 string shieldText = absorbed > 0 ? $" (보호막 {absorbed} 흡수)" : string.Empty;
                 string stackText = data.UsesStackCount ? $" ×{instance.Stacks}" : string.Empty;

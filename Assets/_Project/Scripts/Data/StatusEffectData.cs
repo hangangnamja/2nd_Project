@@ -83,6 +83,10 @@ namespace Game.Data
         [Tooltip("최대 HP 비례 피해의 상한 = 부여 당시 시전자 공격력 × 이 배율 (독 = 3.0). 0이면 상한 없음")]
         [SerializeField, Min(0f)] private float maxHpDamageAttackCap;
 
+        // 지속피해가 발동할 때 뜨는 피해 숫자 색 (화상 빨강, 독 초록). 어떤 지속피해가 터졌는지 색으로 구분한다.
+        [Tooltip("지속피해 숫자 색 (화상 = 빨강, 독 = 초록)")]
+        [SerializeField] private Color damagePopupColor = new Color(1f, 0.55f, 0.3f);
+
         // 지속 회복: 보유자의 턴이 끝날 때마다 HP를 회복한다 (기획서 4-1 '소생'). 지속피해와 같은 시점에 발동한다.
         // 회복량 = 부여 당시 시전자 최대 HP × 이 비율 (스냅샷). 회복이므로 치명타·방어력은 적용하지 않는다.
         [Tooltip("턴 종료 시 회복량 = 부여 당시 시전자 최대 HP × 이 비율 (소생 = 0.05)")]
@@ -130,6 +134,7 @@ namespace Game.Data
         public float DamageTargetMaxHpRatio => Has(StatusFeatures.DamageOverTime) ? damageTargetMaxHpRatio : 0f;
         public float MaxHpDamageAttackCap => Has(StatusFeatures.DamageOverTime) ? maxHpDamageAttackCap : 0f;
         public bool DealsDamageOverTime => DamageAttackRatio > 0f || DamageTargetMaxHpRatio > 0f;
+        public Color DamagePopupColor => damagePopupColor;
 
         public float HealSourceMaxHpRatio => Has(StatusFeatures.HealOverTime) ? healSourceMaxHpRatio : 0f;
         public bool HealsOverTime => HealSourceMaxHpRatio > 0f;

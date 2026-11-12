@@ -91,6 +91,7 @@ namespace Game.UI
             battleManager.WaveStarted += Refresh;
             battleManager.UnitsSpawned += Refresh;
             battleManager.StateChanged += Refresh;
+            ShownHp.Changed += HandleShownHpChanged;
         }
 
         private void OnDisable()
@@ -99,6 +100,16 @@ namespace Game.UI
             battleManager.WaveStarted -= Refresh;
             battleManager.UnitsSpawned -= Refresh;
             battleManager.StateChanged -= Refresh;
+            ShownHp.Changed -= HandleShownHpChanged;
+        }
+
+        // 연출에 맞춘 화면 HP가 바뀌면 HP바만 다시 그린다 (타격 박자에 맞춰 줄어듦).
+        private void HandleShownHpChanged()
+        {
+            if (shownBoss != null)
+            {
+                ShowHp(shownBoss);
+            }
         }
 
         // 보스를 찾아 바를 켜고 끈 뒤, 켜져 있으면 이름·HP·상태효과를 갱신한다.
@@ -120,7 +131,7 @@ namespace Game.UI
                 // 새 보스가 나오면 잔상 막대를 지금 HP에 바로 맞춘다 (이전 보스의 잔상이 남지 않게).
                 if (hpTrail != null)
                 {
-                    hpTrail.fillAmount = boss.MaxHp > 0 ? (float)boss.CurrentHp / boss.MaxHp : 0f;
+                    hpTrail.fillAmount = boss.MaxHp > 0 ? (float)ShownHp.Hp(boss) / boss.MaxHp : 0f;
                 }
             }
 
@@ -168,19 +179,20 @@ namespace Game.UI
             portraitFallback.color = fallbackColor;
         }
 
-        // HP바와 보호막 (아군 초상화 카드와 같은 규칙).
+        // HP바와 보호막 (아군 초상화 카드와 같은 규칙). 값은 연출에 맞춘 화면 HP(ShownHp).
         //  - fillAmount: 0~1 사이 값만큼 막대를 채운다 → 현재 HP / 최대 HP
         //  - 보호막이 있으면 감싸는 막대를 보호막 / 최대 HP만큼 채우고(Mathf.Clamp01로 최대 1), 숫자는 보호막 양
         private void ShowHp(BattleUnit boss)
         {
-            hpFill.fillAmount = boss.MaxHp > 0 ? (float)boss.CurrentHp / boss.MaxHp : 0f;
+            int hp = ShownHp.Hp(boss);
+            hpFill.fillAmount = boss.MaxHp > 0 ? (float)hp / boss.MaxHp : 0f;
 
-            int shield = boss.ShieldAmount;
+            int shield = ShownHp.Shield(boss);
             bool hasShield = shield > 0;
             shieldFill.gameObject.SetActive(hasShield);
             shieldFill.fillAmount = boss.MaxHp > 0 ? Mathf.Clamp01((float)shield / boss.MaxHp) : 0f;
 
-            hpText.text = hasShield ? $"보호막 {shield}" : $"{boss.CurrentHp} / {boss.MaxHp}";
+            hpText.text = hasShield ? $"보호막 {shield}" : $"{hp} / {boss.MaxHp}";
             hpText.color = hasShield ? shieldTextColor : hpTextColor;
         }
 
