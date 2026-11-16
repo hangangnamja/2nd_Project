@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Game.Battle;
 using Game.Battle.Effects;
 using Game.Data;
 
@@ -39,7 +38,8 @@ namespace Game.UI
         }
 
         // 패시브 카드: "패시브 · 이름" + 발동 조건·실행 시점·횟수 제한 + 스택 + 오라 보정 + 효과 줄들.
-        public static string BuildPassive(BattleUnit unit, PassiveData passive)
+        // currentStacks: 지금 쌓인 스택 (전투 중 상세 창). 전투 밖(전투원 화면)처럼 셀 스택이 없으면 -1 → "스택 n / 최대" 줄을 생략한다.
+        public static string BuildPassive(PassiveData passive, int currentStacks)
         {
             var lines = new List<string>
             {
@@ -49,7 +49,11 @@ namespace Game.UI
 
             if (passive.UsesStacks)
             {
-                lines.Add($"스택 {unit.GetPassiveStacks(passive)} / {passive.MaxStacks}");
+                if (currentStacks >= 0)
+                {
+                    lines.Add($"스택 {currentStacks} / {passive.MaxStacks}");
+                }
+
                 AddStackRules(lines, passive);
             }
 

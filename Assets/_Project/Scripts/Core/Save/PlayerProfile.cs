@@ -12,11 +12,15 @@ namespace Game.Core
         public int Level { get; }
         public int Promotion { get; }
 
-        public OwnedCharacter(CharacterData data, int level, int promotion)
+        // 지금 레벨에서 다음 레벨까지 쌓인 경험치
+        public int Exp { get; }
+
+        public OwnedCharacter(CharacterData data, int level, int promotion, int exp)
         {
             Data = data;
             Level = level;
             Promotion = promotion;
+            Exp = exp;
         }
     }
 
@@ -94,7 +98,7 @@ namespace Game.Core
             EnsureLoaded();
             foreach (CharacterData character in newCharacters)
             {
-                data.characters.Add(new OwnedCharacterSave { id = character.Id, level = level });
+                data.characters.Add(CreateCharacterSave(character, level));
             }
 
             var dismantled = new List<bool>();
@@ -139,7 +143,7 @@ namespace Game.Core
                 CharacterData character = database.FindCharacter(saved.id);
                 if (character != null)
                 {
-                    owned.Add(new OwnedCharacter(character, saved.level, saved.promotion));
+                    owned.Add(new OwnedCharacter(character, saved.level, saved.promotion, saved.exp));
                 }
             }
 
@@ -235,6 +239,44 @@ namespace Game.Core
                 data = CreateNewGame();
                 Save();
             }
+
+            FixPromotionsForLevel();
+        }
+
+        // 진급 기능보다 먼저 Lv60으로 지급된 캐릭터는 진급 0회로 저장돼 있다 → 레벨에 필요한 진급 횟수로 올려 준다.
+        // 이렇게 하지 않으면 Lv60인데 상한이 10으로 보인다. 고친 캐릭터가 있을 때만 저장한다.
+        private static void FixPromotionsForLevel()
+        {
+            GrowthRulesData rules = database != null ? database.GrowthRules : null;
+            if (rules == null)
+            {
+                return;
+            }
+
+            bool changed = false;
+            foreach (OwnedCharacterSave saved in data.characters)
+            {
+                int minPromotion = rules.GetMinPromotion(saved.level);
+                if (saved.promotion < minPromotion)
+                {
+                    saved.promotion = minPromotion;
+                    changed = true;
+                }
+            }
+
+            if (changed)
+            {
+                Save();
+            }
+        }
+
+        // 새로 얻은 캐릭터의 세이브 항목. 지급 레벨에 맞는 진급 횟수도 함께 채운다 (예: Lv60 지급 → 진급 5회).
+        private static OwnedCharacterSave CreateCharacterSave(CharacterData character, int level)
+        {
+            GrowthRulesData rules = database != null ? database.GrowthRules : null;
+            int promotion = rules != null ? rules.GetMinPromotion(level) : 0;
+            // 객체 초기화자 { id = ..., level = ... }: 객체를 만들면서 필드 값을 바로 채운다.
+            return new OwnedCharacterSave { id = character.Id, level = level, promotion = promotion };
         }
 
         // 새 게임: 데이터베이스의 시작 캐릭터를 지급하고, 앞에서부터 편성 칸에 넣는다.
@@ -243,8 +285,7 @@ namespace Game.Core
             var newData = new SaveData();
             foreach (StartingCharacter starting in database.StartingCharacters)
             {
-                // 객체 초기화자 { id = ..., level = ... }: 객체를 만들면서 필드 값을 바로 채운다.
-                newData.characters.Add(new OwnedCharacterSave { id = starting.Character.Id, level = starting.Level });
+                newData.characters.Add(CreateCharacterSave(starting.Character, starting.Level));
 
                 if (newData.party.Count < FormationSize)
                 {

@@ -15,6 +15,7 @@ namespace Game.UI
         [SerializeField] private GameObject formationScreen;
         [SerializeField] private GameObject gachaScreen;
         [SerializeField] private GameObject inventoryScreen;
+        [SerializeField] private GameObject operatorScreen;
 
         [Header("버튼")]
         [Tooltip("메인 화면의 출격 버튼")]
@@ -25,6 +26,9 @@ namespace Game.UI
 
         [Tooltip("메인 화면의 인벤토리(DEPOT) 버튼")]
         [SerializeField] private Button inventoryButton;
+
+        [Tooltip("메인 화면의 전투원(OPERATOR) 버튼")]
+        [SerializeField] private Button operatorButton;
 
         [Tooltip("메인 화면으로 돌아가는 버튼들 (뒤로, 홈)")]
         [SerializeField] private List<Button> homeButtons = new List<Button>();
@@ -40,6 +44,7 @@ namespace Game.UI
             screens.Add(formationScreen);
             screens.Add(gachaScreen);
             screens.Add(inventoryScreen);
+            screens.Add(operatorScreen);
 
             // 람다식 () => ...: 버튼을 누르면 실행할 동작. 메인 → 출격은 스테이지 탭부터 새로 보여준다.
             stageButton.onClick.AddListener(() =>
@@ -50,6 +55,7 @@ namespace Game.UI
 
             gachaButton.onClick.AddListener(() => Show(gachaScreen));
             inventoryButton.onClick.AddListener(() => Show(inventoryScreen));
+            operatorButton.onClick.AddListener(() => Show(operatorScreen));
 
             foreach (Button button in homeButtons)
             {

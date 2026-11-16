@@ -37,19 +37,27 @@ namespace Game.Data
         // 예: Lv1 방어력 48, 목표 35% → K = 48 × 0.65 / 0.35 ≈ 89
         public float GetDefenseConstant(int attackerLevel)
         {
-            float defense = GetBalancedStat(balancedDefenseAtLv1, balancedDefenseAtLv60, attackerLevel);
+            float defense = GetBalancedStat(balancedDefenseAtLv1, balancedDefenseAtLv60, attackerLevel, GetCompletedAscension(attackerLevel));
             return defense * (1f - targetDefenseReduction) / targetDefenseReduction;
         }
 
         // 아군의 레벨 배율: 캐릭터 데이터의 스탯을 Lv1 값으로 보고, 균형형 성장 곡선이 커진 비율만큼 키운다.
-        // 예: Lv60 → HP 7500 / 600 = 12.5배, 공격력 800 / 130 ≈ 6.15배, 방어력 600 / 48 = 12.5배
+        // 예: Lv60·진급 5회 → HP 7500 / 600 = 12.5배, 공격력 800 / 130 ≈ 6.15배, 방어력 600 / 48 = 12.5배
         // 그래서 캐릭터마다 다른 스탯(직군·등급 차이)은 레벨이 올라도 같은 비율로 유지된다.
+        // promotion: 실제로 마친 진급 횟수 → 진급 버튼을 누른 순간 점프만큼 스탯이 오른다 (Lv10·진급 0회 < Lv10·진급 1회).
+        public StatScaling GetAllyScaling(int level, int promotion)
+        {
+            int ascension = Mathf.Clamp(promotion, 0, MaxAscension);
+            return new StatScaling(
+                GetGrowthRatio(balancedHpAtLv1, balancedHpAtLv60, level, ascension),
+                GetGrowthRatio(balancedAttackAtLv1, balancedAttackAtLv60, level, ascension),
+                GetGrowthRatio(balancedDefenseAtLv1, balancedDefenseAtLv60, level, ascension));
+        }
+
+        // 진급 횟수를 모를 때(전투 씬 바로 실행한 테스트 설정, 아군 소환)의 아군 배율: 그 레벨까지 진급을 마친 것으로 본다.
         public StatScaling GetAllyScaling(int level)
         {
-            return new StatScaling(
-                GetGrowthRatio(balancedHpAtLv1, balancedHpAtLv60, level),
-                GetGrowthRatio(balancedAttackAtLv1, balancedAttackAtLv60, level),
-                GetGrowthRatio(balancedDefenseAtLv1, balancedDefenseAtLv60, level));
+            return GetAllyScaling(level, GetCompletedAscension(level));
         }
 
         // 적의 레벨 배율: StatTable 적 스탯 시트의 역산 기준을 따른다 (기획서 6장).
@@ -57,27 +65,33 @@ namespace Game.Data
         //  - 적 공격력은 "아군 HP의 몇 %를 깎는지"로 정하므로 아군 HP 성장을 따라간다
         //  - 적 방어력은 K 계산과 같은 균형형 방어력 성장을 따라간다
         // 아군과 같은 곡선을 쓰면 고레벨에서 적 HP가 공격력보다 2배 빨리 커져 전투가 지나치게 길어진다.
+        // 적은 진급이 없으므로 그 레벨까지 진급을 마친 아군과 같은 곡선 위치를 쓴다 (예: Lv10 적 = 진급 1회 기준).
         public StatScaling GetEnemyScaling(int level)
         {
+            int ascension = GetCompletedAscension(level);
             return new StatScaling(
-                GetGrowthRatio(balancedAttackAtLv1, balancedAttackAtLv60, level),
-                GetGrowthRatio(balancedHpAtLv1, balancedHpAtLv60, level),
-                GetGrowthRatio(balancedDefenseAtLv1, balancedDefenseAtLv60, level));
+                GetGrowthRatio(balancedAttackAtLv1, balancedAttackAtLv60, level, ascension),
+                GetGrowthRatio(balancedHpAtLv1, balancedHpAtLv60, level, ascension),
+                GetGrowthRatio(balancedDefenseAtLv1, balancedDefenseAtLv60, level, ascension));
         }
 
-        // Lv1 대비 그 레벨의 균형형 스탯 비율. 예: 공격력 Lv1 130, Lv10(진급 1회) 241.7 → 약 1.86배
-        private float GetGrowthRatio(float atLv1, float atLv60, int level)
+        // 그 레벨에서 진급을 마쳤다고 볼 때의 진급 횟수 (Lv10 → 1회, Lv60 → 5회). 정수 나눗셈이라 소수점은 버린다.
+        private static int GetCompletedAscension(int level)
         {
-            return GetBalancedStat(atLv1, atLv60, level) / atLv1;
+            return Mathf.Min(MaxAscension, Mathf.Clamp(level, 1, MaxLevel) / AscensionInterval);
         }
 
-        // 레벨별 균형형 스탯 = Lv1 값 + 레벨당 증가 × (레벨 - 1) + 진급 점프 × 진급 횟수 (StatTable 성장표와 같은 식).
-        // 진급 횟수는 그 레벨에서 진급을 마친 상태로 본다 (Lv10 → 1회, Lv60 → 5회).
-        private float GetBalancedStat(float atLv1, float atLv60, int level)
+        // Lv1 대비 그 레벨·진급 횟수의 균형형 스탯 비율. 예: 공격력 Lv1 130, Lv10·진급 1회 241.7 → 약 1.86배
+        private float GetGrowthRatio(float atLv1, float atLv60, int level, int ascension)
+        {
+            return GetBalancedStat(atLv1, atLv60, level, ascension) / atLv1;
+        }
+
+        // 균형형 스탯 = Lv1 값 + 레벨당 증가 × (레벨 - 1) + 진급 점프 × 진급 횟수 (StatTable 성장표와 같은 식).
+        private float GetBalancedStat(float atLv1, float atLv60, int level, int ascension)
         {
             // Mathf.Clamp: 레벨을 1~60 범위로 제한한다.
             int clampedLevel = Mathf.Clamp(level, 1, MaxLevel);
-            int ascension = Mathf.Min(MaxAscension, clampedLevel / AscensionInterval);
 
             // Lv60 값 = Lv1 값 + 레벨당 증가 × (59 + 진급 5회 × 점프 레벨 수) 에서 레벨당 증가를 역산한다.
             float perLevel = (atLv60 - atLv1) / (MaxLevel - 1 + MaxAscension * ascensionJumpLevels);

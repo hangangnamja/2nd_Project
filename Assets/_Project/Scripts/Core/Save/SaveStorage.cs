@@ -90,6 +90,9 @@ namespace Game.Core
                 data.nextWeaponUid = Math.Max(1, data.nextWeaponUid);
             }
 
+            // 버전 2 → 3: 캐릭터 경험치(exp)는 JSON에 없으면 0으로 채워지므로 따로 바꿀 것이 없다.
+            // 레벨에 맞지 않는 진급 횟수는 데이터베이스(성장 규칙)가 필요해 PlayerProfile이 불러온 뒤 고친다 (FixPromotionsForLevel).
+
             if (data.version < SaveData.CurrentVersion)
             {
                 data.version = SaveData.CurrentVersion;

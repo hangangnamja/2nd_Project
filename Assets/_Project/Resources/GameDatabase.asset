@@ -39,6 +39,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: ce0316f4d1013014898fed8183f16874, type: 2}
   - {fileID: 11400000, guid: 281a4ad63d1f1b845846510829f10111, type: 2}
   inventoryRules: {fileID: 11400000, guid: 8c4c3da45a5e8b34890377887adbbe8a, type: 2}
+  growthRules: {fileID: 11400000, guid: 392688cb264b467419a9f4ebb0a17ca7, type: 2}
   startingCharacters:
   - character: {fileID: 11400000, guid: 8545e9f7091b4be4ab5466072e394403, type: 2}
-    level: 60
+    level: 1
