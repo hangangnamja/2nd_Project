@@ -126,6 +126,9 @@ namespace Game.UI
         // 연출 컷(시네마틱): 스킬 연출이 잠깐 다른 시점(예: 적 쪽에서 메테오를 올려다봄)을 보여주는 동안 true.
         // 그동안은 구도를 따라가지 않고, 정해진 자리에서 cinematicLook을 계속 바라본다.
         private bool isCinematic;
+
+        // 연출 컷 중 카메라 자리 (MoveCinematic으로 연출이 천천히 밀고 들어갈 수 있게 따로 들고 있는다).
+        private Vector3 cinematicPosition;
         private Transform cinematicLook;
 
         private void OnEnable()
@@ -325,6 +328,8 @@ namespace Game.UI
             // 연출 컷 중: 자리는 그대로 두고 바라볼 대상만 따라간다 (떨어지는 메테오를 계속 화면 가운데에).
             if (isCinematic)
             {
+                cameraTransform.position = cinematicPosition;
+
                 // 대상이 사라졌으면(메테오 폭발) 마지막 방향을 유지한다. Unity 오브젝트는 지워지면 == null이 되므로 != null로 확인.
                 if (cinematicLook != null)
                 {
@@ -360,6 +365,7 @@ namespace Game.UI
         {
             isCinematic = true;
             cinematicLook = lookTarget;
+            cinematicPosition = position;
 
             Transform cameraTransform = targetCamera.transform;
             cameraTransform.position = position;
@@ -370,6 +376,18 @@ namespace Game.UI
 
             targetCamera.fieldOfView = fieldOfView;
             appliedShake = Vector3.zero;
+        }
+
+        // 연출 컷 중에 카메라 자리·화각을 바꾼다 (기를 모으는 동안 천천히 다가가기 등). 컷 중이 아니면 무시.
+        public void MoveCinematic(Vector3 position, float fieldOfView)
+        {
+            if (!isCinematic)
+            {
+                return;
+            }
+
+            cinematicPosition = position;
+            targetCamera.fieldOfView = fieldOfView;
         }
 
         // 연출 컷 끝: 원래 구도로 바로 돌아온다(컷). 부드럽게 따라가는 속도도 초기화한다.

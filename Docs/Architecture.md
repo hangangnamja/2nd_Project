@@ -205,7 +205,11 @@ UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
   - `BattleEvents.ActionStarted`(`SkillExecutor.ExecuteEffects`가 스킬·추가 공격 시작 때 알림, 3스 여부는 칸 번호)로 행동 박자를 따로 만들어 컷인(`SkillCutInView`) → 돌진(`UnitView.PlayLunge`) 또는 시전(`UnitView.PlayCast`)을 기다린 뒤 타격·버프 박자를 재생
     - 패시브 효과는 기본으로 알리지 않고, `PassiveRunner`가 따로 보이는 행동(턴 종료 단계 효과, `IsStandaloneAction`: 공격 안 한 턴 종료·자가 부활·등장·처치·자기 턴 시작)만 `announcePassive`로 알린다
     - 스킬 전용 연출: `SkillData.PresentationPrefab`에 `SkillFx`(전략 패턴, 예: `MeteorShowerFx`)가 있으면 `ActionStartInfo.Skill`로 찾아 돌진 대신 재생. 연출이 대상에 닿을 때 부르는 콜백 `onImpact(대상, 비율)`로 `BattleFxView`가 그 대상 피해의 그 비율만큼만 보여준다(`impactQueue`·`shownRatio`, `PlayHitsOnImpact` → `PlayPortion`). 비율 합이 1이 되는 마지막 타격에 남은 피해·처치·보호막 깨짐(연출 타수가 2 이상이면 남은 피해를 다시 나눔). 연출이 끝나면 남은 대상은 비율 1로 마무리. 예: 잔챙이 메테오가 대상마다 합쳐 30%, 거대 메테오가 나머지. 메테오·폭발 모양은 프리팹 파티클(`Prefabs/Fx/FxMeteor*`), 코드는 위치·순서·시간·카메라 컷만
-    - 연출 컷: `BattleCameraDirector.BeginCinematic`(정한 자리로 컷, 지정한 점을 계속 바라봄) / `EndCinematic`(원래 구도로 컷). 연출이 중간에 사라지면 `OnDestroy`에서 되돌림
+    - 종결기처럼 추가 공격으로 나가는 스킬도 `FollowUpAttack.Skill`에 스킬 데이터를 담아 넘기므로 같은 방식으로 전용 연출을 쓴다 (`StatusApplier.QueueFinisher`). 하이퍼캐리 종결기 = `BoundaryCollapseFx`(영역 벽 구체·큐브 파편 파티클 `Prefabs/Fx/FxBoundaryCollapse`, 그림·재질 `Art/Battle/Domain`)
+    - 하이퍼캐리 변신기 = `TransformCocoonFx`(`Prefabs/Fx/FxTransformCocoon`, 그림·재질 `Art/Battle/Sun`). 상대 타격이 없는 연출은 `BattleFxView`가 끝날 때까지 기다린 뒤 다음 박자로
+    - 변신 모습(헤일로·날개): `TransformationData.AppearancePrefab`을 `UnitView.ApplyAppearance`가 변신 중(`IsTransformed`)에 몸의 자식으로 붙인다. 움직임은 `TransformAppearance`
+      - 로직은 변신을 즉시 바꾸므로, 모습을 바꾸는 연출(`SkillFx.ChangesAppearance`: 변신기·종결기)이면 `BattleFxView`가 행동 시작 사건 때 `FreezeAppearance`로 지금 모습을 고정하고, 연출이 바뀌는 순간 `RevealAppearance`(→ `ReleaseAppearance`)로 실제 상태를 반영한다. 모습을 바꾸는 연출이 끝나거나 못 보여주면 그때 풀림 (다른 연출은 풀지 않음: 마지막 엑스트라 턴의 스킬 연출이 끝날 때 종결기가 걸어 둔 고정을 먼저 풀어 날개가 일찍 사라지던 문제 방지)
+    - 연출 컷: `BattleCameraDirector.BeginCinematic`(정한 자리로 컷, 지정한 점을 계속 바라봄) / `MoveCinematic`(컷 중 자리·화각 이동, 기 모을 때 다가가기) / `EndCinematic`(원래 구도로 컷). 연출이 중간에 사라지면 `OnDestroy`에서 되돌림
     - 행동 유닛이 숨겨져 있으면 `BattleCameraDirector.ShowActionBy`가 그 유닛이 보이는 장면으로 페이드 전환한 뒤 모션을 재생한다
   - 캡슐 모션은 `UnitView`가 "기준 자리(무대가 `SetAnchor`로 정함) + 어긋남"으로 그린다 → 모션 중에 무대가 다시 세워져도 튀지 않음. 피격 번쩍임·밀림(`PlayHitReaction`), 처치 날아감(`PlayKnockdown`)
   - 타격 박자마다 가장 센 타격 하나로 화면 흔들림(`BattleCameraDirector.Shake`, 지난 흔들림을 빼고 이동한 뒤 다시 더함)과 히트스톱·슬로모션(`BattleTimeFx`, `Time.timeScale`을 실제 시간으로 잼)
@@ -395,7 +399,7 @@ Assets/_Project/
 - 무기 반영 후 밸런스: 전투에 무기 스탯이 들어가 아군이 강해짐 → 적 데이터 에셋을 StatTable 적 스탯(3성 무기 0.8 기준)에 맞춰 다시 조정
 - 타격감 보강 남은 후보: 치명·3스 카메라 줌 펀치, 스쿼시&스트레치, 방향 있는 히트 스파크, 돌진 잔상, 처치 폭발 (다단 히트·보호막 깨짐·HP바 흔들림은 구현, 화면 가장자리 번쩍임은 넣어 봤다가 뺌)
 - 효과음 (타격·치명·처치·돌진·시전·컷인, 임시 소리 파일 필요)
-- 스킬 전용 연출: 지금은 선브링어 변신 3스(메테오)만. 다른 캐릭터 3스는 `SkillFx`로 추가
+- 스킬 전용 연출: 지금은 선브링어 변신 3스(메테오)와 하이퍼캐리 변신기(황금 구체)·종결기(영역 붕괴)만. 다른 캐릭터 3스는 `SkillFx`로 추가
 - 전투 UI 정식 배치: 현재 행동 캐릭터 패널, 행동 순서 바 초상화, 스킬 이름 알림 (보스 HP바·아군 카드·상세 창은 구현)
 - 방어력 관통 (기획서 10장 미정)
 

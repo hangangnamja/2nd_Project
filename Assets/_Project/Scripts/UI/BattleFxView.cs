@@ -213,6 +213,15 @@ namespace Game.UI
         private void HandleActionStarted(ActionStartInfo info)
         {
             Enqueue(new FxEntry(FxKind.Action, info.Caster, action: info));
+
+            // 변신 모습을 바꾸는 연출(변신기·종결기)이면, 로직이 변신을 바꾸기 전인 지금 시전자의 모습을 고정한다
+            // → 연출이 재생되어 바뀌는 순간까지 화면은 이전 모습(헤일로·날개 있음/없음)을 유지한다.
+            SkillFx skillFx = FindSkillFx(info);
+            UnitView view = stageView.FindView(info.Caster);
+            if (skillFx != null && skillFx.ChangesAppearance && view != null)
+            {
+                view.FreezeAppearance();
+            }
         }
 
         // 피해·회복 사건이 오면 그 유닛의 화면 HP를 "사건 전" 값으로 붙잡는다 → 타격 박자가 재생될 때까지 HP바가 줄지 않는다.
@@ -370,6 +379,14 @@ namespace Game.UI
 
             if (!isCasterVisible)
             {
+                // 모습을 바꾸는 연출(변신기·종결기)을 못 보여주는 경우: 고정해 둔 변신 모습이 남지 않게 실제 상태로 맞춘다.
+                // 다른 행동은 풀지 않는다 (뒤에 올 종결기가 걸어 둔 고정을 앞 행동이 먼저 풀어 버리지 않게).
+                SkillFx hiddenFx = FindSkillFx(action);
+                if (casterView != null && hiddenFx != null && hiddenFx.ChangesAppearance)
+                {
+                    casterView.ReleaseAppearance();
+                }
+
                 yield break;
             }
 
@@ -379,7 +396,15 @@ namespace Game.UI
             if (skillFx != null)
             {
                 casterView.PlayCast();
-                StartSkillFx(skillFx, action, casterView.transform.position);
+                Coroutine running = StartSkillFx(skillFx, action, casterView);
+
+                // 기다릴 상대 타격이 없는 연출(변신기 등 자기 강화)은 연출이 끝날 때까지 기다린다
+                // → 연출 도중에 다음 박자·다음 턴으로 넘어가지 않게.
+                if (awaitingImpact.Count == 0)
+                {
+                    yield return running;
+                }
+
                 yield break;
             }
 
@@ -405,8 +430,10 @@ namespace Game.UI
         }
 
         // 전용 연출을 만들어 재생한다. 화면에 보이는 상대 대상을 넘기고, 연출이 닿을 때마다 (대상, 비율)을 impactQueue에 쌓는다.
-        private void StartSkillFx(SkillFx prefab, ActionStartInfo action, Vector3 casterPosition)
+        // 반환값: 연출 코루틴 (기다릴 때 yield return으로 쓴다).
+        private Coroutine StartSkillFx(SkillFx prefab, ActionStartInfo action, UnitView casterView)
         {
+            Vector3 casterPosition = casterView.transform.position;
             var targets = new List<(BattleUnit Unit, Vector3 Position)>();
             awaitingImpact.Clear();
             impactQueue.Clear();
@@ -422,18 +449,26 @@ namespace Game.UI
             }
 
             SkillFx fx = Instantiate(prefab, casterPosition, Quaternion.identity);
+            fx.CasterView = casterView;
 
             // 람다 (unit, share) => ...: 연출이 대상에 닿을 때마다 "그 대상 피해의 share만큼 보여줘"를 쌓는다.
-            StartCoroutine(RunSkillFx(fx.Play(casterPosition, targets, (unit, share) => impactQueue.Add((unit, share)), cameraDirector)));
+            return StartCoroutine(RunSkillFx(fx.Play(casterPosition, targets, (unit, share) => impactQueue.Add((unit, share)), cameraDirector), casterView, fx.ChangesAppearance));
         }
 
         // 연출 코루틴을 끝까지 돌린 뒤, 아직 다 보여주지 않은 대상은 남은 피해를 모두 보여주게 한다 (타격 박자가 영원히 기다리지 않게).
-        private IEnumerator RunSkillFx(IEnumerator routine)
+        // 모습을 바꾸는 연출이면, 바꾸지 못하고 끝났어도 고정이 남지 않게 실제 상태로 맞춘다.
+        // 그 밖의 연출(메테오 등)은 풀지 않는다 → 이미 로직에서 예약된 종결기가 걸어 둔 고정을 앞 연출이 먼저 풀지 않게.
+        private IEnumerator RunSkillFx(IEnumerator routine, UnitView casterView, bool changesAppearance)
         {
             yield return routine;
             foreach (BattleUnit unit in awaitingImpact)
             {
                 impactQueue.Add((unit, 1f));
+            }
+
+            if (changesAppearance && casterView != null)
+            {
+                casterView.ReleaseAppearance();
             }
         }
 

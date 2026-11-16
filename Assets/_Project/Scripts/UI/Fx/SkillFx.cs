@@ -13,6 +13,22 @@ namespace Game.UI
     // 새 연출은 이 클래스를 상속해 Play만 구현하면 된다 (전략 패턴: 스킬마다 다른 연출을 같은 방식으로 끼운다).
     public abstract class SkillFx : MonoBehaviour
     {
+        // 시전자의 화면 표시 (BattleFxView가 Play 전에 넣어 줌). 변신 모습을 바꾸는 순간을 알릴 때 쓴다. 없으면 null.
+        public UnitView CasterView { get; set; }
+
+        // true면 이 연출이 시전자의 변신 모습(헤일로·날개)을 바꾸는 연출이다 (변신기·종결기).
+        // BattleFxView가 행동 시작 사건 때 바로 모습을 고정해 두고(로직이 먼저 변신을 바꿔도 화면은 그대로), 연출이 RevealAppearance로 바꾼다.
+        public virtual bool ChangesAppearance => false;
+
+        // 변신 모습을 실제 상태로 바꾼다 (변신기: 구체가 터지며 나타남, 종결기: 영역이 깨지며 사라짐).
+        protected void RevealAppearance()
+        {
+            if (CasterView != null)
+            {
+                CasterView.ReleaseAppearance();
+            }
+        }
+
         // 연출 한 번을 재생한다.
         // caster: 시전자 화면 위치, targets: 화면에 보이는 대상과 그 위치
         // onImpact: 대상에게 닿는 순간 부를 함수 (Action<T1, T2> = 값 두 개(대상, 이번에 보여줄 피해 비율 0~1)를 받는 델리게이트)
