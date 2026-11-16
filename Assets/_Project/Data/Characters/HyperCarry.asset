@@ -29,6 +29,7 @@ MonoBehaviour:
     cooldown: 0
     startCooldown: 0
     presentationPrefab: {fileID: 0}
+    presentationHits: 1
     effects:
     - rid: 7605779530016096421
   skill2:
@@ -37,6 +38,7 @@ MonoBehaviour:
     cooldown: 2
     startCooldown: 0
     presentationPrefab: {fileID: 0}
+    presentationHits: 1
     effects:
     - rid: 7605779530016096422
     - rid: 7605779530016096423
@@ -46,6 +48,7 @@ MonoBehaviour:
     cooldown: 5
     startCooldown: 2
     presentationPrefab: {fileID: 0}
+    presentationHits: 1
     effects:
     - rid: 7605779530016096424
     - rid: 7605779530016096491
@@ -78,6 +81,7 @@ MonoBehaviour:
       cooldown: 0
       startCooldown: 0
       presentationPrefab: {fileID: 0}
+      presentationHits: 1
       effects:
       - rid: 7605779530016096426
       - rid: 7605779530016096427
@@ -87,6 +91,7 @@ MonoBehaviour:
       cooldown: 3
       startCooldown: 0
       presentationPrefab: {fileID: 0}
+      presentationHits: 1
       effects:
       - rid: 7605779530016096428
       - rid: 7605779530016096429
@@ -98,6 +103,7 @@ MonoBehaviour:
       cooldown: 2
       startCooldown: 0
       presentationPrefab: {fileID: 6713828389412017804, guid: b1d0264bf03867c43990883b2b6cfbb6, type: 3}
+      presentationHits: 4
       effects:
       - rid: 7605779530016096432
       - rid: 7605779530016096433
@@ -107,6 +113,7 @@ MonoBehaviour:
       cooldown: 0
       startCooldown: 0
       presentationPrefab: {fileID: 0}
+      presentationHits: 1
       effects:
       - rid: 7605779530016096434
   references:

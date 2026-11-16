@@ -204,17 +204,21 @@ UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
 - 타격감 (기획서 3-11)
   - `BattleEvents.ActionStarted`(`SkillExecutor.ExecuteEffects`가 스킬·추가 공격 시작 때 알림, 3스 여부는 칸 번호)로 행동 박자를 따로 만들어 컷인(`SkillCutInView`) → 돌진(`UnitView.PlayLunge`) 또는 시전(`UnitView.PlayCast`)을 기다린 뒤 타격·버프 박자를 재생
     - 패시브 효과는 기본으로 알리지 않고, `PassiveRunner`가 따로 보이는 행동(턴 종료 단계 효과, `IsStandaloneAction`: 공격 안 한 턴 종료·자가 부활·등장·처치·자기 턴 시작)만 `announcePassive`로 알린다
-    - 스킬 전용 연출: `SkillData.PresentationPrefab`에 `SkillFx`(전략 패턴, 예: `MeteorShowerFx`)가 있으면 `ActionStartInfo.Skill`로 찾아 돌진 대신 재생. 연출이 대상에 닿을 때 부르는 콜백으로 `BattleFxView`가 그 대상의 타격 박자만 꺼내 재생한다(`awaitingImpact`·`impacted`, `PlayHitsOnImpact`). 연출이 끝나면 남은 대상은 모두 닿은 것으로 처리. 메테오·폭발 모양은 프리팹 파티클(`Prefabs/Fx/FxMeteor*`), 코드는 위치·순서·시간·카메라 컷만
+    - 스킬 전용 연출: `SkillData.PresentationPrefab`에 `SkillFx`(전략 패턴, 예: `MeteorShowerFx`)가 있으면 `ActionStartInfo.Skill`로 찾아 돌진 대신 재생. 연출이 대상에 닿을 때 부르는 콜백 `onImpact(대상, 비율)`로 `BattleFxView`가 그 대상 피해의 그 비율만큼만 보여준다(`impactQueue`·`shownRatio`, `PlayHitsOnImpact` → `PlayPortion`). 비율 합이 1이 되는 마지막 타격에 남은 피해·처치·보호막 깨짐(연출 타수가 2 이상이면 남은 피해를 다시 나눔). 연출이 끝나면 남은 대상은 비율 1로 마무리. 예: 잔챙이 메테오가 대상마다 합쳐 30%, 거대 메테오가 나머지. 메테오·폭발 모양은 프리팹 파티클(`Prefabs/Fx/FxMeteor*`), 코드는 위치·순서·시간·카메라 컷만
     - 연출 컷: `BattleCameraDirector.BeginCinematic`(정한 자리로 컷, 지정한 점을 계속 바라봄) / `EndCinematic`(원래 구도로 컷). 연출이 중간에 사라지면 `OnDestroy`에서 되돌림
     - 행동 유닛이 숨겨져 있으면 `BattleCameraDirector.ShowActionBy`가 그 유닛이 보이는 장면으로 페이드 전환한 뒤 모션을 재생한다
   - 캡슐 모션은 `UnitView`가 "기준 자리(무대가 `SetAnchor`로 정함) + 어긋남"으로 그린다 → 모션 중에 무대가 다시 세워져도 튀지 않음. 피격 번쩍임·밀림(`PlayHitReaction`), 처치 날아감(`PlayKnockdown`)
   - 타격 박자마다 가장 센 타격 하나로 화면 흔들림(`BattleCameraDirector.Shake`, 지난 흔들림을 빼고 이동한 뒤 다시 더함)과 히트스톱·슬로모션(`BattleTimeFx`, `Time.timeScale`을 실제 시간으로 잼)
   - 일시정지(`BattlePauseView`)도 `BattleTimeFx.SetPaused`로 같은 timeScale을 쓴다 (timeScale을 바꾸는 곳을 한 곳으로 모아 서로 덮어쓰지 않게, 정지가 가장 우선). 실제 시간으로 움직이는 연출(컷인·행동 순서 바·피해 합계)은 정지 중에도 마저 움직임
   - 처치 판정은 `DamageTakenInfo.IsLethal`(이번 피해로 HP가 0이 됨). 피해 합계는 `DamageTotalView`, 재생 한 번(= 한 턴)마다 0부터
+  - 보호막 깨짐: 피해 전 보호막 > 0이고 후 = 0이면 `FxShieldBreak` 프리팹 + "보호막 파괴"
+  - HP바 흔들림: `BattleFxView`가 `HpBarFeedback.RequestShake`(static 알림)를 보내고, 그 유닛을 그리는 `PartyCardView`·`BossHpBarView`가 `UiShake`로 흔듦 (레이아웃 그룹 안에서도 지난 흔들림을 빼고 더하는 방식)
+  - 연출 다단 히트: `SkillData.PresentationHits`가 2 이상이면 `PlayMultiHit`이 타격 박자를 나눠 재생 (몫은 정수 나눗셈, 나머지는 마지막 타에. 화면 HP는 누적 비율로 줄임)
 - 화면 HP는 연출에 맞춘다: `ShownHp`(static)가 연출 중에 피해·회복을 받은 유닛의 "사건 전" HP·보호막을 붙잡고(`Hold`), `BattleFxView`가 박자를 재생할 때 그 사건 직후 값으로 바꾸고(`Set`), 재생이 끝나면 놓는다(`ReleaseAll`)
   - HP바·숫자를 그리는 곳(`PartyCardView`, `BossHpBarView`, `UnitView` 머리 위 글자)은 `ShownHp.Hp/Shield`를 읽고 `ShownHp.Changed`에 다시 그린다
   - 피해 전후 값은 `DamageTakenInfo.HpBefore/HpAfter/ShieldBefore/ShieldAfter`, 회복 전 값은 "지금 HP - 회복량"
-  - 상세 창(`UnitDetailPanel`)과 쓰러짐 표시(카드 흐림)는 실제 값을 쓴다
+  - 상세 창(`UnitDetailPanel`)은 실제 값을 쓴다
+  - 쓰러짐 표시도 화면 기준: `ShownHp.IsDead`(로직에서 쓰러졌고 연출이 그 유닛을 붙잡고 있지 않음)·`ShownHp.IsOnField`. 캡슐 회색, 카드 흐림, 보스 HP바 숨김, 상태효과 아이콘 지움, 무대 줄 세우기가 이 값을 써서 쓰러뜨린 행동의 연출이 끝난 뒤에 바뀐다. `BattleFxView`가 다음 행동 박자(추가 공격 등)를 시작하기 전에 `ShownHp.ReleaseFallen`(화면 HP가 0까지 내려간 쓰러진 유닛만 놓음), 재생이 끝나면 `ReleaseAll`
 
 ### 역할 경계
 - **ActionQueue는 순서만** 관리한다. 피해 계산이나 상태효과 적용은 큐 밖의 효과 처리 코드가 맡아, 큐가 거대한 매니저가 되지 않게 한다
@@ -370,7 +374,7 @@ Assets/_Project/
 ### 화면
 - 전투 HUD: 보스 HP바(상단), 웨이브·사이클, 스킬 버튼·쿨타임, 대상 선택, 행동 순서 목록(임시 세로 목록), 상태효과 아이콘·툴팁 (전투 로그는 화면에서 숨김, 콘솔에만)
 - 전투 임시 연출: 타격·치명·지속피해·회복·버프 이펙트 + 피해 숫자, 행동 단위로 순서대로 재생 (3장 "연출 재생")
-  - 타격감: 돌진·시전 모션(추가 공격·패시브 행동 포함), 피격 번쩍임·밀림, 히트스톱·슬로모션, 화면 흔들림, 3스 컷인, 피해 합계, HP를 타격 순간에 맞춰 줄임
+  - 타격감: 돌진·시전 모션(추가 공격·패시브 행동 포함), 피격 번쩍임·밀림, 히트스톱·슬로모션, 화면 흔들림, 3스 컷인, 피해 합계, HP를 타격 순간에 맞춰 줄임, 보호막 깨짐, HP바 흔들림, 연출 다단 히트
   - 스킬 전용 연출(`SkillFx`) + 연출 컷 카메라: 선브링어 변신 3스 메테오 (임시)
 - 상세 창(카드 꾹 누르기): 스탯 / 버프·디버프 / 스킬 탭
 - 로비: 메인 화면(출격·모집·인벤토리·전투원 연결), 스테이지 선택(지도·보스 탭·상세 패널), 편성(4칸·보유 목록·저장)
@@ -389,7 +393,7 @@ Assets/_Project/
 - 자동 전투, 배속 (기획서 3-9·3-11)
 - A 회복 힐러: 안젤리카(Ally_Support)를 회복 직군으로 바꿔 테스트 중, 스킬 구성 미정
 - 무기 반영 후 밸런스: 전투에 무기 스탯이 들어가 아군이 강해짐 → 적 데이터 에셋을 StatTable 적 스탯(3성 무기 0.8 기준)에 맞춰 다시 조정
-- 타격감 보강 후보 (메테오 연출 다음에 테스트): 다단 히트 분할, 치명·3스 카메라 줌 펀치, 스쿼시&스트레치, 방향 있는 히트 스파크 / 그 외 돌진 잔상, 치명·3스 화면 가장자리 플래시, 처치 폭발, 보호막 깨짐, HP바 흔들림
+- 타격감 보강 남은 후보: 치명·3스 카메라 줌 펀치, 스쿼시&스트레치, 방향 있는 히트 스파크, 돌진 잔상, 처치 폭발 (다단 히트·보호막 깨짐·HP바 흔들림은 구현, 화면 가장자리 번쩍임은 넣어 봤다가 뺌)
 - 효과음 (타격·치명·처치·돌진·시전·컷인, 임시 소리 파일 필요)
 - 스킬 전용 연출: 지금은 선브링어 변신 3스(메테오)만. 다른 캐릭터 3스는 `SkillFx`로 추가
 - 전투 UI 정식 배치: 현재 행동 캐릭터 패널, 행동 순서 바 초상화, 스킬 이름 알림 (보스 HP바·아군 카드·상세 창은 구현)

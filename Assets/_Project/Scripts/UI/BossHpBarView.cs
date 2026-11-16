@@ -92,6 +92,7 @@ namespace Game.UI
             battleManager.UnitsSpawned += Refresh;
             battleManager.StateChanged += Refresh;
             ShownHp.Changed += HandleShownHpChanged;
+            HpBarFeedback.ShakeRequested += HandleShakeRequested;
         }
 
         private void OnDisable()
@@ -101,12 +102,32 @@ namespace Game.UI
             battleManager.UnitsSpawned -= Refresh;
             battleManager.StateChanged -= Refresh;
             ShownHp.Changed -= HandleShownHpChanged;
+            HpBarFeedback.ShakeRequested -= HandleShakeRequested;
         }
 
-        // 연출에 맞춘 화면 HP가 바뀌면 HP바만 다시 그린다 (타격 박자에 맞춰 줄어듦).
+        // 보스가 크게 맞았으면 보스 바 전체(root 패널)를 잠깐 흔든다.
+        private void HandleShakeRequested(BattleUnit unit, float strength)
+        {
+            if (unit != null && unit == shownBoss)
+            {
+                UiShake.Shake((RectTransform)root.transform, strength, 0.3f);
+            }
+        }
+
+        // 연출에 맞춘 화면 HP가 바뀌면 HP바를 다시 그린다 (타격 박자에 맞춰 줄어듦).
+        // 보스가 로직에서 쓰러졌다면, 연출이 끝나 화면에서도 쓰러진 순간 바를 숨기도록 전체를 다시 확인한다.
         private void HandleShownHpChanged()
         {
-            if (shownBoss != null)
+            if (shownBoss == null)
+            {
+                return;
+            }
+
+            if (shownBoss.IsDead)
+            {
+                Refresh();
+            }
+            else
             {
                 ShowHp(shownBoss);
             }
@@ -157,12 +178,13 @@ namespace Game.UI
         }
 
         // 지금 전장에 있는 적 중 "보스" 표시가 된 첫 유닛. 없으면 null.
+        // 전장 판정은 화면 기준(ShownHp.IsOnField) → 보스를 쓰러뜨린 공격의 연출이 끝날 때까지 바가 남아 HP가 깎이는 게 보인다.
         // 패턴 매칭 is: 데이터가 EnemyCharacterData이고 보스 표시가 켜져 있을 때만 보스로 본다.
         private BattleUnit FindBoss()
         {
             foreach (BattleUnit enemy in battleManager.Enemies)
             {
-                if (enemy.IsOnField && enemy.Data is EnemyCharacterData enemyData && enemyData.IsBoss)
+                if (ShownHp.IsOnField(enemy) && enemy.Data is EnemyCharacterData enemyData && enemyData.IsBoss)
                 {
                     return enemy;
                 }

@@ -125,21 +125,42 @@ namespace Game.UI
             targetMark.SetActive(isTargetable);
             button.interactable = isTargetable;
 
-            // 쓰러졌거나 퇴장했으면 반투명하게 (alpha 0.35).
-            // 쓰러졌어도 부활 스킬로 고를 수 있으면 덜 흐리게(0.75) 해서 누를 수 있는 카드임을 보여준다.
-            bool isFaded = Unit.IsDead || Unit.IsExited;
-            group.alpha = !isFaded ? 1f : isTargetable ? 0.75f : 0.35f;
+            lastTargetable = isTargetable;
+            ShowFade();
+        }
+
+        // 마지막 Refresh 때 대상으로 고를 수 있었는지 (연출이 끝나 흐림을 다시 정할 때 씀).
+        private bool lastTargetable;
+
+        // 쓰러졌거나 퇴장했으면 반투명하게 (alpha 0.35).
+        // 쓰러졌어도 부활 스킬로 고를 수 있으면 덜 흐리게(0.75) 해서 누를 수 있는 카드임을 보여준다.
+        // 쓰러짐은 화면 기준(ShownHp.IsDead) → 쓰러뜨린 공격의 연출이 끝난 뒤에 흐려진다.
+        private void ShowFade()
+        {
+            bool isFaded = ShownHp.IsDead(Unit) || Unit.IsExited;
+            group.alpha = !isFaded ? 1f : lastTargetable ? 0.75f : 0.35f;
         }
 
         // 연출에 맞춘 화면 HP(ShownHp)가 바뀔 때마다 HP바만 다시 그린다 (타격 박자에 맞춰 줄어듦).
         private void OnEnable()
         {
             ShownHp.Changed += HandleShownHpChanged;
+            HpBarFeedback.ShakeRequested += HandleShakeRequested;
         }
 
         private void OnDisable()
         {
             ShownHp.Changed -= HandleShownHpChanged;
+            HpBarFeedback.ShakeRequested -= HandleShakeRequested;
+        }
+
+        // 이 카드의 아군이 크게 맞았으면 카드 전체를 잠깐 흔든다.
+        private void HandleShakeRequested(BattleUnit unit, float strength)
+        {
+            if (unit == Unit)
+            {
+                UiShake.Shake((RectTransform)transform, strength, 0.3f);
+            }
         }
 
         private void HandleShownHpChanged()
@@ -147,6 +168,7 @@ namespace Game.UI
             if (Unit != null)
             {
                 ShowHp();
+                ShowFade();
             }
         }
 
@@ -161,7 +183,7 @@ namespace Game.UI
             hpFill.fillAmount = hpRatio;
 
             int shield = ShownHp.Shield(Unit);
-            bool hasShield = shield > 0 && !Unit.IsDead;
+            bool hasShield = shield > 0 && !ShownHp.IsDead(Unit);
 
             if (shieldFill != null)
             {

@@ -110,6 +110,9 @@ namespace Game.UI
 
         // 마지막 Refresh 때 대상 후보였는지 (화면 HP만 바뀌어 글자를 다시 쓸 때 ▼ 표시를 유지하려고 기억).
         private bool lastTargetable;
+
+        // 마지막 Refresh 때의 "행동 중" 여부. 연출이 끝나 화면 사망이 확정될 때 같은 조건으로 다시 그리기 위해 기억한다.
+        private bool lastActing;
         private float flashRemaining;
 
         // 번쩍임 색: 피격은 흰색, 시전은 castGlowColor.
@@ -159,6 +162,7 @@ namespace Game.UI
             }
 
             lastTargetable = isTargetable;
+            lastActing = isActing;
             UpdateLabel();
 
             // 아군 이름·HP·스택은 화면 아래 초상화 카드(PartyCardView)에서 보여준다.
@@ -221,7 +225,8 @@ namespace Game.UI
         // 아래 초상화 카드·상세 창(PartyCardView, UnitDetailPanel)도 같은 목록을 쓰도록 public으로 연다.
         public List<StatusInstance> BuildDisplayedStatuses()
         {
-            if (Unit.IsDead)
+            // 화면 기준 사망(ShownHp.IsDead): 쓰러뜨린 공격의 연출이 끝나기 전에는 효과 아이콘을 그대로 둔다.
+            if (ShownHp.IsDead(Unit))
             {
                 return new List<StatusInstance>();
             }
@@ -345,9 +350,20 @@ namespace Game.UI
             ShownHp.Changed -= HandleShownHpChanged;
         }
 
+        // 화면 HP가 바뀌면 글자를 다시 쓴다. 쓰러진 유닛은 연출이 끝나 화면에서도 쓰러진 순간(ShownHp.IsDead)이 오므로
+        // 그때 색·상태효과까지 전부 다시 그린다 (로직 사망 시점이 아니라 그 공격의 연출이 끝난 뒤 회색이 되도록).
         private void HandleShownHpChanged()
         {
-            if (Unit != null)
+            if (Unit == null)
+            {
+                return;
+            }
+
+            if (Unit.IsDead)
+            {
+                Refresh(lastActing, lastTargetable);
+            }
+            else
             {
                 UpdateLabel();
             }
@@ -551,7 +567,7 @@ namespace Game.UI
 
         private Color PickColor(bool isActing)
         {
-            if (Unit.IsDead)
+            if (ShownHp.IsDead(Unit))
             {
                 return deadColor;
             }
