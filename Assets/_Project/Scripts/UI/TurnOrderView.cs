@@ -5,8 +5,9 @@ using UnityEngine.UI;
 
 namespace Game.UI
 {
-    // 좌상단 행동 순서 표시 (Canvas, 기획서 3-11). 맨 위가 지금 행동 중인 유닛이고, 아래로 다음 행동 순서다.
-    // 칸마다 이름과 행동 게이지(%)를 보여준다. 칸 모양(크기·글꼴·색)은 씬의 템플릿 오브젝트에서 조절한다.
+    // 좌상단 행동 순서 표시 (Canvas, 기획서 3-11, 붕괴 스타레일식). 맨 위가 지금 행동 중인 유닛이고, 아래로 다음 행동 순서다.
+    // 칸마다 원형 초상화(일러스트 머리, 없으면 이름 첫 글자) + 테두리 색(아군·적·지금 차례) + 오른쪽에 이름·행동 게이지(%).
+    // 지금 차례 칸은 크게 보여준다. 칸 모양(크기·글꼴·색)은 씬의 템플릿 오브젝트에서 조절한다.
     //
     // 움직이는 순서 바: 칸을 "유닛 + 몇 번째 등장"으로 기억해 두고, 순서가 바뀌면 그 칸이 새 자리로 미끄러져 간다.
     //  - 차례가 지나가면 전체가 한 칸씩 위로 올라가고, 맨 위 칸은 왼쪽으로 빠지며 사라진다
@@ -19,16 +20,23 @@ namespace Game.UI
         [Tooltip("칸들을 담을 부모. 위에서부터 칸 높이 + 간격으로 쌓는다 (레이아웃 그룹은 시작할 때 끈다)")]
         [SerializeField] private RectTransform container;
 
-        [Tooltip("칸 하나의 템플릿 (Image 배경 + 자식 Text). 씬에서는 꺼 두고, 복제해서 쓴다")]
+        [Tooltip("칸 하나의 템플릿. 자식: Ring(테두리) / Disc(원형 바탕, Mask) 아래 Illust(IllustrationView)·Initial(첫 글자) / Label(이름·게이지). 씬에서는 꺼 두고 복제해서 쓴다")]
         [SerializeField] private Image entryTemplate;
 
         [Tooltip("앞으로 몇 번의 행동까지 보여줄지 (지금 행동 포함)")]
         [SerializeField, Min(1)] private int visibleCount = 8;
 
-        [Header("칸 색")]
-        [SerializeField] private Color currentColor = new Color(1f, 0.85f, 0.2f, 0.95f);
-        [SerializeField] private Color allyColor = new Color(0.2f, 0.45f, 0.95f, 0.85f);
-        [SerializeField] private Color enemyColor = new Color(0.85f, 0.25f, 0.2f, 0.85f);
+        [Header("테두리 색")]
+        [SerializeField] private Color currentColor = new Color(1f, 0.82f, 0.35f, 1f);
+        [SerializeField] private Color allyColor = new Color(0.35f, 0.75f, 1f, 1f);
+        [SerializeField] private Color enemyColor = new Color(0.95f, 0.3f, 0.25f, 1f);
+
+        [Header("일러스트가 없을 때 원형 바탕 색 (첫 글자를 위에 씀)")]
+        [SerializeField] private Color allyDiscColor = new Color(0.12f, 0.2f, 0.34f, 1f);
+        [SerializeField] private Color enemyDiscColor = new Color(0.32f, 0.1f, 0.1f, 1f);
+
+        [Tooltip("지금 차례 칸의 크기 배율 (나머지 칸은 1)")]
+        [SerializeField, Min(1f)] private float currentScale = 1.3f;
 
         [Header("움직임")]
         [Tooltip("칸 사이 간격 (픽셀)")]
@@ -52,6 +60,11 @@ namespace Game.UI
             public RectTransform Rect;
             public CanvasGroup Group;
             public Text Label;
+            public Image Ring;
+            public Image Disc;
+            public IllustrationView Illust;
+            public Text Initial;
+            public float TargetScale = 1f;
             public Vector2 Target;
             public bool IsLeaving;
             public string AdvanceText;
@@ -186,6 +199,7 @@ namespace Game.UI
             entry.AdvanceTimer = 0f;
             entry.Image.gameObject.SetActive(true);
             entry.Group.alpha = 0f;
+            entry.Rect.localScale = Vector3.one;
 
             // 새 칸은 자기 자리보다 한 칸 아래에서 시작해 올라오며 나타난다.
             entry.Rect.anchoredPosition = SlotPosition(slot + 1);
@@ -210,32 +224,51 @@ namespace Game.UI
                 group = image.gameObject.AddComponent<CanvasGroup>();
             }
 
+            // 칸 안 부품은 템플릿의 자식 이름으로 찾는다 (Find: 바로 아래 자식만, "Disc/Illust"는 손자).
+            Transform root = image.transform;
             return new Entry
             {
                 Image = image,
                 Rect = rect,
                 Group = group,
-                Label = image.GetComponentInChildren<Text>(true),
+                Label = root.Find("Label").GetComponent<Text>(),
+                Ring = root.Find("Ring").GetComponent<Image>(),
+                Disc = root.Find("Disc").GetComponent<Image>(),
+                Illust = root.Find("Disc/Illust").GetComponent<IllustrationView>(),
+                Initial = root.Find("Disc/Initial").GetComponent<Text>(),
             };
         }
 
         // i번째 칸의 자리: 위에서부터 (칸 높이 + 간격) × i만큼 아래.
+        // 맨 위(지금 차례) 칸은 currentScale배로 커지므로, 둘째 칸부터는 커진 만큼(칸 높이 × (배율 - 1)) 더 내려 겹치지 않게 한다.
         private Vector2 SlotPosition(int index)
         {
-            return new Vector2(0f, -(entryHeight + spacing) * index);
+            float extra = index > 0 ? entryHeight * (currentScale - 1f) : 0f;
+            return new Vector2(0f, -(entryHeight + spacing) * index - extra);
         }
 
-        // 칸 하나에 이름·게이지·색을 채운다. 맨 위 칸(지금 행동 중)은 강조색.
+        // 칸 하나에 초상화·테두리 색·이름·게이지를 채운다. 맨 위 칸(지금 행동 중)은 금색 테두리 + 크게.
         private void ApplyEntry(Entry entry, bool isCurrent, bool showGauge)
         {
             BattleUnit unit = entry.Unit;
-            entry.Image.color = isCurrent ? currentColor : unit.IsAlly ? allyColor : enemyColor;
+            entry.Ring.color = isCurrent ? currentColor : unit.IsAlly ? allyColor : enemyColor;
+            entry.TargetScale = isCurrent ? currentScale : 1f;
+
+            // 일러스트가 있으면 원 안을 머리 부분으로 채우고, 없으면(적 등) 편 색 바탕에 이름 첫 글자를 쓴다.
+            // Show는 그림이 없으면 false를 돌려준다. unit.Name[0]: 이름의 첫 글자.
+            bool hasIllustration = entry.Illust.Show(unit.Data.Illustration);
+            entry.Initial.gameObject.SetActive(!hasIllustration);
+            entry.Initial.text = string.IsNullOrEmpty(unit.Name) ? "?" : unit.Name.Substring(0, 1);
+            entry.Disc.color = unit.IsAlly ? allyDiscColor : enemyDiscColor;
 
             // 행동 게이지 % = 트랙을 얼마나 달렸는지. 남은 거리 10000 → 0%, 0(도착) → 100%.
             // Mathf.Clamp01: 0~1 범위로 자른다 (행동 당기기로 남은 거리가 0이면 100%).
             float gauge = Mathf.Clamp01(1f - (float)(unit.RemainingDistance / TurnScheduler.TrackLength));
             string gaugeText = isCurrent ? "행동 중" : showGauge ? $"{gauge * 100f:0}%" : string.Empty;
-            entry.Label.text = $"{unit.Name}  {gaugeText}";
+
+            // 두 줄: 굵은 이름 + 작은 게이지. <b>·<size>: Rich Text로 한 글자 칸 안에서 굵기·크기만 바꾼다.
+            entry.Label.supportRichText = true;
+            entry.Label.text = $"<b>{unit.Name}</b>\n<size={Mathf.RoundToInt(entry.Label.fontSize * 0.8f)}>{gaugeText}</size>";
         }
 
         // 매 프레임: 칸을 목표 자리로 부드럽게 옮기고, 나타나기·사라지기·당기기 글자를 처리한다.
@@ -252,6 +285,9 @@ namespace Game.UI
             {
                 Entry entry = entries[i];
                 entry.Rect.anchoredPosition = Vector2.Lerp(entry.Rect.anchoredPosition, entry.Target, follow);
+
+                // 크기도 같은 빠르기로 따라간다 → 다음 차례가 맨 위로 올라오면서 커진다 (기준점이 왼쪽 위라 오른쪽·아래로 커짐).
+                entry.Rect.localScale = Vector3.Lerp(entry.Rect.localScale, Vector3.one * entry.TargetScale, follow);
 
                 float targetAlpha = entry.IsLeaving ? 0f : 1f;
                 entry.Group.alpha = Mathf.MoveTowards(entry.Group.alpha, targetAlpha, dt * 4f);

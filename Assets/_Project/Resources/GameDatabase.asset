@@ -46,6 +46,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: ce0316f4d1013014898fed8183f16874, type: 2}
   - {fileID: 11400000, guid: 1cd5f3715242602458ee3672338682a8, type: 2}
   - {fileID: 11400000, guid: 281a4ad63d1f1b845846510829f10111, type: 2}
+  - {fileID: 11400000, guid: a7da9e23b5ea0794fbc6538e227bb40b, type: 2}
+  - {fileID: 11400000, guid: c5ca6006d3535544c8b35b60cf3e5251, type: 2}
   inventoryRules: {fileID: 11400000, guid: 8c4c3da45a5e8b34890377887adbbe8a, type: 2}
   growthRules: {fileID: 11400000, guid: 392688cb264b467419a9f4ebb0a17ca7, type: 2}
   weaponGrowthRules: {fileID: 11400000, guid: 0af70a94610bc4d47a7ce7bf34601721, type: 2}

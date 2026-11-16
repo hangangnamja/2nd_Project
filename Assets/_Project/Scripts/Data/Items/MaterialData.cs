@@ -10,6 +10,9 @@ namespace Game.Data
         [InspectorName("경험치 재료")] Experience,
         [InspectorName("진급 재료")] Promotion,
         [InspectorName("무기 재료")] Weapon,
+
+        // 골드·보석. 개수는 재료 목록이 아니라 세이브의 재화 값(CurrencySave)에서 읽는다 (ID: gold / gems).
+        [InspectorName("재화")] Currency,
     }
 
     // 재료 종류 하나의 고정 데이터. 재료는 개체가 아니라 "종류별 개수"로 보관한다 (세이브의 MaterialSave).
@@ -33,6 +36,10 @@ namespace Game.Data
         [Label("아이콘")]
         [SerializeField] private Sprite icon;
 
+        [Tooltip("아이콘을 물들일 색. 흰 아이콘(골드·보석)에 색을 입힐 때 쓰고, 그림 자체에 색이 있으면 흰색 그대로 둔다")]
+        [Label("아이콘 색")]
+        [SerializeField] private Color iconColor = Color.white;
+
         // TextArea와 Label은 둘 다 칸을 그리는 속성이라 함께 쓰면 한쪽만 적용된다 → 여러 줄 입력이 필요한 설명은 TextArea만 쓴다.
         [Tooltip("설명 (인벤토리 상세 패널에 표시)")]
         [SerializeField, TextArea(2, 4)] private string description;
@@ -42,6 +49,7 @@ namespace Game.Data
         public MaterialCategory Category => category;
         public int Grade => grade;
         public Sprite Icon => icon;
+        public Color IconColor => iconColor;
         public string Description => description;
     }
 }

@@ -24,12 +24,12 @@ namespace Game.Battle.Effects
     // 경계: 고립 (하이퍼캐리 3스). 펼친 유닛의 스탯이 크게 오르고 행동 제어(기절 등)에 면역이 된다.
     // 펼친 유닛의 변신이 끝나거나 펼친 유닛이 쓰러지면 끝난다. 아군 퇴장은 이 경계가 아니라 3스의 "아군 퇴장" 블록이 맡는다.
     // 효과 블록 드롭다운에 보여줄 분류/이름과 설명 (SubclassMenuAttribute).
-    [SubclassMenu("변신·전장/경계: 고립", "경계 고립을 펼친다: 스탯 보정 + 행동 제어 면역. 펼친 유닛의 변신이 끝나거나 쓰러지면 끝 (경계는 한 번에 하나)", 520)]
+    [SubclassMenu("변신·전장/경계", "경계를 펼친다: 스탯 보정 + 행동 제어 면역. 펼친 유닛의 변신이 끝나거나 쓰러지면 끝 (경계는 한 번에 하나)", 520)]
     [Serializable]
     public class IsolationBoundaryEffect : BoundaryEffect
     {
         [Label("경계 이름")]
-        [SerializeField] private string boundaryName = "고립";
+        [SerializeField] private string boundaryName = "홀로 싸우는 길";
 
         [Tooltip("펼친 유닛에게 주는 스탯 보정 (예: 공격력 +60%, 방어력 +30%, 최대 HP +200%)")]
         [SerializeField] private List<StatModifier> statModifiers = new List<StatModifier>();
