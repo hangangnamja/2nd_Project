@@ -531,7 +531,7 @@ MonoBehaviour:
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 48
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -15220,6 +15220,12 @@ MonoBehaviour:
   timeFx: {fileID: 1859009143}
   damageTotal: {fileID: 1574143179}
   cutIn: {fileID: 1030185828}
+  shieldBreakFx: {fileID: 8294949187290933680, guid: 8e4d7f9cb64ccad4a82cb0a46c3dd94b, type: 3}
+  shieldBreakColor: {r: 0.5, g: 0.85, b: 1, a: 1}
+  hpShakeThreshold: 0.05
+  hpShakePerRatio: 70
+  hpShakeMax: 16
+  multiHitInterval: 0.1
   hitStopSeconds: 0.04
   criticalHitStopSeconds: 0.08
   killHitStopSeconds: 0.1
@@ -15233,6 +15239,7 @@ MonoBehaviour:
   dotPopupScatter: {x: 0.9, y: 0.7}
   hitPush: 0.25
   criticalPush: 0.45
+  partialImpactScale: 0.35
 --- !u!4 &1859009142
 Transform:
   m_ObjectHideFlags: 0

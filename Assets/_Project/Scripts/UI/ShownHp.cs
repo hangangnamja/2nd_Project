@@ -29,6 +29,19 @@ namespace Game.UI
             Changed = null;
         }
 
+        // 화면에서 쓰러진 것으로 보여줄지. 로직에서는 이미 쓰러졌어도, 그 피해를 연출이 아직 붙잡고 있으면(held) 살아 있는 것처럼 둔다.
+        // → 회색·보스 바 사라짐·상태효과 지움은 그 공격의 연출이 끝나 ReleaseAll로 놓인 뒤에 일어난다.
+        public static bool IsDead(BattleUnit unit)
+        {
+            return unit.IsDead && !held.ContainsKey(unit);
+        }
+
+        // 화면에서 전장에 서 있는 것으로 보여줄지 (BattleUnit.IsOnField의 화면판: 화면상 살아 있고 퇴장하지 않음).
+        public static bool IsOnField(BattleUnit unit)
+        {
+            return !IsDead(unit) && !unit.IsExited;
+        }
+
         public static int Hp(BattleUnit unit)
         {
             // TryGetValue: 붙잡은 값이 있으면 value에 담고 true.
@@ -59,6 +72,34 @@ namespace Game.UI
                 held[unit] = (hp, shield);
                 Changed?.Invoke();
             }
+        }
+
+        // 화면에서도 HP가 0까지 깎인(이미 쓰러지는 타격을 보여준) 유닛만 놓는다 → 그 유닛은 화면에서도 쓰러진 것이 된다.
+        // 행동(스킬·추가 공격) 하나의 연출이 끝나고 다음 행동이 시작될 때 불러, "공격 → 피해 → 사망 → 추가 공격" 순서로 보이게 한다.
+        // 아직 0까지 보여주지 않은 유닛(다음 행동에서 쓰러지는 유닛)은 그대로 붙잡아 둔다.
+        public static void ReleaseFallen()
+        {
+            // RemoveAll이 없는 Dictionary라, 놓을 유닛을 먼저 모은 뒤 지운다 (돌면서 지우면 오류).
+            var fallen = new List<BattleUnit>();
+            foreach (KeyValuePair<BattleUnit, (int Hp, int Shield)> pair in held)
+            {
+                if (pair.Key.IsDead && pair.Value.Hp <= 0)
+                {
+                    fallen.Add(pair.Key);
+                }
+            }
+
+            if (fallen.Count == 0)
+            {
+                return;
+            }
+
+            foreach (BattleUnit unit in fallen)
+            {
+                held.Remove(unit);
+            }
+
+            Changed?.Invoke();
         }
 
         // 연출이 끝나면 전부 놓는다 → 화면이 실제 값으로 맞춰진다 (연출에 안 잡힌 변화도 여기서 반영).

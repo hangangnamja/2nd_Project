@@ -62,6 +62,22 @@ namespace Game.UI
         [Tooltip("3스 컷인")]
         [SerializeField] private SkillCutInView cutIn;
 
+        [Header("보호막·HP바")]
+        [Tooltip("보호막이 다 깎이는 순간 터지는 파편 이펙트")]
+        [SerializeField] private ParticleSystem shieldBreakFx;
+        [SerializeField] private Color shieldBreakColor = new Color(0.5f, 0.85f, 1f);
+
+        [Tooltip("최대 HP의 이 비율 이상 맞으면 그 유닛의 HP바(아군 카드·보스 바)를 흔든다")]
+        [SerializeField, Range(0f, 1f)] private float hpShakeThreshold = 0.05f;
+
+        [Tooltip("HP바 흔들림 세기 = 맞은 비율 × 이 값 (픽셀), 최대 hpShakeMax")]
+        [SerializeField] private float hpShakePerRatio = 70f;
+        [SerializeField] private float hpShakeMax = 16f;
+
+        [Header("연출 다단 히트")]
+        [Tooltip("다단 히트 한 타 사이 간격(초)")]
+        [SerializeField, Min(0.01f)] private float multiHitInterval = 0.1f;
+
         [Tooltip("맞는 순간 멈추는 시간(초): 일반 / 치명")]
         [SerializeField, Min(0f)] private float hitStopSeconds = 0.04f;
         [SerializeField, Min(0f)] private float criticalHitStopSeconds = 0.08f;
@@ -135,10 +151,21 @@ namespace Game.UI
         private Vector3? attackerPosition;
         private bool isUltimateAction;
 
-        // 스킬 전용 연출(메테오 등)이 아직 닿지 않은 대상 → 이 대상의 타격 박자는 연출이 닿을 때(impacted에 들어올 때)까지 기다린다.
+        // 지금 행동의 연출 타수 (스킬 데이터의 "연출 타수", 스킬이 아니면 1).
+        private int currentActionHits = 1;
+
+        // 스킬 전용 연출(메테오 등)이 아직 다 닿지 않은 대상 → 이 대상의 타격 박자는 연출이 닿는 만큼씩 나눠 보여준다.
         // HashSet: 같은 값을 한 번만 담는 집합. Contains로 들어 있는지 빠르게 확인한다.
         private readonly HashSet<BattleUnit> awaitingImpact = new HashSet<BattleUnit>();
-        private readonly HashSet<BattleUnit> impacted = new HashSet<BattleUnit>();
+
+        // 연출이 보낸 "이 대상에게 피해의 이만큼을 보여줘" 알림 (대상, 비율). 타격 박자가 꺼내 쓴다.
+        private readonly List<(BattleUnit Unit, float Share)> impactQueue = new List<(BattleUnit, float)>();
+
+        // 대상마다 지금까지 보여준 피해 비율 (0 ~ 1). 1이 되면 그 대상의 타격이 끝난 것.
+        private readonly Dictionary<BattleUnit, float> shownRatio = new Dictionary<BattleUnit, float>();
+
+        [Tooltip("연출의 일부 타격(잔챙이 메테오 등)의 손맛 세기 (1 = 일반 타격)")]
+        [SerializeField, Range(0f, 1f)] private float partialImpactScale = 0.35f;
 
         // 재생 중이거나 재생할 박자가 남아 있으면 true → BattleManager가 다음 턴을 미룬다.
         public bool IsPlaying => isRunning || beats.Count > 0;
@@ -283,6 +310,9 @@ namespace Game.UI
                 // yield return 코루틴: 그 코루틴이 끝날 때까지 이어서 기다린다.
                 if (beat[0].Kind == FxKind.Action)
                 {
+                    // 다음 행동(추가 공격 등)을 시작하기 전에, 앞 행동에서 쓰러지는 타격까지 보여준 유닛을 화면에서도 쓰러뜨린다
+                    // (회색·카드 흐림·보스 바 숨김). 로직 순서 "공격 → 피해 → 사망 처리 → 추가 공격"을 화면도 같은 순서로 보여준다.
+                    ShownHp.ReleaseFallen();
                     yield return PlayAction(beat[0].Action);
                     continue;
                 }
@@ -327,6 +357,9 @@ namespace Game.UI
 
             // 3스(칸 번호 2)를 스킬로 직접 쓴 아군만 컷인 (추가 공격·연동 스킬·적은 제외).
             isUltimateAction = action.SkillSlot == 2 && action.Source == ActionSource.Skill;
+
+            // ?.: 스킬이 아닌 행동(추가 공격·패시브)이면 Skill이 null → ?? 로 1타.
+            currentActionHits = action.Source == ActionSource.Skill ? action.Skill?.PresentationHits ?? 1 : 1;
             if (isUltimateAction && caster.IsAlly && cutIn != null)
             {
                 cutIn.Play(caster.Data.Illustration, caster.Name, action.SkillName);
@@ -371,12 +404,13 @@ namespace Game.UI
             return prefab != null ? prefab.GetComponent<SkillFx>() : null;
         }
 
-        // 전용 연출을 만들어 재생한다. 화면에 보이는 상대 대상을 넘기고, 닿는 순간마다 impacted에 넣는다.
+        // 전용 연출을 만들어 재생한다. 화면에 보이는 상대 대상을 넘기고, 연출이 닿을 때마다 (대상, 비율)을 impactQueue에 쌓는다.
         private void StartSkillFx(SkillFx prefab, ActionStartInfo action, Vector3 casterPosition)
         {
             var targets = new List<(BattleUnit Unit, Vector3 Position)>();
             awaitingImpact.Clear();
-            impacted.Clear();
+            impactQueue.Clear();
+            shownRatio.Clear();
             foreach (BattleUnit target in action.Targets)
             {
                 UnitView view = stageView.FindView(target);
@@ -389,27 +423,41 @@ namespace Game.UI
 
             SkillFx fx = Instantiate(prefab, casterPosition, Quaternion.identity);
 
-            // 람다 unit => impacted.Add(unit): 연출이 대상에 닿을 때마다 그 대상을 "닿음"으로 표시한다.
-            StartCoroutine(RunSkillFx(fx.Play(casterPosition, targets, unit => impacted.Add(unit), cameraDirector)));
+            // 람다 (unit, share) => ...: 연출이 대상에 닿을 때마다 "그 대상 피해의 share만큼 보여줘"를 쌓는다.
+            StartCoroutine(RunSkillFx(fx.Play(casterPosition, targets, (unit, share) => impactQueue.Add((unit, share)), cameraDirector)));
         }
 
-        // 연출 코루틴을 끝까지 돌린 뒤, 혹시 닿지 않은 대상이 남았으면 모두 닿은 것으로 처리한다 (타격 박자가 영원히 기다리지 않게).
+        // 연출 코루틴을 끝까지 돌린 뒤, 아직 다 보여주지 않은 대상은 남은 피해를 모두 보여주게 한다 (타격 박자가 영원히 기다리지 않게).
         private IEnumerator RunSkillFx(IEnumerator routine)
         {
             yield return routine;
             foreach (BattleUnit unit in awaitingImpact)
             {
-                impacted.Add(unit);
+                impactQueue.Add((unit, 1f));
             }
         }
 
-        // 전용 연출의 타격 박자: 기다릴 필요 없는 대상은 바로, 기다리는 대상은 연출이 닿을 때마다 그 대상만 재생한다.
-        // 한 번 재생한 대상은 기다림 목록에서 빼서, 이후의 타격(지속피해 등)은 평소대로 재생된다.
+        // 전용 연출의 타격 박자: 기다릴 필요 없는 대상은 바로 보여주고, 기다리는 대상은 연출이 닿을 때마다 그 비율만큼 나눠 보여준다.
+        //  - 일부(잔챙이 메테오 등): 피해의 일부만 숫자·HP 감소로 보여주고 손맛은 약하게
+        //  - 마지막(남은 비율을 다 채움): 남은 피해를 원래 세기로 (연출 타수가 2 이상이면 남은 피해를 다시 여러 타로 나눔)
+        // 다 보여준 대상은 기다림 목록에서 빼서, 이후의 타격(지속피해 등)은 평소대로 재생된다.
         private IEnumerator PlayHitsOnImpact(List<FxEntry> beat)
         {
-            // FindAll(조건 람다): 조건에 맞는 원소만 모은 새 목록.
-            List<FxEntry> pending = beat.FindAll(entry => awaitingImpact.Contains(entry.Unit));
-            List<FxEntry> now = beat.FindAll(entry => !awaitingImpact.Contains(entry.Unit));
+            // 기다리는 대상 → 그 대상의 타격 연출. Dictionary: 대상으로 바로 찾기 위해.
+            var pending = new Dictionary<BattleUnit, FxEntry>();
+            var now = new List<FxEntry>();
+            foreach (FxEntry entry in beat)
+            {
+                if (awaitingImpact.Contains(entry.Unit) && !pending.ContainsKey(entry.Unit))
+                {
+                    pending[entry.Unit] = entry;
+                }
+                else
+                {
+                    now.Add(entry);
+                }
+            }
+
             if (now.Count > 0)
             {
                 PlayBeat(now);
@@ -417,23 +465,56 @@ namespace Game.UI
 
             while (pending.Count > 0)
             {
-                List<FxEntry> ready = pending.FindAll(entry => impacted.Contains(entry.Unit));
-                if (ready.Count > 0)
+                if (impactQueue.Count > 0)
                 {
-                    PlayBeat(ready);
-                    foreach (FxEntry entry in ready)
-                    {
-                        awaitingImpact.Remove(entry.Unit);
-                    }
-
-                    // RemoveAll(조건 람다): 조건에 맞는 원소를 모두 지운다 → 방금 재생한 것들.
-                    pending.RemoveAll(entry => ready.Contains(entry));
+                    // 쌓인 알림을 한꺼번에 꺼낸다 (같은 프레임에 닿은 메테오 여러 개 = 한 번의 손맛).
+                    var arrived = new List<(BattleUnit Unit, float Share)>(impactQueue);
+                    impactQueue.Clear();
+                    yield return PlayArrivedImpacts(arrived, pending);
                 }
 
                 yield return null;
             }
 
             yield return new WaitForSeconds(beatInterval);
+        }
+
+        // 도착한 알림들을 처리한다: 남은 비율을 다 채우지 않는 것은 일부 타격, 채우는 것은 마지막 타격.
+        private IEnumerator PlayArrivedImpacts(List<(BattleUnit Unit, float Share)> arrived, Dictionary<BattleUnit, FxEntry> pending)
+        {
+            float shake = 0f;
+            float stop = 0f;
+            bool hasKill = false;
+            var finals = new List<(FxEntry Entry, float From)>();
+
+            foreach ((BattleUnit unit, float share) in arrived)
+            {
+                // TryGetValue: 그 대상이 아직 기다리는 중이면 entry에 담고 true.
+                if (!pending.TryGetValue(unit, out FxEntry entry))
+                {
+                    continue;
+                }
+
+                float from = shownRatio.TryGetValue(unit, out float shown) ? shown : 0f;
+                float to = Mathf.Min(1f, from + share);
+                if (to >= 0.999f)
+                {
+                    finals.Add((entry, from));
+                    pending.Remove(unit);
+                    awaitingImpact.Remove(unit);
+                    continue;
+                }
+
+                PlayPortion(entry, from, to, partialImpactScale, ref shake, ref stop, ref hasKill);
+                shownRatio[unit] = to;
+            }
+
+            ApplyImpact(shake, stop, hasKill);
+
+            if (finals.Count > 0)
+            {
+                yield return PlayMultiHit(finals, currentActionHits);
+            }
         }
 
         // 행동 대상에 상대(opponents = true) 또는 시전자 말고 같은 편(false)이 있는지. 화면에 보이는지와 상관없이 로직의 대상으로 판단한다.
@@ -494,6 +575,14 @@ namespace Game.UI
                 return dotPopupStagger * beat.Count;
             }
 
+            // 연출 타수가 2 이상인 행동의 타격 박자: 피해를 나눠 빠르게 연달아 보여준다.
+            if (currentActionHits > 1 && beat[0].Kind == FxKind.Hit)
+            {
+                // ConvertAll(람다): 박자의 타격마다 (연출, 시작 비율 0) 묶음으로 바꾼다.
+                StartCoroutine(PlayMultiHit(beat.ConvertAll(entry => (entry, 0f)), currentActionHits));
+                return multiHitInterval * (currentActionHits - 1);
+            }
+
             float stop = 0f;
             float shake = 0f;
             bool hasKill = false;
@@ -515,6 +604,8 @@ namespace Game.UI
 
                 DamageTakenInfo damage = entry.Damage;
                 AddToTotal(damage);
+                PlayShieldBreak(entry.Unit, damage.ShieldBefore, damage.ShieldAfter);
+                RequestHpShake(damage, damage.Amount);
 
                 // 지속피해·막힌 피해는 손맛 연출(멈춤·흔들림) 없이 숫자만.
                 if (damage.IsBlocked || damage.IsDamageOverTime)
@@ -534,6 +625,13 @@ namespace Game.UI
                 }
             }
 
+            ApplyImpact(shake, stop, hasKill);
+            return 0f;
+        }
+
+        // 타격 박자 한 번의 손맛: 화면 흔들림·히트스톱·처치 슬로모션.
+        private void ApplyImpact(float shake, float stop, bool hasKill)
+        {
             // 카메라 연출·시간 조절이 연결되지 않은 씬에서도 오류 없이 건너뛴다.
             if (shake > 0f && cameraDirector != null)
             {
@@ -553,8 +651,130 @@ namespace Game.UI
                     timeFx.SlowMotion(killHitStopSeconds + killSlowMotionSeconds);
                 }
             }
+        }
 
-            return 0f;
+        // 연출 다단 히트: 대상마다 "From부터 끝(1)까지" 남은 피해를 hits등분해 multiHitInterval 간격으로 나눠 보여준다.
+        // 로직 피해는 이미 한 번에 들어갔고, 화면만 나눈다 (합계·최종 HP는 같음). 중간 타는 약하게, 처치는 마지막 타에만.
+        private IEnumerator PlayMultiHit(List<(FxEntry Entry, float From)> items, int hits)
+        {
+            hits = Mathf.Max(1, hits);
+            for (int hit = 1; hit <= hits; hit++)
+            {
+                bool isFinal = hit == hits;
+                float shake = 0f;
+                float stop = 0f;
+                bool hasKill = false;
+
+                foreach ((FxEntry entry, float from) in items)
+                {
+                    if (entry.Kind != FxKind.Hit)
+                    {
+                        continue;
+                    }
+
+                    // 이번 타가 맡는 구간: 남은 부분(1 - from)을 hits등분한 (hit - 1)번째 ~ hit번째.
+                    float segmentFrom = from + (1f - from) * (hit - 1) / hits;
+                    float segmentTo = isFinal ? 1f : from + (1f - from) * hit / hits;
+                    PlayPortion(entry, segmentFrom, segmentTo, isFinal ? 1f : 0.45f, ref shake, ref stop, ref hasKill);
+                }
+
+                ApplyImpact(shake, stop, hasKill);
+                if (!isFinal)
+                {
+                    yield return new WaitForSeconds(multiHitInterval);
+                }
+            }
+        }
+
+        // 한 대상의 피해 중 from ~ to 비율 구간을 보여준다: 화면 HP·보호막, 숫자, 이펙트, 맞는 모션, 피해 합계.
+        // to가 1이면 마지막 구간이라 남은 피해를 정확히 다 보여주고, 처치·보호막 깨짐도 이때만.
+        // 손맛(흔들림·멈춤) 세기는 박자 안에서 가장 센 값을 남기도록 ref로 받아 갱신한다 (ref: 부른 쪽 변수를 직접 바꾼다).
+        private void PlayPortion(FxEntry entry, float from, float to, float impactScale, ref float shake, ref float stop, ref bool hasKill)
+        {
+            DamageTakenInfo damage = entry.Damage;
+            bool isFinal = to >= 0.999f;
+
+            // 화면 HP·보호막: 전 값에서 줄어든 양의 to 비율만큼 뺀 값 (마지막이면 정확히 사건 후 값).
+            int hp = isFinal ? entry.HpAfter : Mathf.RoundToInt(Mathf.Lerp(damage.HpBefore, entry.HpAfter, to));
+            int shield = isFinal ? entry.ShieldAfter : Mathf.RoundToInt(Mathf.Lerp(damage.ShieldBefore, entry.ShieldAfter, to));
+            ShownHp.Set(entry.Unit, hp, shield);
+
+            UnitView view = stageView.FindView(entry.Unit);
+            if (view == null || !view.gameObject.activeInHierarchy)
+            {
+                return;
+            }
+
+            // 이번 구간의 피해·흡수량 = (전체 × to) - (전체 × from), 반올림. 마지막 구간은 전체 × 1이라 합계가 정확히 맞는다.
+            int amount = Portion(damage.Amount, from, to);
+            int absorbed = Portion(damage.Absorbed, from, to);
+            var part = new DamageTakenInfo(entry.Unit, amount, absorbed, damage.IsCritical, damage.IsDamageOverTime, damage.IsBlocked,
+                damage.BlockedLabel, isLethal: isFinal && damage.IsLethal, hpBefore: damage.HpBefore, damageOverTimeSource: damage.DamageOverTimeSource);
+
+            PlayHit(part, view.transform.position);
+            PlayHitMotion(view, part);
+            AddToTotal(part);
+            RequestHpShake(damage, amount);
+            if (isFinal)
+            {
+                PlayShieldBreak(entry.Unit, damage.ShieldBefore, damage.ShieldAfter);
+            }
+
+            if (damage.IsBlocked || damage.IsDamageOverTime)
+            {
+                return;
+            }
+
+            stop = Mathf.Max(stop, (damage.IsCritical ? criticalHitStopSeconds : hitStopSeconds) * impactScale);
+            shake = Mathf.Max(shake, (damage.IsCritical ? criticalShake : hitShake) * impactScale);
+            if (part.IsLethal)
+            {
+                hasKill = true;
+                stop = Mathf.Max(stop, killHitStopSeconds);
+                shake = Mathf.Max(shake, killShake);
+            }
+        }
+
+        // 전체 total 중 from ~ to 비율 구간의 몫 (반올림 차이로 합계가 어긋나지 않게 누적값끼리 뺀다).
+        private static int Portion(int total, float from, float to)
+        {
+            return Mathf.RoundToInt(total * to) - Mathf.RoundToInt(total * from);
+        }
+
+        // 보호막이 이번 피해로 다 깎였으면(전 > 0, 후 = 0) 파편 이펙트와 "보호막 파괴" 글자.
+        private void PlayShieldBreak(BattleUnit unit, int shieldBefore, int shieldAfter)
+        {
+            if (shieldBefore <= 0 || shieldAfter > 0)
+            {
+                return;
+            }
+
+            UnitView view = stageView.FindView(unit);
+            if (view == null || !view.gameObject.activeInHierarchy)
+            {
+                return;
+            }
+
+            SpawnEffect(shieldBreakFx, view.transform.position);
+            SpawnPopup(view.transform.position + Vector3.up * 0.4f, "보호막 파괴", shieldBreakColor, 0.75f);
+        }
+
+        // 최대 HP 대비 이번에 깎인 양이 기준 이상이면 그 유닛의 HP바를 흔들라고 알린다. 치명은 조금 더 세게.
+        private void RequestHpShake(DamageTakenInfo damage, int amount)
+        {
+            if (damage.IsBlocked || damage.Target.MaxHp <= 0)
+            {
+                return;
+            }
+
+            float ratio = (float)amount / damage.Target.MaxHp;
+            if (ratio < hpShakeThreshold)
+            {
+                return;
+            }
+
+            float strength = Mathf.Min(hpShakeMax, ratio * hpShakePerRatio) * (damage.IsCritical ? 1.3f : 1f);
+            HpBarFeedback.RequestShake(damage.Target, strength);
         }
 
         // 지속피해 피해 연출인지 (화상·독 발동, 격발로 터진 지속피해).

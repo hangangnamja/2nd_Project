@@ -192,7 +192,8 @@ namespace Game.UI
         // 줄 방향을 카메라 시선과 거의 수직으로 두어 화면에서 가로로 펼쳐지고, 행동 유닛은 화면 왼쪽에 따로 선다.
         private void StageFocusLine(List<UnitView> side)
         {
-            List<UnitView> standing = side.FindAll(view => view.Unit.IsOnField);
+            // 화면 기준 전장(ShownHp.IsOnField): 쓰러뜨린 공격의 연출이 끝나기 전에 장면이 바뀌어도 맞은 유닛이 그대로 서 있게 한다.
+            List<UnitView> standing = side.FindAll(view => ShownHp.IsOnField(view.Unit));
 
             // normalized: 길이 1짜리 방향. 인원이 많으면 줄이 왼쪽으로 길어지므로, 늘어난 인원만큼 줄 전체를 그 방향(오른쪽)으로 민다.
             Vector3 direction = focusLineDirection.normalized;
@@ -225,7 +226,7 @@ namespace Game.UI
             // FindAll(조건): 화면에 세울 유닛을 모은다. 기본은 살아 있고 퇴장하지 않은 유닛,
             // keepFallenSlots면 쓰러진 유닛도 포함한다 (퇴장한 유닛은 언제나 뺀다).
             List<UnitView> standing = side.FindAll(view =>
-                view.Unit.IsOnField || (keepFallenSlots && view.Unit.IsDead && !view.Unit.IsExited));
+                ShownHp.IsOnField(view.Unit) || (keepFallenSlots && ShownHp.IsDead(view.Unit) && !view.Unit.IsExited));
 
             // Quaternion.Euler(0, 180, 0): y축으로 반 바퀴 → -z(카메라·행동 유닛 쪽)를 바라본다.
             Quaternion facing = faceCamera ? Quaternion.Euler(0f, 180f, 0f) : Quaternion.identity;
@@ -256,7 +257,7 @@ namespace Game.UI
 
                 Place(standing[i], position, rotation);
 
-                if (standing[i].Unit.IsDead)
+                if (ShownHp.IsDead(standing[i].Unit))
                 {
                     fallenSlots.Add(standing[i]);
                 }

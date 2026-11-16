@@ -7,9 +7,10 @@ using UnityEngine;
 namespace Game.UI
 {
     // 메테오 연출 (선브링어 변신 3스 섬멸, 임시). 레퍼런스: 하늘을 끌어내리듯 불덩이가 쏟아진 뒤 거대한 메테오가 떨어져 폭발.
-    //  1) 잔챙이 메테오들이 적 주변에 차례로 떨어진다 (피해 없음, 폭발·약한 흔들림만)
+    //  1) 잔챙이 메테오들이 대상들에게 돌아가며 떨어진다 → 맞은 대상에게 피해의 일부를 약한 타격으로 보여줌
     //  2) 거대 메테오가 떨어지기 시작하면 카메라가 적 쪽으로 컷 → 적 뒤에서 하늘을 올려다보며 메테오가 다가오는 모습
-    //  3) 땅에 닿기 직전 원래 시점(선브링어 쪽)으로 컷 → 거대 폭발과 함께 대상 전원 피해(onImpact)·강한 흔들림
+    //  3) 땅에 닿기 직전 원래 시점(선브링어 쪽)으로 컷 → 거대 폭발과 함께 대상 전원에게 남은 피해(onImpact 비율 1)·강한 흔들림
+    // 로직 피해는 한 번에 들어가 있고, 잔챙이 + 거대 메테오는 그 피해를 나눠 "보여주기"만 한다 (합계는 같음).
     // 메테오·폭발의 모양(불꽃·빛·파편)은 프리팹의 파티클이 담당하고, 이 코드는 위치·순서·시간·카메라 컷만 정한다.
     public class MeteorShowerFx : SkillFx
     {
@@ -32,8 +33,11 @@ namespace Game.UI
         [Tooltip("작은 메테오 사이 간격(초)")]
         [SerializeField, Min(0f)] private float smallInterval = 0.12f;
 
-        [Tooltip("작은 메테오가 떨어지는 범위 (대상들 가운데 기준 반지름)")]
-        [SerializeField, Min(0f)] private float smallRadius = 4f;
+        [Tooltip("작은 메테오가 대상 발밑에서 무작위로 비켜 떨어지는 반지름")]
+        [SerializeField, Min(0f)] private float smallRadius = 0.6f;
+
+        [Tooltip("잔챙이 메테오들이 합쳐서 보여줄 피해 비율 (대상마다). 나머지는 거대 메테오가 보여준다")]
+        [SerializeField, Range(0f, 0.9f)] private float smallDamageShare = 0.3f;
 
         [SerializeField, Min(0f)] private float smallShake = 0.1f;
 
@@ -98,13 +102,13 @@ namespace Game.UI
         public override IEnumerator Play(
             Vector3 caster,
             IReadOnlyList<(BattleUnit Unit, Vector3 Position)> targets,
-            Action<BattleUnit> onImpact,
+            Action<BattleUnit, float> onImpact,
             BattleCameraDirector camera)
         {
             Vector3 center = Ground(GetCenter(targets));
             yield return new WaitForSeconds(windUpSeconds);
 
-            yield return SmallBarrage(center, camera);
+            yield return SmallBarrage(targets, onImpact, camera);
             yield return new WaitForSeconds(giantDelay);
             yield return GiantMeteor(caster, center, targets, onImpact, camera);
 
@@ -113,21 +117,42 @@ namespace Game.UI
             Destroy(gameObject);
         }
 
-        // 1) 잔챙이: 대상들 주변 무작위 지점에 차례로 떨어진다. 피해 없이 폭발·약한 흔들림만.
+        // 1) 잔챙이: 대상들에게 돌아가며(i % 대상 수) 떨어져, 맞은 대상에게 피해 일부를 약한 타격으로 보여준다.
+        // 한 개가 보여줄 비율 = smallDamageShare ÷ 그 대상이 맞는 잔챙이 수 → 대상마다 합이 smallDamageShare.
         // 모두 던진 뒤 바로 돌아간다 (마지막 몇 개는 거대 메테오가 오는 동안 마저 떨어진다).
-        private IEnumerator SmallBarrage(Vector3 center, BattleCameraDirector camera)
+        private IEnumerator SmallBarrage(
+            IReadOnlyList<(BattleUnit Unit, Vector3 Position)> targets,
+            Action<BattleUnit, float> onImpact,
+            BattleCameraDirector camera)
         {
+            if (targets.Count == 0)
+            {
+                yield break;
+            }
+
             for (int i = 0; i < smallMeteors; i++)
             {
-                Vector3 point = center + RandomFlat(smallRadius);
+                // 나머지 연산 %: 0, 1, 2, 0, 1, 2 … 순서로 대상을 돌아가며 고른다.
+                int index = i % targets.Count;
+                BattleUnit unit = targets[index].Unit;
+                Vector3 point = Ground(targets[index].Position) + RandomFlat(smallRadius);
 
-                // 람다 () => ...: 착탄했을 때 할 일. camera는 바깥 변수를 그대로 붙잡아 쓴다 (클로저).
+                // 이 대상이 맞는 잔챙이 수: 앞쪽 대상(smallMeteors % 대상 수보다 작은 번호)은 하나씩 더 맞는다.
+                int hitsOnUnit = smallMeteors / targets.Count + (index < smallMeteors % targets.Count ? 1 : 0);
+                float share = smallDamageShare / hitsOnUnit;
+
+                // 람다 () => ...: 착탄했을 때 할 일. unit·share·camera는 바깥 변수를 그대로 붙잡아 쓴다 (클로저).
                 StartCoroutine(Fall(meteorPrefab, 1f, point + smallSpawnOffset, point, smallFallSeconds, null, () =>
                 {
                     Instantiate(explosionPrefab, point, Quaternion.identity);
                     if (camera != null)
                     {
                         camera.Shake(smallShake, 0.2f);
+                    }
+
+                    if (share > 0f)
+                    {
+                        onImpact(unit, share);
                     }
                 }));
 
@@ -140,7 +165,7 @@ namespace Game.UI
             Vector3 caster,
             Vector3 center,
             IReadOnlyList<(BattleUnit Unit, Vector3 Position)> targets,
-            Action<BattleUnit> onImpact,
+            Action<BattleUnit, float> onImpact,
             BattleCameraDirector camera)
         {
             Vector3 start = center + giantSpawnOffset;
@@ -168,7 +193,8 @@ namespace Game.UI
 
                 foreach ((BattleUnit unit, Vector3 _) in targets)
                 {
-                    onImpact(unit);
+                    // 비율 1: 잔챙이가 보여주고 남은 피해를 모두 보여준다.
+                    onImpact(unit, 1f);
                 }
             }));
 

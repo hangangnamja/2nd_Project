@@ -50,7 +50,7 @@ MonoBehaviour:
   smallSpawnOffset: {x: -2.5, y: 10, z: 2}
   smallFallSeconds: 0.42
   smallInterval: 0.12
-  smallRadius: 4
+  smallRadius: 0.6
   smallShake: 0.1
   giantMeteorPrefab: {fileID: 8844245677972392351, guid: eb7d637ba36f4e74791694797a2c780c, type: 3}
   giantScale: 12
