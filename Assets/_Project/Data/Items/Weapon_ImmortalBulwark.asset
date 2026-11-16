@@ -10,14 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2bdc5230873a94c4f9283c64797b6d1b, type: 3}
-  m_Name: Weapon_SteelSpear
+  m_Name: Weapon_ImmortalBulwark
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.WeaponData
-  id: steel_spear
-  displayName: "\uAC15\uCCA0 \uCC3D"
-  grade: 3
-  icon: {fileID: 21300000, guid: 71ece66073e4df74cad1d4fcbf3822f3, type: 3}
-  description: "\uB05D\uC744 \uAC15\uCCA0\uB85C \uB367\uB304 \uCC3D. \uAC70\uB9AC\uB97C
-    \uB450\uACE0 \uC2F8\uC6B0\uAE30 \uC88B\uB2E4."
-  attack: 26
-  maxHp: 60
-  defense: 0
+  id: immortal_bulwark
+  displayName: "\uBD88\uBA78\uC758 \uC131\uBCBD"
+  grade: 5
+  type: 1
+  icon: {fileID: 21300000, guid: 193b18f34e2e6954d99c809280d4c551, type: 3}
+  description: "\uC5B4\uB5A4 \uACF5\uACA9\uB3C4 \uB6AB\uC9C0 \uBABB\uD588\uB2E4\uB294
+    \uC804\uC124\uC758 \uBC29\uD328."
+  attack: 700
+  maxHp: 840
+  defense: 84

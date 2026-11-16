@@ -371,17 +371,19 @@ namespace Game.Battle
         // scaling: 레벨에 따른 HP·공격력·방어력 배율 (BattleRulesData가 아군/적 성장 곡선으로 계산해 넘겨준다).
         // 시작 HP는 최대 HP, 시작 거리는 트랙 길이 (기획서: 전투 시작 시 전원 10000).
         // 쿨타임은 스킬마다 설정한 시작 쿨타임으로 채운다 (기본 0 = 첫 턴부터 사용 가능).
-        public BattleUnit(CharacterData data, bool isAlly, int formationIndex, int level, StatScaling scaling)
+        // weapon: 장착 무기 스탯 (기본값 default = 전부 0 → 무기 없음·적).
+        public BattleUnit(CharacterData data, bool isAlly, int formationIndex, int level, StatScaling scaling, WeaponStats weapon = default)
         {
             Data = data;
             IsAlly = isAlly;
             FormationIndex = formationIndex;
             Level = level;
 
-            // 데이터 스탯을 Lv1 값으로 보고 레벨 배율을 곱한다. 예: 공격력 120, Lv60 아군 배율 6.15 → 738
-            BaseMaxHp = data.MaxHp * (double)scaling.Hp;
-            BaseAttack = data.Attack * (double)scaling.Attack;
-            BaseDefense = data.Defense * (double)scaling.Defense;
+            // 데이터 스탯을 Lv1 값으로 보고 레벨 배율을 곱한 뒤 무기 스탯을 더한다. 예: 공격력 120 × Lv60 배율 6.15 = 738, + 무기 500 = 1238
+            // 무기는 기본 스탯에 들어가므로 공격력 % 버프도 무기 몫까지 키운다 (기획서 5장: 무기는 기초 스탯 제공).
+            BaseMaxHp = data.MaxHp * (double)scaling.Hp + weapon.MaxHp;
+            BaseAttack = data.Attack * (double)scaling.Attack + weapon.Attack;
+            BaseDefense = data.Defense * (double)scaling.Defense + weapon.Defense;
 
             CurrentHp = MaxHp;
             RemainingDistance = TurnScheduler.TrackLength;

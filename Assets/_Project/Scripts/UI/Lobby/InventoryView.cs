@@ -259,17 +259,19 @@ namespace Game.UI
             }
 
             WeaponData data = weapon.Data;
-            ShowDetailHeader(data.Icon, data.DisplayName, (int)data.Grade, $"무기  ·  Lv.{weapon.Level}");
+            ShowDetailHeader(data.Icon, data.DisplayName, (int)data.Grade, $"{EffectText.EnumName(data.Type)}  ·  Lv.{weapon.Level}");
 
             // 장착 캐릭터 이름: ID로 데이터를 찾고, 못 찾으면 ID 그대로 보여준다.
             string equipped = weapon.IsEquipped
                 ? PlayerProfile.Database.FindCharacter(weapon.EquippedTo)?.DisplayName ?? weapon.EquippedTo
                 : "없음";
 
+            // 지금 레벨·진급에서 더해 주는 스탯 (최대 스탯 × 성장 비율).
+            WeaponStats stats = PlayerProfile.GetWeaponStats(weapon);
             detailInfo.text =
-                $"공격력  <b>{data.Attack}</b>\n" +
-                $"HP  <b>{data.MaxHp}</b>\n" +
-                $"방어력  <b>{data.Defense}</b>\n\n" +
+                $"공격력  <b>+{stats.Attack:N0}</b>\n" +
+                $"HP  <b>+{stats.MaxHp:N0}</b>\n" +
+                $"방어력  <b>+{stats.Defense:N0}</b>\n\n" +
                 $"장착  {equipped}";
             detailDescription.text = data.Description;
         }

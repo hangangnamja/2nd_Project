@@ -72,7 +72,7 @@ namespace Game.UI
         // 무기 이름. 무기 칸이 꽉 차 자동 분해됐으면 아랫줄에 표시한다 (리치 텍스트 <color>, <size>로 붉은 작은 글자).
         private string BuildWeaponName(GachaResult result)
         {
-            string weaponName = result.Weapon != null ? result.Weapon.DisplayName : "3성 무기";
+            string weaponName = result.Weapon != null ? result.Weapon.DisplayName : $"{(int)result.Rarity}성 무기";
             if (!result.IsDismantled)
             {
                 return weaponName;

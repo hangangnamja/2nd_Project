@@ -11,6 +11,13 @@ namespace Game.Data
         [SerializeField, Range(0f, 1f)] private float sRate = 0.006f;
         [SerializeField, Range(0f, 1f)] private float aRate = 0.09f;
 
+        // 상위 무기는 캐릭터 구간(S·A) 밖의 "무기" 구간에서만 나온다 → 캐릭터 확률·천장은 그대로이고 무기에는 천장이 없다.
+        [Tooltip("5성 무기 확률 (0.01 = 1%). 천장 없음")]
+        [SerializeField, Range(0f, 1f)] private float fiveStarWeaponRate = 0.01f;
+
+        [Tooltip("4성 무기 확률 (0.1 = 10%). 천장 없음")]
+        [SerializeField, Range(0f, 1f)] private float fourStarWeaponRate = 0.1f;
+
         [Header("S 천장")]
         [Tooltip("S 없이 이 횟수째 뽑기는 S 확정")]
         [SerializeField, Min(1)] private int hardPity = 90;
@@ -41,6 +48,8 @@ namespace Game.Data
 
         public int HardPity => hardPity;
         public float ARate => aRate;
+        public float FiveStarWeaponRate => fiveStarWeaponRate;
+        public float FourStarWeaponRate => fourStarWeaponRate;
         public int AGuaranteeInterval => aGuaranteeInterval;
         public float PickupChance => pickupChance;
         public int GemsPerPull => gemsPerPull;

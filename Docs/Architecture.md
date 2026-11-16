@@ -45,7 +45,7 @@
 | `BattleRulesData`: 전투 공통 수치 (방어 상수 K 계산 파라미터, 레벨 성장 곡선) | `BattleUnit` 기본 스탯 = 데이터 스탯(Lv1) × 레벨 배율(`StatScaling`), 전투 시작 때 고정. 아군 배율은 `GetAllyScaling(레벨, 진급)` (로비 → `BattleSetup`이 진급 횟수도 넘김, 모르면 그 레벨까지 진급 완료로 계산) |
 | `GachaBannerData`: 배너 이름·강조 문구·종료 일시·픽업 S 1명 | `GachaView`: 보여주는 배너 순서 |
 | `GachaRulesData`: 확률·천장·반천·A 확정·비용·디버그 무료 (배너 공통) | `GachaSave`(세이브): 천장·A 확정 카운터, 픽업 확정 여부 |
-| `WeaponData`·`MaterialData`: 무기(등급 3~5성, 기초 스탯)·재료(분류, 등급) 종류 | `WeaponSave`(개체 번호·레벨·장착)·`MaterialSave`(개수) → `OwnedWeapon`·`OwnedMaterial` |
+| `WeaponData`·`MaterialData`: 무기(등급 3~5성, 종류 칼·방패·마법지팡이·로자리오 = 장착 직군, 풀 육성 스탯)·재료(분류, 등급) 종류 | `WeaponSave`(개체 번호·레벨·진급·경험치·장착)·`MaterialSave`(개수) → `OwnedWeapon`·`OwnedMaterial`. 무기 스탯 = `WeaponStats.Calculate`(풀 육성 스탯 × `BattleRulesData.GetWeaponStatRatio`) |
 | `InventoryRulesData`: 무기 칸 수, 재료 최대 개수, 분해 재료·등급별 보상 | - |
 | `GrowthRulesData`: 레벨별 필요 경험치(StatTable "경험치" 시트), 진급 간격·횟수, 경험치 재료(재료 + 1개당 경험치), 디버그 재료 무한 | `OwnedCharacterSave.exp`·`promotion` → `OwnedCharacter` |
 | `GameDatabase` (`Resources/`): ID → 캐릭터·스테이지·무기·재료 SO 찾기, 인벤토리 규칙, 새 게임 시작 캐릭터 | `SaveData` (JSON): ID와 바뀌는 값만 저장 |
@@ -73,6 +73,11 @@
 - 스탯은 `BattleRulesData.GetAllyScaling(레벨)`로 전투와 같은 배율을 곱해 보여준다 (공격력·방어력은 전투처럼 버림)
 - 스킬 탭은 전투 상세 창과 같은 `SkillDescriptionBuilder`·`DetailEntryView`를 쓴다. 전투 밖이라 남은 쿨타임·스택은 -1로 넘겨 그 줄을 생략
 - 육성 창 `GrowthPopup`: 고른 재료 개수만 들고, 미리 보기·실제 레벨업 모두 `GrowthRulesData.AddExp`(상한에서 멈추고 넘친 양은 버림) 하나로 계산
+  - 키우는 대상은 `IGrowthTarget`(전략 패턴)으로 감춘다: `CharacterGrowthTarget`(캐릭터 규칙, 레벨 배율 스탯) / `WeaponGrowthTarget`(무기 규칙 `WeaponGrowthRules`, 무기 스탯). 창은 규칙·상태·스탯을 대상에게 묻기만 함
+  - 재료 칸 수는 대상 규칙의 재료 수에 맞춰 켜고 가운데 정렬 (캐릭터 3칸, 무기 1칸)
+- 무기 장착 `WeaponSelectPopup`: 낄 수 있는 무기(`PlayerProfile.GetEquippableWeapons`, 직군 = 무기 종류) 목록 + 장착·해제·강화. 저장은 `PlayerProfile.Weapon.cs`(`EquipWeapon`·`UnequipWeapon`·`LevelUpWeapon`·`PromoteWeapon`) → `InventoryChanged`·`OwnedCharactersChanged`
+- 전투: 편성 화면이 캐릭터별 무기 스탯을 `BattleSetup`에 담아 넘기고, `BattleUnit`이 기본 스탯에 더한다
+- 가챠 무기: `GachaMachine`이 캐릭터 구간 뒤 무기 구간(5성 1% → 4성 10% → 3성 나머지)으로 등급을 정하고 `GetWeaponsOfGrade`에서 고른다. 연출은 결과 등급 색만 보므로 4·5성 무기도 캐릭터와 같은 빛
   - 재료 칸 `GrowthMaterialSlot`의 누름·홀드 반복은 `HoldRepeatButton`(누른 채로 있으면 점점 빨리 반복)
   - 실행은 `PlayerProfile.LevelUp`·`Promote`(`PlayerProfile.Growth.cs`): 저장 후 `OwnedCharactersChanged` → 육성 창·전투원 화면이 다시 그려짐
 

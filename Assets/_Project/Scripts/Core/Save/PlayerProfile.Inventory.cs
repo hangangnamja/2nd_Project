@@ -12,16 +12,20 @@ namespace Game.Core
         public int Level { get; }
         public int Promotion { get; }
 
+        // 지금 레벨에서 다음 레벨까지 쌓인 경험치
+        public int Exp { get; }
+
         // 장착한 캐릭터 ID (없으면 null)
         public string EquippedTo { get; }
         public bool IsEquipped => !string.IsNullOrEmpty(EquippedTo);
 
-        public OwnedWeapon(int uid, WeaponData data, int level, int promotion, string equippedTo)
+        public OwnedWeapon(int uid, WeaponData data, int level, int promotion, int exp, string equippedTo)
         {
             Uid = uid;
             Data = data;
             Level = level;
             Promotion = promotion;
+            Exp = exp;
             EquippedTo = equippedTo;
         }
     }
@@ -96,7 +100,7 @@ namespace Game.Core
                 WeaponData weapon = database.FindWeapon(saved.id);
                 if (weapon != null)
                 {
-                    owned.Add(new OwnedWeapon(saved.uid, weapon, saved.level, saved.promotion, saved.equippedTo));
+                    owned.Add(ToOwnedWeapon(saved, weapon));
                 }
             }
 

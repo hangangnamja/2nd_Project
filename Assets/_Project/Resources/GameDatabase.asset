@@ -30,8 +30,15 @@ MonoBehaviour:
   - {fileID: 11400000, guid: b71bcc34dcde8a64ca9059aef7d0c813, type: 2}
   - {fileID: 11400000, guid: 46f57a127ea8c9548a11dbb51ac0952a, type: 2}
   - {fileID: 11400000, guid: a1cad9b7f17907d4cb94ef99e49fcdfc, type: 2}
+  - {fileID: 11400000, guid: b14cfcf3a5415714b874ea04c175c2ca, type: 2}
   - {fileID: 11400000, guid: 603b0c62d28aad04186f510712ef8ff3, type: 2}
+  - {fileID: 11400000, guid: 49aaa954050bdf048bb3652f7ca9df31, type: 2}
+  - {fileID: 11400000, guid: 35dffae9b5b1a2a49aa6deaa56ddcb84, type: 2}
+  - {fileID: 11400000, guid: 96380231322df92458455fabc09ba1a0, type: 2}
   - {fileID: 11400000, guid: 2307809d9fea86248b4b10a6a3005392, type: 2}
+  - {fileID: 11400000, guid: db4cbf3deac81ae4e80602b866c39320, type: 2}
+  - {fileID: 11400000, guid: 25631e3eaf24d3f47a9778ecbb67c3ae, type: 2}
+  - {fileID: 11400000, guid: 24aecee6f1bf7ad4ba2b40e1ba7407b6, type: 2}
   materials:
   - {fileID: 11400000, guid: 4d56eb476f944fd49b274c38a7837a9f, type: 2}
   - {fileID: 11400000, guid: e67e7df0caffff5409ed63a81db6316b, type: 2}
@@ -40,6 +47,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 281a4ad63d1f1b845846510829f10111, type: 2}
   inventoryRules: {fileID: 11400000, guid: 8c4c3da45a5e8b34890377887adbbe8a, type: 2}
   growthRules: {fileID: 11400000, guid: 392688cb264b467419a9f4ebb0a17ca7, type: 2}
+  weaponGrowthRules: {fileID: 11400000, guid: 0af70a94610bc4d47a7ce7bf34601721, type: 2}
+  battleRules: {fileID: 11400000, guid: 578a03459990c304aae4e2558428a676, type: 2}
   startingCharacters:
   - character: {fileID: 11400000, guid: 8545e9f7091b4be4ab5466072e394403, type: 2}
     level: 1

@@ -24,6 +24,9 @@ namespace Game.Data
         // 캐릭터별 진급 횟수 (allyLevels와 함께 로비에서만 채운다). 진급 점프 스탯을 실제 진급 기준으로 넣기 위해 쓴다.
         [NonSerialized] private List<int> allyPromotions;
 
+        // 캐릭터별 장착 무기 스탯 (로비에서만 채운다, 무기가 없으면 0).
+        [NonSerialized] private List<WeaponStats> allyWeapons;
+
         [Header("스테이지 (적 웨이브·적 레벨)")]
         [SerializeField] private StageData stage;
 
@@ -42,14 +45,21 @@ namespace Game.Data
             return allyPromotions != null && index < allyPromotions.Count ? allyPromotions[index] : -1;
         }
 
-        // 편성 화면에서 고른 편성·캐릭터별 레벨·진급·스테이지로 이번 전투 설정을 새로 만든다 (로비 → 전투).
-        // levels·promotions는 party와 같은 순서다. CreateInstance: 파일로 저장하지 않는 실행 중 전용 객체를 만든다 → 에셋 파일은 바뀌지 않는다.
-        public static BattleSetup Create(IReadOnlyList<CharacterData> party, IReadOnlyList<int> levels, IReadOnlyList<int> promotions, StageData selectedStage)
+        // 편성 순서 index번 아군의 무기 스탯. 테스트 설정이면 무기 없음.
+        public WeaponStats GetAllyWeapon(int index)
+        {
+            return allyWeapons != null && index < allyWeapons.Count ? allyWeapons[index] : WeaponStats.None;
+        }
+
+        // 편성 화면에서 고른 편성·캐릭터별 레벨·진급·무기·스테이지로 이번 전투 설정을 새로 만든다 (로비 → 전투).
+        // levels·promotions·weapons는 party와 같은 순서다. CreateInstance: 파일로 저장하지 않는 실행 중 전용 객체를 만든다 → 에셋 파일은 바뀌지 않는다.
+        public static BattleSetup Create(IReadOnlyList<CharacterData> party, IReadOnlyList<int> levels, IReadOnlyList<int> promotions, IReadOnlyList<WeaponStats> weapons, StageData selectedStage)
         {
             BattleSetup setup = CreateInstance<BattleSetup>();
             setup.allyParty = new List<CharacterData>(party);
             setup.allyLevels = new List<int>(levels);
             setup.allyPromotions = new List<int>(promotions);
+            setup.allyWeapons = new List<WeaponStats>(weapons);
             setup.stage = selectedStage;
             return setup;
         }

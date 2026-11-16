@@ -257,14 +257,16 @@ namespace Game.UI
 
             var levels = new List<int>();
             var promotions = new List<int>();
+            var weapons = new List<WeaponStats>();
             foreach (CharacterData character in selected)
             {
                 OwnedCharacter owned = PlayerProfile.GetOwned(character);
                 levels.Add(owned.Level);
                 promotions.Add(owned.Promotion);
+                weapons.Add(PlayerProfile.GetEquippedWeaponStats(character));
             }
 
-            BattleLaunch.Request(BattleSetup.Create(selected, levels, promotions, stage));
+            BattleLaunch.Request(BattleSetup.Create(selected, levels, promotions, weapons, stage));
 
             // LoadScene: 지금 씬을 닫고 이름이 같은 씬을 연다. 씬이 Build Settings에 등록돼 있어야 한다.
             SceneManager.LoadScene(battleSceneName);

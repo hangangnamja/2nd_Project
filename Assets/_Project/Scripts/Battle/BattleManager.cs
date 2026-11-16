@@ -1083,7 +1083,7 @@ namespace Game.Battle
                 int level = setup.GetAllyLevel(i);
                 int promotion = setup.GetAllyPromotion(i);
                 StatScaling allyScaling = promotion >= 0 ? rules.GetAllyScaling(level, promotion) : rules.GetAllyScaling(level);
-                allies.Add(new BattleUnit(setup.AllyParty[i], isAlly: true, formationIndex: i, level: level, allyScaling));
+                allies.Add(new BattleUnit(setup.AllyParty[i], isAlly: true, formationIndex: i, level: level, allyScaling, setup.GetAllyWeapon(i)));
             }
 
             // 각 유닛에 같은 편 목록을 연결해, 살아 있는 아군의 오라 패시브가 스탯 계산에 반영되게 한다.

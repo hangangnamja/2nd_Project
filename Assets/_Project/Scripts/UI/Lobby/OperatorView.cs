@@ -8,7 +8,7 @@ namespace Game.UI
 {
     // 전투원 화면 (메인 화면의 OPERATOR 버튼, 기획서 2장 전투원 화면). 에픽세븐 영웅 화면 배치를 참고했다.
     //  - 오른쪽: 보유 캐릭터 세로 목록 → 누르면 그 캐릭터를 보여준다
-    //  - 가운데: 일러스트(없으면 직군 색 실루엣), 옆에 무기 칸 1개 (장착은 무기 성장 때)
+    //  - 가운데: 일러스트(없으면 직군 색 실루엣), 옆에 무기 칸 1개 → 누르면 무기 장착 창(WeaponSelectPopup)
     //  - 왼쪽: 탭(상세 / 스킬) + 정보 패널 (직군·이름·등급·레벨·진급 + 스탯, 또는 1~3스·패시브 설명)
     //  - 아래: 레벨업 버튼 → 육성 창(GrowthPopup). 레벨 상한(10·20·…·50)이면 같은 버튼이 "진급"이 된다
     // 화면 모양은 씬에서 만들고, 이 컴포넌트는 세이브(PlayerProfile)의 보유 캐릭터로 내용을 채운다.
@@ -33,6 +33,20 @@ namespace Game.UI
         [SerializeField] private Image silhouette;
 
         [SerializeField] private Text weaponText;
+
+        [Tooltip("무기 칸 (누르면 무기 장착 창)")]
+        [SerializeField] private Button weaponSlotButton;
+
+        [SerializeField] private Image weaponFrame;
+        [SerializeField] private Image weaponIcon;
+
+        [Tooltip("무기를 안 꼈을 때 보이는 + 표시")]
+        [SerializeField] private GameObject weaponEmptyMark;
+
+        [SerializeField] private WeaponSelectPopup weaponPopup;
+
+        [Tooltip("무기로 더해진 스탯 색 (스탯 옆 +n)")]
+        [SerializeField] private Color weaponBonusColor = new Color(0.45f, 0.95f, 0.55f);
 
         [Header("탭")]
         [Tooltip("탭 버튼 (상세, 스킬 순서)")]
@@ -111,6 +125,7 @@ namespace Game.UI
 
             ShowTab(currentTab);
             levelButton.onClick.AddListener(() => growthPopup.Open(selected));
+            weaponSlotButton.onClick.AddListener(() => weaponPopup.Open(selected));
 
             // 레벨업·진급·가챠로 보유 캐릭터가 바뀌면 목록과 정보를 다시 채운다 (화면이 켜져 있을 때만).
             PlayerProfile.OwnedCharactersChanged += HandleCharactersChanged;
@@ -201,7 +216,20 @@ namespace Game.UI
             ShowStats(owned);
             FillSkills(owned.Data);
             ShowLevelButton(owned);
-            weaponText.text = "미장착";
+            ShowWeaponSlot(owned.Data);
+        }
+
+        // 무기 칸: 낀 무기의 아이콘·등급 테두리·이름·레벨. 안 꼈으면 + 와 "미장착".
+        private void ShowWeaponSlot(CharacterData character)
+        {
+            OwnedWeapon weapon = PlayerProfile.GetEquippedWeapon(character);
+            bool hasWeapon = weapon != null;
+            weaponEmptyMark.SetActive(!hasWeapon);
+            weaponIcon.enabled = hasWeapon && weapon.Data.Icon != null;
+            weaponIcon.sprite = hasWeapon ? weapon.Data.Icon : null;
+            weaponIcon.preserveAspect = true;
+            weaponFrame.color = hasWeapon ? RarityColors.Get((int)weapon.Data.Grade) : new Color(0.04f, 0.05f, 0.08f, 0.97f);
+            weaponText.text = hasWeapon ? $"Lv.{weapon.Level}  {weapon.Data.DisplayName}" : "미장착";
         }
 
         // 레벨 버튼 글자: 상한이면 "진급", 최대 레벨이면 "최대 레벨"(누를 수 없음), 그 외에는 "레벨업".
@@ -247,21 +275,33 @@ namespace Game.UI
             promotionText.text = $"진급  {new string('◆', promotion)}{new string('◇', rules.MaxPromotion - promotion)}{exp}";
         }
 
-        // 스탯 6개. 데이터 스탯(Lv1)에 전투와 같은 아군 레벨 배율을 곱해, 전투에 들어갔을 때의 기본 스탯을 보여준다.
-        // 공격력·방어력은 전투처럼 (int)로 버림해 같은 숫자가 나오게 한다. 무기 스탯은 아직 반영하지 않는다.
+        // 스탯 6개. 데이터 스탯(Lv1)에 전투와 같은 아군 레벨·진급 배율을 곱하고 무기 스탯을 더해, 전투에 들어갔을 때의 기본 스탯을 보여준다.
+        // 공격력·방어력은 전투처럼 (int)로 버림해 같은 숫자가 나오게 한다. 무기로 더해진 몫은 옆에 초록 +n으로 따로 보여준다.
         private void ShowStats(OwnedCharacter owned)
         {
             CharacterData data = owned.Data;
             StatScaling scaling = battleRules != null ? battleRules.GetAllyScaling(owned.Level, owned.Promotion) : StatScaling.None;
+            WeaponStats weapon = PlayerProfile.GetEquippedWeaponStats(data);
 
             statLabelsText.text = "공격력\n방어력\n생명력\n속도\n치명 확률\n치명 피해";
             statValuesText.text = string.Join("\n",
-                $"{(int)(data.Attack * (double)scaling.Attack):N0}",
-                $"{(int)(data.Defense * (double)scaling.Defense):N0}",
-                $"{(int)(data.MaxHp * (double)scaling.Hp):N0}",
+                FormatWithWeapon((int)(data.Attack * (double)scaling.Attack), weapon.Attack),
+                FormatWithWeapon((int)(data.Defense * (double)scaling.Defense), weapon.Defense),
+                FormatWithWeapon((int)(data.MaxHp * (double)scaling.Hp), weapon.MaxHp),
                 $"{data.BaseSpeed}",
                 EffectText.Percent(data.CritRate),
                 EffectText.Percent(data.CritDamage));
+        }
+
+        // "합계  +무기 몫" (무기 몫이 없으면 합계만). <size>: 무기 몫은 작은 글자.
+        private string FormatWithWeapon(int baseValue, int weaponValue)
+        {
+            if (weaponValue <= 0)
+            {
+                return $"{baseValue:N0}";
+            }
+
+            return $"<size=20><color=#{ColorUtility.ToHtmlStringRGB(weaponBonusColor)}>+{weaponValue:N0}</color></size>  {baseValue + weaponValue:N0}";
         }
 
         // ---------- 스킬 탭 ----------
