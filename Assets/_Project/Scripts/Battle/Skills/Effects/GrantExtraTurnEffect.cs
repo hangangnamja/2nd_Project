@@ -1,5 +1,6 @@
 using System;
 using Game.Core;
+using Game.Data;
 
 namespace Game.Battle.Effects
 {
@@ -18,6 +19,12 @@ namespace Game.Battle.Effects
             context.Log(granted
                 ? $"  {context.Caster.Name}: 추가 턴 획득"
                 : $"  {context.Caster.Name}: 이미 추가 턴이 예정되어 있어 1회로 처리");
+        }
+
+        // 상세 창 스킬 탭 설명.
+        public override string Describe(SkillTargetType skillTarget)
+        {
+            return "추가 턴 획득";
         }
     }
 }

@@ -50,6 +50,20 @@ namespace Game.Battle.Effects
         {
             return new IsolationBoundary(caster, boundaryName, statModifiers, crowdControlImmune, endsWithOwnerTransformation, displayStatus);
         }
+
+        // 상세 창 스킬 탭 설명: 경계 이름 + 스탯 보정 + 면역·끝나는 조건.
+        // ConvertAll(EffectText.Modifier): 스탯 보정마다 "공격력 +60%" 같은 글로 바꾼 목록.
+        public override string Describe(SkillTargetType skillTarget)
+        {
+            var parts = statModifiers.ConvertAll(EffectText.Modifier);
+            if (crowdControlImmune)
+            {
+                parts.Add("행동 제어 면역");
+            }
+
+            string end = endsWithOwnerTransformation ? " · 변신이 끝나면 종료" : string.Empty;
+            return $"경계: {boundaryName} 전개 ({string.Join(", ", parts)}){end}";
+        }
     }
 
     // 고립 경계의 전투 중 상태: 스탯 보정·면역은 Boundary 공통 처리로 주인에게 적용되고, 여기서는 값과 끝날 조건만 정한다.

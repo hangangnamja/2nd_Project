@@ -1,6 +1,7 @@
 using System;
 using Game.Core;
 using UnityEngine;
+using Game.Data;
 
 namespace Game.Battle.Effects
 {
@@ -20,6 +21,12 @@ namespace Game.Battle.Effects
         public override void Apply(SkillContext context)
         {
             DamageEffect.ApplyDamageWith(context, target => DamageCalculator.CalculateTargetMaxHpDamage(target, maxHpRatio));
+        }
+
+        // 상세 창 스킬 탭 설명.
+        public override string Describe(SkillTargetType skillTarget)
+        {
+            return $"대상 최대 HP {EffectText.Percent(maxHpRatio)} 피해 (공격력·치명·방어력 무시)";
         }
     }
 }

@@ -35,5 +35,13 @@ namespace Game.Battle.Effects
 
             context.Log($"  {context.Caster.Name}: {followUpName} 예약");
         }
+
+        // 상세 창 스킬 탭 설명. 블록 안 효과들의 설명을 이어 붙인다 (안쪽 블록은 추가 공격 자신의 대상 규칙으로 설명).
+        // ConvertAll(람다): 안쪽 효과마다 설명 글로 바꾼 목록을 만든다.
+        public override string Describe(SkillTargetType skillTarget)
+        {
+            string inner = string.Join(", ", effects.ConvertAll(effect => effect.DescribeOrName(targetType)));
+            return $"추가 공격 「{followUpName}」({EffectText.EnumName(targetType)}): {inner}";
+        }
     }
 }

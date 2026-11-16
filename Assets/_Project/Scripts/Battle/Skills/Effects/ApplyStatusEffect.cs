@@ -64,5 +64,11 @@ namespace Game.Battle.Effects
 
             return allies;
         }
+
+        // 상세 창 스킬 탭 설명. 무엇을 몇 개 거는지 + 그 상태효과의 지속 턴·효과 요약.
+        public override string Describe(SkillTargetType skillTarget)
+        {
+            return $"{(applyToAllAllies ? "아군 전체에 " : string.Empty)}{EffectText.StatusName(status)}{(count > 1 ? $" {count}개" : string.Empty)} 부여 ({EffectText.StatusSummary(status)})";
+        }
     }
 }

@@ -51,5 +51,11 @@ namespace Game.Battle.Effects
                 || targetType == SkillTargetType.EnemyAll
                 || targetType == SkillTargetType.EnemyBlast;
         }
+
+        // 상세 창 스킬 탭 설명.
+        public override string Describe(SkillTargetType skillTarget)
+        {
+            return "상대 전원이 자신을 1스로 1회씩 공격";
+        }
     }
 }

@@ -53,5 +53,11 @@ namespace Game.Battle.Effects
             caster.Statuses.RemoveInstance(record);
             StatusApplier.ReportRemoved(caster, record, context.Services);
         }
+
+        // 상세 창 스킬 탭 설명.
+        public override string Describe(SkillTargetType skillTarget)
+        {
+            return $"받은 피해 비율(최대 HP 대비) × {ratio:0.##}배 공격력으로 반격";
+        }
     }
 }

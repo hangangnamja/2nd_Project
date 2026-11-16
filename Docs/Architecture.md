@@ -169,7 +169,11 @@ UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
 - `BossHpBarView`: 상단 보스 HP바. `EnemyCharacterData.IsBoss`인 전장의 적을 찾아 이름·HP·보호막·버프 줄을 그리고(줄은 `PartyCardView.ShowRow` 공용), 누르면 `UnitDetailPanel`
 - 아군·보스 캡슐의 머리 위 상태효과 줄(`UnitStatusBar`)은 끔 → 아군은 아래 카드, 보스는 상단 HP바에서만 보여준다
 - HP 막대는 세로 그라데이션 그림(`Art/UI/BarGradient`)을 Image 색으로 물들여 쓴다 (기본 UISprite는 늘리면 끝이 어둡게 번짐)
-- `PartyBarView`·`PartyCardView`: 아래 아군 초상화 카드 (HP·스택·차례·대상 표시, 누르면 `SelectTarget`). 카드 아래 버프 줄·디버프 줄(줄마다 5칸 + "…")(목록은 `UnitView.BuildDisplayedStatuses`와 같음). 꾹 누르면(`LongPressed`, 손을 뗄 때의 클릭은 무시) `UnitDetailPanel`(스탯 + 효과 설명 `StatusDescriptionBuilder`)
+- `PartyBarView`·`PartyCardView`: 아래 아군 초상화 카드 (HP·스택·차례·대상 표시, 누르면 `SelectTarget`). 카드 아래 버프 줄·디버프 줄(줄마다 5칸 + "…")(목록은 `UnitView.BuildDisplayedStatuses`와 같음). 꾹 누르면(`LongPressed`, 손을 뗄 때의 클릭은 무시) `UnitDetailPanel`
+- `UnitDetailPanel`: 탭(스탯 / 버프·디버프 / 스킬)마다 내용 묶음 하나를 켠다. 목록은 카드 원본(`DetailEntryView`)을 복사해 채우고 다시 열 때 재사용
+  - 효과 카드 글은 `StatusDescriptionBuilder`, 스킬·패시브 카드 글은 `SkillDescriptionBuilder`
+  - 효과 블록마다 `SkillEffect.Describe`(설정 수치로 만든 한 줄 설명)를 override한다. 설명이 없는 블록은 `[SubclassMenu]` 이름으로 대신함 (`DescribeOrName`). 새 블록을 만들면 Describe도 함께 작성
+  - 숫자·스탯 이름·enum 한국어 이름(`[InspectorName]`) 표기는 `EffectText`(Data) 공용
 - `TurnOrderView`: 행동 순서 칸을 "유닛 + 몇 번째 등장"으로 기억해 순서가 바뀌면 새 자리로 미끄러뜨린다 (레이아웃 그룹은 끄고 자리를 직접 계산). 당기기 표시는 `BattleUnit.TotalActionAdvanced`(누적 당기기, 표시용)를 지난번과 비교
 - `Billboard`: 이름표·상태효과 줄이 카메라를 보고 거리에 맞춰 크기를 조절. `UnitView`의 조준 고리(`TargetRing`)는 카메라 쪽으로 당겨 그림
 - 숨겨진 유닛의 이펙트는 `BattleFxView`가 건너뜀
@@ -186,6 +190,7 @@ UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
   - `BattleEvents.ActionStarted`(`SkillExecutor.ExecuteEffects`가 스킬·추가 공격 시작 때 알림, 3스 여부는 칸 번호)로 행동 박자를 따로 만들어 컷인(`SkillCutInView`) → 돌진(`UnitView.PlayLunge`)을 끝까지 기다린 뒤 타격 박자를 재생
   - 캡슐 모션은 `UnitView`가 "기준 자리(무대가 `SetAnchor`로 정함) + 어긋남"으로 그린다 → 모션 중에 무대가 다시 세워져도 튀지 않음. 피격 번쩍임·밀림(`PlayHitReaction`), 처치 날아감(`PlayKnockdown`)
   - 타격 박자마다 가장 센 타격 하나로 화면 흔들림(`BattleCameraDirector.Shake`, 지난 흔들림을 빼고 이동한 뒤 다시 더함)과 히트스톱·슬로모션(`BattleTimeFx`, `Time.timeScale`을 실제 시간으로 잼)
+  - 일시정지(`BattlePauseView`)도 `BattleTimeFx.SetPaused`로 같은 timeScale을 쓴다 (timeScale을 바꾸는 곳을 한 곳으로 모아 서로 덮어쓰지 않게, 정지가 가장 우선). 실제 시간으로 움직이는 연출(컷인·행동 순서 바·피해 합계)은 정지 중에도 마저 움직임
   - 처치 판정은 `DamageTakenInfo.IsLethal`(이번 피해로 HP가 0이 됨). 피해 합계는 `DamageTotalView`, 재생 한 번(= 한 턴)마다 0부터
 - 화면 HP는 연출에 맞춘다: `ShownHp`(static)가 연출 중에 피해·회복을 받은 유닛의 "사건 전" HP·보호막을 붙잡고(`Hold`), `BattleFxView`가 박자를 재생할 때 그 사건 직후 값으로 바꾸고(`Set`), 재생이 끝나면 놓는다(`ReleaseAll`)
   - HP바·숫자를 그리는 곳(`PartyCardView`, `BossHpBarView`, `UnitView` 머리 위 글자)은 `ShownHp.Hp/Shield`를 읽고 `ShownHp.Changed`에 다시 그린다
@@ -356,7 +361,7 @@ Assets/_Project/
 
 ### 전투 (핵심 재미 검증에 필요)
 - A 회복 힐러: 안젤리카(Ally_Support)를 회복 직군으로 바꿔 테스트 중, 스킬 구성 미정
-- 자동 전투, 배속, 일시정지 (기획서 3-9·3-11)
+- 자동 전투, 배속 (기획서 3-9·3-11). 일시정지는 구현됨
 - 전투 UI 정식 배치: 현재 행동 캐릭터 패널, 행동 순서 바(초상화), 스킬 이름 알림 (보스 HP바는 구현)
 - 연출 정리: HP 표시를 이펙트 재생에 맞춰 줄이기, 공격 모션(대기·공격·피격·사망) 자리
 - 방어력 관통 (기획서 10장 미정)

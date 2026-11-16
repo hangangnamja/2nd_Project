@@ -2,6 +2,7 @@ using System;
 using Game.Core;
 using System.Collections.Generic;
 using UnityEngine;
+using Game.Data;
 
 namespace Game.Battle.Effects
 {
@@ -43,6 +44,12 @@ namespace Game.Battle.Effects
 
                 context.Log($"  {target.Name}: {string.Join("·", skillNumbers)}스 쿨타임 {turns} 감소");
             }
+        }
+
+        // 상세 창 스킬 탭 설명. string.Join("·", 번호들): 스킬 번호 목록을 "2·3"처럼 잇는다.
+        public override string Describe(SkillTargetType skillTarget)
+        {
+            return $"{(targetCaster ? "자신의 " : string.Empty)}{string.Join("·", skillNumbers)}스 쿨타임 {turns} 감소";
         }
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using Game.Core;
 using UnityEngine;
+using Game.Data;
 
 namespace Game.Battle.Effects
 {
@@ -32,6 +33,12 @@ namespace Game.Battle.Effects
                 // ?.: 연출 사건 통로가 없으면(테스트 등) 알리지 않는다.
                 context.Events?.RaiseHealed(target, target.CurrentHp);
             }
+        }
+
+        // 상세 창 스킬 탭 설명.
+        public override string Describe(SkillTargetType skillTarget)
+        {
+            return $"쓰러졌으면 최대 HP {EffectText.Percent(hpRatio)}로 부활";
         }
     }
 }

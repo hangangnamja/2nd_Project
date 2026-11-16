@@ -2,6 +2,7 @@ using System;
 using Game.Core;
 using System.Collections.Generic;
 using Game.Battle.Status;
+using Game.Data;
 
 namespace Game.Battle.Effects
 {
@@ -37,6 +38,12 @@ namespace Game.Battle.Effects
                     context.Services.Actions.EnqueueTurnEndBuff(new TurnEndBuff(context.Caster, buff));
                 }
             }
+        }
+
+        // 상세 창 스킬 탭 설명.
+        public override string Describe(SkillTargetType skillTarget)
+        {
+            return "대상 버프 전부 강탈 (턴 종료 단계에 획득)";
         }
     }
 }

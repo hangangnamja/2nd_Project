@@ -42,5 +42,11 @@ namespace Game.Battle.Effects
             string skipText = skipOwnerTurns ? ", 그동안 행동 스킵" : string.Empty;
             context.Log($"  {context.Caster.Name}: {auraName} 시작 ({durationTurns}턴{skipText})");
         }
+
+        // 상세 창 스킬 탭 설명. ConvertAll(EffectText.Modifier): 스탯 보정마다 "공격력 +30%" 같은 글로 바꾼 목록.
+        public override string Describe(SkillTargetType skillTarget)
+        {
+            return $"오라 「{auraName}」 {durationTurns}턴: 아군 전체 {string.Join(", ", statModifiers.ConvertAll(EffectText.Modifier))}{(skipOwnerTurns ? " · 그동안 자신의 턴 스킵" : string.Empty)}";
+        }
     }
 }

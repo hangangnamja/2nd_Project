@@ -30,6 +30,7 @@ MonoBehaviour:
     startCooldown: 0
     effects:
     - rid: 7605779465967765100
+    - rid: 7605779688687140959
   skill2:
     skillName: "\uC559\uCF54\uB974"
     targetType: 4
@@ -55,7 +56,10 @@ MonoBehaviour:
     maxStacks: 0
     stacksPerOwnAction: 0
     stackCostPerTrigger: 0
+    stacksGainedPerTrigger: 0
     hpThreshold: 0.5
+    requiredStatus: {fileID: 0}
+    tauntDisplay: {fileID: 0}
     auraModifiers: []
     effects:
     - rid: 7605779465967765103
@@ -95,3 +99,9 @@ MonoBehaviour:
         ratio: 0.15
         healCaster: 0
         healAllAllies: 1
+    - rid: 7605779688687140959
+      type: {class: ReduceCooldownEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        skillNumbers: 0200000003000000
+        turns: 1
+        targetCaster: 1

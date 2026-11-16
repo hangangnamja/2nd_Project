@@ -1,6 +1,7 @@
 using System;
 using Game.Core;
 using Game.Battle.Status;
+using Game.Data;
 
 namespace Game.Battle.Effects
 {
@@ -30,6 +31,12 @@ namespace Game.Battle.Effects
                     context.Log($"  {target.Name}: 격발할 지속피해 없음");
                 }
             }
+        }
+
+        // 상세 창 스킬 탭 설명.
+        public override string Describe(SkillTargetType skillTarget)
+        {
+            return "대상의 지속피해를 즉시 1회씩 격발";
         }
     }
 }

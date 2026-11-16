@@ -1,5 +1,6 @@
 using System;
 using Game.Core;
+using Game.Data;
 
 namespace Game.Battle.Effects
 {
@@ -20,6 +21,12 @@ namespace Game.Battle.Effects
 
             context.Caster.Vanish();
             context.Log($"  {context.Caster.Name} 자폭으로 사라짐");
+        }
+
+        // 상세 창 스킬 탭 설명.
+        public override string Describe(SkillTargetType skillTarget)
+        {
+            return "자폭 (전장에서 사라짐)";
         }
     }
 }
