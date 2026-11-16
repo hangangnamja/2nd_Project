@@ -92,6 +92,7 @@ namespace Game.Core
 
             // 버전 2 → 3: 캐릭터 경험치(exp)는 JSON에 없으면 0으로 채워지므로 따로 바꿀 것이 없다.
             // 버전 3 → 4: 무기 경험치(exp)도 같은 이유로 바꿀 것이 없다.
+            // 버전 4 → 5: 예전 편성(party)을 1팀으로 옮기는 일은 팀 수·칸 수를 아는 PlayerProfile이 불러온 뒤 한다 (EnsureTeams).
             // 레벨에 맞지 않는 진급 횟수는 데이터베이스(성장 규칙)가 필요해 PlayerProfile이 불러온 뒤 고친다 (FixPromotionsForLevel).
 
             if (data.version < SaveData.CurrentVersion)
