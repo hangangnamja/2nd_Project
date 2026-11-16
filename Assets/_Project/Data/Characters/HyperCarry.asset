@@ -28,6 +28,7 @@ MonoBehaviour:
     targetType: 0
     cooldown: 0
     startCooldown: 0
+    presentationPrefab: {fileID: 0}
     effects:
     - rid: 7605779530016096421
   skill2:
@@ -35,6 +36,7 @@ MonoBehaviour:
     targetType: 1
     cooldown: 2
     startCooldown: 0
+    presentationPrefab: {fileID: 0}
     effects:
     - rid: 7605779530016096422
     - rid: 7605779530016096423
@@ -43,6 +45,7 @@ MonoBehaviour:
     targetType: 2
     cooldown: 5
     startCooldown: 2
+    presentationPrefab: {fileID: 0}
     effects:
     - rid: 7605779530016096424
     - rid: 7605779530016096491
@@ -58,7 +61,10 @@ MonoBehaviour:
     maxStacks: 0
     stacksPerOwnAction: 0
     stackCostPerTrigger: 1
+    stacksGainedPerTrigger: 0
     hpThreshold: 0.5
+    requiredStatus: {fileID: 0}
+    tauntDisplay: {fileID: 0}
     auraModifiers: []
     effects:
     - rid: 7605779530016096425
@@ -71,6 +77,7 @@ MonoBehaviour:
       targetType: 5
       cooldown: 0
       startCooldown: 0
+      presentationPrefab: {fileID: 0}
       effects:
       - rid: 7605779530016096426
       - rid: 7605779530016096427
@@ -79,6 +86,7 @@ MonoBehaviour:
       targetType: 2
       cooldown: 3
       startCooldown: 0
+      presentationPrefab: {fileID: 0}
       effects:
       - rid: 7605779530016096428
       - rid: 7605779530016096429
@@ -89,6 +97,7 @@ MonoBehaviour:
       targetType: 1
       cooldown: 2
       startCooldown: 0
+      presentationPrefab: {fileID: 6713828389412017804, guid: b1d0264bf03867c43990883b2b6cfbb6, type: 3}
       effects:
       - rid: 7605779530016096432
       - rid: 7605779530016096433
@@ -97,6 +106,7 @@ MonoBehaviour:
       targetType: 1
       cooldown: 0
       startCooldown: 0
+      presentationPrefab: {fileID: 0}
       effects:
       - rid: 7605779530016096434
   references:

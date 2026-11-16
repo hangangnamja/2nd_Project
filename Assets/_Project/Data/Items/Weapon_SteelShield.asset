@@ -17,8 +17,8 @@ MonoBehaviour:
   grade: 3
   type: 1
   icon: {fileID: 21300000, guid: 35489de99beda344d9d83c2c906abd02, type: 3}
-  description: "\uAC15\uCCA0\uD310\uC744 \uB367\uB304 \uBC29\uD328. \uD22C\uBC15\uD558\uC9C0\uB9CC
-    \uD2BC\uD2BC\uD558\uB2E4."
+  description: "\uAC15\uCCA0\uD310\uC744 \uB367\uB304 \uBC29\uD328. \n\n\uD22C\uBC15\uD558\uB098
+    \uC9C0\uD0A4\uACA0\uB2E4\uB294 \uC77C\uB150\uC774 \uB290\uAEF4\uC9C4\uB2E4."
   attack: 400
   maxHp: 480
   defense: 48

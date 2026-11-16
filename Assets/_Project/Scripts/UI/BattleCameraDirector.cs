@@ -123,6 +123,11 @@ namespace Game.UI
         // 진행 중인 페이드 전환. 새 전환이 오면 멈추고 새로 시작한다.
         private Coroutine transition;
 
+        // 연출 컷(시네마틱): 스킬 연출이 잠깐 다른 시점(예: 적 쪽에서 메테오를 올려다봄)을 보여주는 동안 true.
+        // 그동안은 구도를 따라가지 않고, 정해진 자리에서 cinematicLook을 계속 바라본다.
+        private bool isCinematic;
+        private Transform cinematicLook;
+
         private void OnEnable()
         {
             battleManager.StateChanged += ChooseScene;
@@ -176,6 +181,38 @@ namespace Game.UI
             }
 
             ApplySkillScene(actor, battleManager.SelectedSkillSlot);
+        }
+
+        // 연출이 지금 화면에 없는 유닛의 행동(다른 아군의 추가 공격·패시브 등)을 보여줄 때 부른다: 그 유닛이 보이는 장면으로 바꾸고
+        // 페이드가 끝날 때까지 기다린다 (BattleFxView가 yield return으로 기다린 뒤 모션을 재생).
+        //  - 아군이 상대를 노림 → 그 아군 차례 장면(어깨 뒤, 멀리 적 줄)
+        //  - 아군이 같은 편 여럿에게 → 아군 줄 정면 / 자신에게만 → 그 아군 정면
+        //  - 적 → 평소 아군 시점(아군 줄 + 멀리 적 줄, 적이 모두 보임)
+        // 행동이 끝나면 다음 차례의 StateChanged가 원래대로 장면을 고른다.
+        public IEnumerator ShowActionBy(BattleUnit caster, bool targetsOpponents, bool targetsTeam)
+        {
+            if (!caster.IsAlly)
+            {
+                Apply(StageLayout.Overview, null, overviewShot);
+            }
+            else if (targetsOpponents)
+            {
+                Apply(StageLayout.ActorFocus, caster, skillShots[0]);
+            }
+            else if (targetsTeam)
+            {
+                Apply(StageLayout.TeamLine, caster, teamLineShot);
+            }
+            else
+            {
+                Apply(StageLayout.ActorFocus, caster, selfShot);
+            }
+
+            // transition: 진행 중인 페이드 전환. 끝날 때까지 한 프레임씩 기다린다.
+            while (transition != null)
+            {
+                yield return null;
+            }
         }
 
         // 스킬의 대상 규칙에 따라 장면을 고른다. 아군을 고르는 스킬은 아군 정면, 자신은 정면, 적을 노리면 스킬 번호별 각도.
@@ -285,6 +322,19 @@ namespace Game.UI
             cameraTransform.position -= appliedShake;
             appliedShake = Vector3.zero;
 
+            // 연출 컷 중: 자리는 그대로 두고 바라볼 대상만 따라간다 (떨어지는 메테오를 계속 화면 가운데에).
+            if (isCinematic)
+            {
+                // 대상이 사라졌으면(메테오 폭발) 마지막 방향을 유지한다. Unity 오브젝트는 지워지면 == null이 되므로 != null로 확인.
+                if (cinematicLook != null)
+                {
+                    cameraTransform.rotation = Quaternion.LookRotation(cinematicLook.position - cameraTransform.position, Vector3.up);
+                }
+
+                ApplyShake(cameraTransform);
+                return;
+            }
+
             // 페이드 중에는 움직이지 않는다 (덮인 사이에 Restage가 카메라를 바로 놓는다).
             if (currentShot == null || transition != null)
             {
@@ -302,6 +352,48 @@ namespace Game.UI
             targetCamera.fieldOfView = Mathf.SmoothDamp(targetCamera.fieldOfView, currentShot.FieldOfView, ref fovVelocity, moveSeconds);
 
             ApplyShake(cameraTransform);
+        }
+
+        // 연출 컷 시작: 카메라를 position으로 바로 옮기고(컷) lookTarget을 계속 바라보게 한다. fieldOfView: 화각.
+        // 무대 배치(유닛 자리)는 그대로라, 지금 장면의 유닛들을 다른 각도에서 보여주는 것이다.
+        public void BeginCinematic(Vector3 position, Transform lookTarget, float fieldOfView)
+        {
+            isCinematic = true;
+            cinematicLook = lookTarget;
+
+            Transform cameraTransform = targetCamera.transform;
+            cameraTransform.position = position;
+            if (lookTarget != null)
+            {
+                cameraTransform.rotation = Quaternion.LookRotation(lookTarget.position - position, Vector3.up);
+            }
+
+            targetCamera.fieldOfView = fieldOfView;
+            appliedShake = Vector3.zero;
+        }
+
+        // 연출 컷 끝: 원래 구도로 바로 돌아온다(컷). 부드럽게 따라가는 속도도 초기화한다.
+        public void EndCinematic()
+        {
+            if (!isCinematic)
+            {
+                return;
+            }
+
+            isCinematic = false;
+            cinematicLook = null;
+            if (currentShot == null)
+            {
+                return;
+            }
+
+            Transform cameraTransform = targetCamera.transform;
+            Vector3 position = GetShotPosition(currentShot);
+            cameraTransform.SetPositionAndRotation(position, GetShotRotation(currentShot, position));
+            targetCamera.fieldOfView = currentShot.FieldOfView;
+            appliedShake = Vector3.zero;
+            moveVelocity = Vector3.zero;
+            fovVelocity = 0f;
         }
 
         // 화면 흔들림을 시작한다 (BattleFxView가 타격 세기에 맞춰 부름). 이미 더 센 흔들림 중이면 센 쪽을 유지한다.

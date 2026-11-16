@@ -135,6 +135,11 @@ namespace Game.UI
         private Vector3? attackerPosition;
         private bool isUltimateAction;
 
+        // 스킬 전용 연출(메테오 등)이 아직 닿지 않은 대상 → 이 대상의 타격 박자는 연출이 닿을 때(impacted에 들어올 때)까지 기다린다.
+        // HashSet: 같은 값을 한 번만 담는 집합. Contains로 들어 있는지 빠르게 확인한다.
+        private readonly HashSet<BattleUnit> awaitingImpact = new HashSet<BattleUnit>();
+        private readonly HashSet<BattleUnit> impacted = new HashSet<BattleUnit>();
+
         // 재생 중이거나 재생할 박자가 남아 있으면 true → BattleManager가 다음 턴을 미룬다.
         public bool IsPlaying => isRunning || beats.Count > 0;
 
@@ -282,6 +287,13 @@ namespace Game.UI
                     continue;
                 }
 
+                // 전용 연출이 아직 닿지 않은 대상이 든 타격 박자: 연출이 그 대상에 닿는 순서대로 하나씩 재생한다.
+                if (beat[0].Kind == FxKind.Hit && beat.Exists(entry => awaitingImpact.Contains(entry.Unit)))
+                {
+                    yield return PlayHitsOnImpact(beat);
+                    continue;
+                }
+
                 // 박자 재생에 걸리는 시간(지속피해를 차례로 터뜨리는 시간)과 기본 간격 중 긴 쪽만큼 기다린다.
                 float duration = PlayBeat(beat);
                 yield return new WaitForSeconds(Mathf.Max(beatInterval, duration));
@@ -294,13 +306,24 @@ namespace Game.UI
             ShownHp.ReleaseAll();
         }
 
-        // 행동 시작 연출: 아군 3스면 컷인 → 상대를 노리는 행동이면 공격자가 대상 쪽으로 돌진.
-        // 다음 박자(타격)는 돌진이 대상에 닿는 순간(나가는 시간) 뒤에 나온다.
+        // 행동 시작 연출 (스킬·추가 공격·눈에 보이는 패시브 모두):
+        //  1) 행동하는 유닛이 지금 화면에 없으면(다른 아군의 추가 공격 등) 그 유닛이 보이는 장면으로 바꾼다
+        //  2) 아군 3스면 컷인
+        //  3) 상대를 노리는 행동이면 대상 쪽으로 돌진(공격 모션), 아니면 제자리에서 떠오르며 빛남(버프·회복 모션)
+        // 다음 박자(타격·버프)는 돌진이 닿는 순간 / 가장 높이 떠오른 순간에 나온다.
         private IEnumerator PlayAction(ActionStartInfo action)
         {
             BattleUnit caster = action.Caster;
+            bool targetsOpponents = HasTarget(action, opponents: true);
+            bool targetsTeam = HasTarget(action, opponents: false);
+
             UnitView casterView = stageView.FindView(caster);
             bool isCasterVisible = casterView != null && casterView.gameObject.activeInHierarchy;
+            if (!isCasterVisible && casterView != null && caster.IsOnField && cameraDirector != null)
+            {
+                yield return cameraDirector.ShowActionBy(caster, targetsOpponents, targetsTeam);
+                isCasterVisible = casterView.gameObject.activeInHierarchy;
+            }
 
             // 3스(칸 번호 2)를 스킬로 직접 쓴 아군만 컷인 (추가 공격·연동 스킬·적은 제외).
             isUltimateAction = action.SkillSlot == 2 && action.Source == ActionSource.Skill;
@@ -312,15 +335,120 @@ namespace Game.UI
 
             attackerPosition = isCasterVisible ? casterView.transform.position : (Vector3?)null;
 
-            // 노리는 상대의 화면 위치 (보이는 상대만). 없으면 돌진하지 않는다 (버프·회복 스킬 등).
-            Vector3? targetPosition = FindOpponentTargetPosition(action);
-            if (!isCasterVisible || !targetPosition.HasValue)
+            if (!isCasterVisible)
             {
                 yield break;
             }
 
-            casterView.PlayLunge(targetPosition.Value);
-            yield return new WaitForSeconds(casterView.LungeOutSeconds);
+            // 스킬 전용 연출이 있으면 기본 돌진보다 먼저 확인해 그 연출을 띄운다 (시전자는 기를 모으듯 떠오른다).
+            // 연출은 따로 돌고, 타격 박자는 연출이 대상에 닿을 때 재생된다 (PlayHitsOnImpact) → 여기서는 기다리지 않고 바로 넘어간다.
+            SkillFx skillFx = FindSkillFx(action);
+            if (skillFx != null)
+            {
+                casterView.PlayCast();
+                StartSkillFx(skillFx, action, casterView.transform.position);
+                yield break;
+            }
+
+            // 노리는 상대의 화면 위치 (보이는 상대만). 있으면 공격 돌진, 없으면(버프·회복·자기 강화) 시전 모션.
+            Vector3? targetPosition = FindOpponentTargetPosition(action);
+            if (targetPosition.HasValue)
+            {
+                casterView.PlayLunge(targetPosition.Value);
+                yield return new WaitForSeconds(casterView.LungeOutSeconds);
+                yield break;
+            }
+
+            casterView.PlayCast();
+            yield return new WaitForSeconds(casterView.CastRiseSeconds);
+        }
+
+        // 쓴 스킬의 전용 연출 프리팹에서 SkillFx를 찾는다. 스킬 행동이 아니거나 프리팹이 없으면 null.
+        // ?.: Skill이 null이면 PresentationPrefab을 읽지 않고 null.
+        private static SkillFx FindSkillFx(ActionStartInfo action)
+        {
+            GameObject prefab = action.Skill?.PresentationPrefab;
+            return prefab != null ? prefab.GetComponent<SkillFx>() : null;
+        }
+
+        // 전용 연출을 만들어 재생한다. 화면에 보이는 상대 대상을 넘기고, 닿는 순간마다 impacted에 넣는다.
+        private void StartSkillFx(SkillFx prefab, ActionStartInfo action, Vector3 casterPosition)
+        {
+            var targets = new List<(BattleUnit Unit, Vector3 Position)>();
+            awaitingImpact.Clear();
+            impacted.Clear();
+            foreach (BattleUnit target in action.Targets)
+            {
+                UnitView view = stageView.FindView(target);
+                if (target.IsAlly != action.Caster.IsAlly && view != null && view.gameObject.activeInHierarchy)
+                {
+                    targets.Add((target, view.transform.position));
+                    awaitingImpact.Add(target);
+                }
+            }
+
+            SkillFx fx = Instantiate(prefab, casterPosition, Quaternion.identity);
+
+            // 람다 unit => impacted.Add(unit): 연출이 대상에 닿을 때마다 그 대상을 "닿음"으로 표시한다.
+            StartCoroutine(RunSkillFx(fx.Play(casterPosition, targets, unit => impacted.Add(unit), cameraDirector)));
+        }
+
+        // 연출 코루틴을 끝까지 돌린 뒤, 혹시 닿지 않은 대상이 남았으면 모두 닿은 것으로 처리한다 (타격 박자가 영원히 기다리지 않게).
+        private IEnumerator RunSkillFx(IEnumerator routine)
+        {
+            yield return routine;
+            foreach (BattleUnit unit in awaitingImpact)
+            {
+                impacted.Add(unit);
+            }
+        }
+
+        // 전용 연출의 타격 박자: 기다릴 필요 없는 대상은 바로, 기다리는 대상은 연출이 닿을 때마다 그 대상만 재생한다.
+        // 한 번 재생한 대상은 기다림 목록에서 빼서, 이후의 타격(지속피해 등)은 평소대로 재생된다.
+        private IEnumerator PlayHitsOnImpact(List<FxEntry> beat)
+        {
+            // FindAll(조건 람다): 조건에 맞는 원소만 모은 새 목록.
+            List<FxEntry> pending = beat.FindAll(entry => awaitingImpact.Contains(entry.Unit));
+            List<FxEntry> now = beat.FindAll(entry => !awaitingImpact.Contains(entry.Unit));
+            if (now.Count > 0)
+            {
+                PlayBeat(now);
+            }
+
+            while (pending.Count > 0)
+            {
+                List<FxEntry> ready = pending.FindAll(entry => impacted.Contains(entry.Unit));
+                if (ready.Count > 0)
+                {
+                    PlayBeat(ready);
+                    foreach (FxEntry entry in ready)
+                    {
+                        awaitingImpact.Remove(entry.Unit);
+                    }
+
+                    // RemoveAll(조건 람다): 조건에 맞는 원소를 모두 지운다 → 방금 재생한 것들.
+                    pending.RemoveAll(entry => ready.Contains(entry));
+                }
+
+                yield return null;
+            }
+
+            yield return new WaitForSeconds(beatInterval);
+        }
+
+        // 행동 대상에 상대(opponents = true) 또는 시전자 말고 같은 편(false)이 있는지. 화면에 보이는지와 상관없이 로직의 대상으로 판단한다.
+        private static bool HasTarget(ActionStartInfo action, bool opponents)
+        {
+            foreach (BattleUnit target in action.Targets)
+            {
+                bool isOpponent = target.IsAlly != action.Caster.IsAlly;
+                if (opponents ? isOpponent : !isOpponent && target != action.Caster)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         // 행동이 노리는 상대 쪽 위치: 확산의 메인 대상이 보이면 그 자리, 아니면 보이는 상대 대상들의 가운데.

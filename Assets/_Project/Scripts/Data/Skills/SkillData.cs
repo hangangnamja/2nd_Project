@@ -24,6 +24,12 @@ namespace Game.Data
         [Label("시작 쿨타임", Min = 0f)]
         [SerializeField] private int startCooldown;
 
+        // 이 스킬만의 연출 (선택). 비워 두면 기본 연출(돌진·시전)을 쓴다.
+        // 프리팹에 SkillFx 컴포넌트(예: MeteorShowerFx)가 있어야 하고, 연출이 대상에 닿는 순간 피해 숫자·타격이 나온다.
+        [Tooltip("스킬 전용 연출 프리팹 (SkillFx 컴포넌트). 비우면 기본 돌진·시전 모션")]
+        [Label("전용 연출")]
+        [SerializeField] private GameObject presentationPrefab;
+
         // [SerializeReference]: 리스트 원소를 "실제 하위 클래스 그대로" 저장한다.
         // 일반 [SerializeField]는 선언된 타입(SkillEffect)으로만 저장해 DamageEffect의 배율 같은 값이 사라지지만,
         // SerializeReference는 DamageEffect, HealEffect처럼 서로 다른 타입을 한 리스트에 섞어 담을 수 있다.
@@ -35,6 +41,7 @@ namespace Game.Data
         public SkillTargetType TargetType => targetType;
         public int Cooldown => cooldown;
         public int StartCooldown => startCooldown;
+        public GameObject PresentationPrefab => presentationPrefab;
         public IReadOnlyList<SkillEffect> Effects => effects;
 
         // 경계를 펼치는 스킬인지 (효과 목록에 경계 블록이 있는지). 같은 편 경계가 펼쳐진 동안 이런 스킬은 쓸 수 없다 (기획서 3-12).

@@ -237,13 +237,15 @@ namespace Game.Battle
         public void ExecuteTurnEndEffect(TurnEndEffect effect)
         {
             log($"  [패시브] {effect.Owner.Name}: {effect.Passive.PassiveName} (턴 종료)");
+            // 턴 종료 단계 효과(추격 버프 획득 등)는 따로 보이는 행동이라 시전 모션을 낸다.
             SkillExecutor.ExecuteEffects(
                 effect.Owner,
                 effect.Passive.Effects,
                 new List<BattleUnit> { effect.Owner },
                 primaryTarget: null,
                 services,
-                ActionSource.PassiveEffect);
+                ActionSource.PassiveEffect,
+                announcePassive: true);
         }
 
         // 자기 행동(스킬)을 마쳤을 때: 행동마다 스택이 쌓이는 패시브에 스택을 더한다.
@@ -441,8 +443,27 @@ namespace Game.Battle
                 new List<BattleUnit> { target },
                 primaryTarget: null,
                 services,
-                ActionSource.PassiveEffect);
+                ActionSource.PassiveEffect,
+                announcePassive: IsStandaloneAction(passive.Trigger));
             return true;
+        }
+
+        // 즉시 실행 패시브 중 "따로 보이는 행동"인지 (모션을 낼지).
+        //  - 낸다: 공격하지 않은 턴의 회복(아스트라), 자가 부활, 등장 시 소환, 처치 반응, 자기 턴 시작 효과
+        //  - 안 낸다: 공격 판정에 묻는 효과(화상·이자 스택), 치명적 피해 버티기(맞는 도중), 버프 획득·지워짐에 붙은 내부 처리(게이지·쿨타임)
+        private static bool IsStandaloneAction(PassiveTrigger trigger)
+        {
+            switch (trigger)
+            {
+                case PassiveTrigger.OnTurnEndWithoutAttack:
+                case PassiveTrigger.OnOwnDeath:
+                case PassiveTrigger.OnEnter:
+                case PassiveTrigger.OnKill:
+                case PassiveTrigger.OnOwnTurnStart:
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         // 지금 발동할 수 있는지: 변신 조건, 턴당·전투당 횟수, 스택을 모두 확인한다.

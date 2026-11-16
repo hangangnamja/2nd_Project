@@ -60,6 +60,22 @@ namespace Game.UI
         [Label("돌진 돌아오는 시간", Min = 0.01f)]
         [SerializeField] private float lungeBackSeconds = 0.2f;
 
+        [Tooltip("버프·회복 행동 때 위로 떠오르는 높이")]
+        [Label("시전 뜀 높이", Min = 0f)]
+        [SerializeField] private float castHeight = 0.6f;
+
+        [Label("시전 떠오르는 시간", Min = 0.01f)]
+        [SerializeField] private float castRiseSeconds = 0.16f;
+
+        [Label("시전 머무는 시간", Min = 0f)]
+        [SerializeField] private float castHoldSeconds = 0.2f;
+
+        [Label("시전 내려오는 시간", Min = 0.01f)]
+        [SerializeField] private float castFallSeconds = 0.18f;
+
+        [Tooltip("버프·회복 행동 때 몸이 빛나는 색")]
+        [SerializeField] private Color castGlowColor = new Color(1f, 0.85f, 0.4f);
+
         [Tooltip("맞았을 때 하얗게 번쩍이는 시간(초)")]
         [Label("피격 번쩍임 시간", Min = 0.01f)]
         [SerializeField] private float flashSeconds = 0.12f;
@@ -74,6 +90,9 @@ namespace Game.UI
 
         // 돌진 모션의 나가는 시간 (BattleFxView가 돌진이 대상에 닿는 순간에 맞춰 타격 박자를 재생하려고 읽는다).
         public float LungeOutSeconds => lungeOutSeconds;
+
+        // 시전 모션이 가장 높이 떠오르기까지의 시간 (BattleFxView가 이 순간에 버프·회복 박자를 재생한다).
+        public float CastRiseSeconds => castRiseSeconds;
 
         // ---------- 모션 (자리 + 어긋남) ----------
         // 무대(BattleStageView)가 정한 자리 = 기준 자리. 모션은 그 위에 더하는 "어긋남"만 바꾸고, 매 프레임 기준 자리 + 어긋남으로 놓는다.
@@ -92,6 +111,10 @@ namespace Game.UI
         // 마지막 Refresh 때 대상 후보였는지 (화면 HP만 바뀌어 글자를 다시 쓸 때 ▼ 표시를 유지하려고 기억).
         private bool lastTargetable;
         private float flashRemaining;
+
+        // 번쩍임 색: 피격은 흰색, 시전은 castGlowColor.
+        private Color flashColor = Color.white;
+        private float flashDuration = 0.12f;
 
         // 무적 표시용 인스턴스. 상태효과 칸에 넣지 않고 화면 표시에만 쓰므로 강탈·소모되지 않는다. 처음 필요할 때 한 번 만든다.
         private StatusInstance invulnerableIcon;
@@ -348,9 +371,9 @@ namespace Game.UI
             {
                 flashRemaining -= Time.deltaTime;
 
-                // Color.Lerp(a, b, t): t만큼 a에서 b로 섞는다 → 남은 시간 비율만큼 흰색에 가깝다 (맞은 순간 가장 하얗고 점점 원래 색).
-                float t = Mathf.Clamp01(flashRemaining / flashSeconds);
-                bodyRenderer.material.color = Color.Lerp(baseColor, Color.white, t);
+                // Color.Lerp(a, b, t): t만큼 a에서 b로 섞는다 → 남은 시간 비율만큼 번쩍임 색에 가깝다 (시작 순간 가장 밝고 점점 원래 색).
+                float t = Mathf.Clamp01(flashRemaining / flashDuration);
+                bodyRenderer.material.color = Color.Lerp(baseColor, flashColor, t);
             }
         }
 
@@ -403,13 +426,38 @@ namespace Game.UI
             motion = null;
         }
 
+        // 버프·회복 행동(시전): 제자리에서 위로 떠오르며 빛났다가 내려온다. 공격 돌진과 구분되는 "기를 모으는" 느낌.
+        public void PlayCast()
+        {
+            Flash(castGlowColor, castRiseSeconds + castHoldSeconds + castFallSeconds);
+            StartMotion(CastRoutine());
+        }
+
+        // 시전 순서: 감속하며 떠오름 → 머묾 → 부드럽게 내려옴.
+        private IEnumerator CastRoutine()
+        {
+            Vector3 peak = Vector3.up * castHeight;
+            yield return MoveOffset(Vector3.zero, peak, castRiseSeconds, t => 1f - (1f - t) * (1f - t));
+            yield return new WaitForSeconds(castHoldSeconds);
+            yield return MoveOffset(peak, Vector3.zero, castFallSeconds, t => Mathf.SmoothStep(0f, 1f, t));
+            motion = null;
+        }
+
+        // 몸을 color로 번쩍이게 하고 seconds 동안 원래 색으로 돌아오게 한다 (ApplyMotion이 매 프레임 섞는다).
+        private void Flash(Color color, float seconds)
+        {
+            flashColor = color;
+            flashDuration = Mathf.Max(0.01f, seconds);
+            flashRemaining = flashDuration;
+        }
+
         // 맞음: 하얗게 번쩍 + 공격 반대 방향으로 밀렸다가 흔들리며 돌아온다.
         // from: 공격해 온 위치 (모르면 null → 카메라 반대쪽으로 밀림). strength: 밀리는 거리 (치명타는 더 크게).
         // Vector3?: 값이 없을 수도 있는(nullable) 위치. HasValue로 있는지 확인한다.
         // 이미 다른 모션(돌진·날아감) 중이면 그 모션은 그대로 두고 번쩍임만 준다.
         public void PlayHitReaction(Vector3? from, float strength)
         {
-            flashRemaining = flashSeconds;
+            Flash(Color.white, flashSeconds);
             if (motion != null)
             {
                 return;
@@ -441,7 +489,7 @@ namespace Game.UI
         // 처치: 공격 반대쪽 위로 날아가며 뒤로 넘어간다. 다음 장면부터 쓰러진 유닛은 빠지므로 날아간 자리에 그대로 둔다.
         public void PlayKnockdown(Vector3? from)
         {
-            flashRemaining = flashSeconds;
+            Flash(Color.white, flashSeconds);
             StartMotion(KnockdownRoutine(GetPushDirection(from)));
         }
 
