@@ -67,18 +67,47 @@ namespace Game.Core
             return true;
         }
 
-        // 레벨 상한에 도달했으면 진급한다 (지금은 재화 없이 바로). 상한이 10 늘어난다.
+        // 레벨 상한에 도달했고 진급 재료가 충분하면 진급한다 (재료를 쓰고 상한이 10 늘어난다).
         public static bool Promote(CharacterData character)
         {
             EnsureLoaded();
             OwnedCharacterSave saved = FindOwnedSave(character.Id);
-            if (saved == null || !GrowthRules.CanPromote(saved.level, saved.promotion))
+            GrowthRulesData rules = GrowthRules;
+            if (saved == null || !rules.CanPromote(saved.level, saved.promotion) || !TryPayPromotion(rules, saved.promotion))
             {
                 return false;
             }
 
             saved.promotion++;
-            SaveGrowth(materialsChanged: false);
+            SaveGrowth(materialsChanged: !rules.InfiniteMaterials);
+            return true;
+        }
+
+        // 다음 진급에 필요한 재료를 갖고 있는지 (육성 창 진급 버튼 표시용). 재료 무한이면 항상 true.
+        public static bool HasPromotionMaterials(GrowthRulesData rules, int promotion)
+        {
+            return rules.InfiniteMaterials || GetMaterialCount(rules.PromotionMaterial) >= rules.GetPromotionCost(promotion);
+        }
+
+        // 캐릭터·무기 진급 공용: 진급 재료가 충분하면 쓰고 true. 재료 무한이면 쓰지 않고 true. 저장은 부른 쪽이 한다.
+        private static bool TryPayPromotion(GrowthRulesData rules, int promotion)
+        {
+            if (!HasPromotionMaterials(rules, promotion))
+            {
+                return false;
+            }
+
+            int cost = rules.GetPromotionCost(promotion);
+            if (!rules.InfiniteMaterials && cost > 0)
+            {
+                // ?.: 진급 재료 기록이 없으면(null) 건너뛴다. 위에서 개수를 확인했으므로 실제로는 있다.
+                MaterialSave materialSave = FindMaterialSave(rules.PromotionMaterial?.Id);
+                if (materialSave != null)
+                {
+                    materialSave.count -= cost;
+                }
+            }
+
             return true;
         }
 

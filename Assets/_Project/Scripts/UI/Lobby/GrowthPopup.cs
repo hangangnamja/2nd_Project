@@ -59,6 +59,15 @@ namespace Game.UI
 
         [SerializeField] private Text promoteText;
 
+        [Tooltip("진급에 쓰는 재료 아이콘·테두리")]
+        [SerializeField] private Image promoteMaterialFrame;
+        [SerializeField] private Image promoteMaterialIcon;
+
+        [Tooltip("재료 이름과 \"보유 / 필요\" 개수 (모자라면 빨강)")]
+        [SerializeField] private Text promoteMaterialText;
+
+        [SerializeField] private Color lackColor = new Color(1f, 0.45f, 0.4f);
+
         [Header("확인")]
         [SerializeField] private Button confirmButton;
         [SerializeField] private Text confirmText;
@@ -304,7 +313,7 @@ namespace Game.UI
             {
                 ShowPromotion();
                 confirmText.text = "진급";
-                confirmButton.interactable = true;
+                confirmButton.interactable = PlayerProfile.HasPromotionMaterials(Rules, target.Promotion);
                 return;
             }
 
@@ -369,7 +378,29 @@ namespace Game.UI
         private void ShowPromotion()
         {
             int nextCap = Rules.GetLevelCap(target.Promotion + 1);
-            promoteText.text = $"진급 {target.Promotion} → <b>{target.Promotion + 1}</b>\n최대 레벨  {GetCap()} → <b>{nextCap}</b>\n\n<size=20>지금은 재화 없이 바로 진급됩니다 (진급 재료 미정)</size>";
+            promoteText.text = $"진급 {target.Promotion} → <b>{target.Promotion + 1}</b>\n최대 레벨  {GetCap()} → <b>{nextCap}</b>";
+            ShowPromotionMaterial();
+        }
+
+        // 진급 재료: 아이콘·등급 테두리 + 이름 + "보유 / 필요". 재료 무한(디버그)이면 보유를 ∞로, 모자라면 보유 숫자를 빨갛게.
+        private void ShowPromotionMaterial()
+        {
+            MaterialData material = Rules.PromotionMaterial;
+            int cost = Rules.GetPromotionCost(target.Promotion);
+            int owned = PlayerProfile.GetMaterialCount(material);
+            bool infinite = Rules.InfiniteMaterials;
+
+            promoteMaterialFrame.color = RarityColors.Get(material != null ? material.Grade : 3);
+            promoteMaterialIcon.sprite = material != null ? material.Icon : null;
+            promoteMaterialIcon.enabled = promoteMaterialIcon.sprite != null;
+
+            string materialName = material != null ? material.DisplayName : "진급 재료";
+            string ownedText = infinite ? "∞" : owned.ToString("N0");
+            bool lacking = !infinite && owned < cost;
+            string countText = lacking
+                ? $"<color=#{ColorUtility.ToHtmlStringRGB(lackColor)}>{ownedText}</color> / {cost:N0}"
+                : $"{ownedText} / {cost:N0}";
+            promoteMaterialText.text = $"{materialName}\n<size=30><b>{countText}</b></size>";
         }
 
         // ---------- 계산 ----------

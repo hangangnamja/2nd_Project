@@ -96,12 +96,13 @@ namespace Game.Core
             return true;
         }
 
-        // 무기 진급 (레벨 상한에서, 지금은 재화 없이 바로).
+        // 무기 진급 (레벨 상한에서, 무기 개조 키트를 써서).
         public static bool PromoteWeapon(int uid)
         {
             EnsureLoaded();
             WeaponSave saved = FindWeaponSave(uid);
-            if (saved == null || !WeaponGrowthRules.CanPromote(saved.level, saved.promotion))
+            GrowthRulesData rules = WeaponGrowthRules;
+            if (saved == null || !rules.CanPromote(saved.level, saved.promotion) || !TryPayPromotion(rules, saved.promotion))
             {
                 return false;
             }
