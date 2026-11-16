@@ -171,6 +171,9 @@ namespace Game.Battle
         // 이 추가 공격이 끝나면 주인의 변신을 해제하는지 (변신 종결기).
         public bool EndsTransformation { get; }
 
+        // 이 추가 공격이 스킬 데이터에서 왔으면 그 스킬 (변신 종결기). 연출이 스킬의 전용 연출 프리팹을 찾을 때 쓴다. 아니면 null.
+        public SkillData Skill { get; }
+
         // 다타 추가 공격의 남은 타수 (돌파 반응). 패시브가 타수를 쌓고, BattleManager가 한 타씩 꺼내 쓴다. 다타가 아니면 null.
         public HitCounter HitCounter { get; }
 
@@ -194,9 +197,11 @@ namespace Game.Battle
             IReadOnlyList<SkillEffect> effects,
             SkillTargetType targetType,
             BattleUnit preferredTarget,
-            bool endsTransformation = false)
+            bool endsTransformation = false,
+            SkillData skill = null)
         {
             Owner = owner;
+            Skill = skill;
             Name = name;
             Effects = effects;
             TargetType = targetType;

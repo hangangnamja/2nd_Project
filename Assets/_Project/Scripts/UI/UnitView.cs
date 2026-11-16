@@ -145,6 +145,48 @@ namespace Game.UI
             return icon;
         }
 
+        // ---------- 변신 모습 (헤일로·날개) ----------
+        // 변신 중이면 변신 데이터의 "변신 모습" 프리팹을 몸에 붙인다. 로직은 변신을 즉시 바꾸지만 화면은 연출(변신기·종결기)에 맞춰야 하므로,
+        // 연출이 FreezeAppearance로 지금 모습을 고정해 두고, 바뀌는 순간(구체가 터질 때, 영역이 깨질 때) ReleaseAppearance로 실제 상태를 반영한다.
+        private GameObject appearance;
+        private bool isAppearanceFrozen;
+
+        // 지금 모습을 고정한다 (이후 Refresh가 와도 붙이거나 떼지 않는다).
+        public void FreezeAppearance()
+        {
+            isAppearanceFrozen = true;
+        }
+
+        // 고정을 풀고 실제 변신 상태에 맞춰 붙이거나 뗀다.
+        public void ReleaseAppearance()
+        {
+            isAppearanceFrozen = false;
+            ApplyAppearance();
+        }
+
+        // 변신 중(IsTransformed)이고 화면에서 살아 있으면 변신 모습을 붙이고, 아니면 뗀다.
+        // ?.: 변신 설정이 없는 캐릭터(Transformation == null)면 프리팹도 null.
+        private void ApplyAppearance()
+        {
+            if (isAppearanceFrozen || Unit == null)
+            {
+                return;
+            }
+
+            GameObject prefab = Unit.Data.Transformation?.AppearancePrefab;
+            bool wants = prefab != null && Unit.IsTransformed && !ShownHp.IsDead(Unit);
+            if (wants && appearance == null)
+            {
+                // 몸(이 오브젝트)의 자식으로 붙여 돌진·피격 모션을 함께 따라가게 한다. 위치·방향은 프리팹 안에서 정한다.
+                appearance = Instantiate(prefab, transform);
+            }
+            else if (!wants && appearance != null)
+            {
+                Destroy(appearance);
+                appearance = null;
+            }
+        }
+
         // 이 뷰가 표시할 전투 유닛을 연결한다. 생성 직후 BattleStageView가 한 번 호출한다.
         public void Bind(BattleUnit unit)
         {
@@ -185,6 +227,7 @@ namespace Game.UI
                 statusBar.Show(BuildDisplayedStatuses());
             }
             ShowTargetRing(isTargetable);
+            ApplyAppearance();
         }
 
         // 고를 수 있는 대상이면 고리를 켠다. 아군이면 하늘색, 적이면 붉은색.

@@ -47,7 +47,7 @@ MonoBehaviour:
     targetType: 2
     cooldown: 5
     startCooldown: 2
-    presentationPrefab: {fileID: 0}
+    presentationPrefab: {fileID: 8843102575177825710, guid: 76d72b5e0b91afc4097de8c6a9a68782, type: 3}
     presentationHits: 1
     effects:
     - rid: 7605779530016096424
@@ -75,6 +75,7 @@ MonoBehaviour:
     transformName: "\uAC01\uC131 \uBCC0\uC2E0"
     turnLimit: 5
     forcedReleaseHpRatio: 0.25
+    appearancePrefab: {fileID: 4374435020603740501, guid: 51f125ac94232064f874a383e1a44df1, type: 3}
     skill1:
       skillName: "\uD30C\uC1C4"
       targetType: 5
@@ -112,7 +113,7 @@ MonoBehaviour:
       targetType: 1
       cooldown: 0
       startCooldown: 0
-      presentationPrefab: {fileID: 0}
+      presentationPrefab: {fileID: 701255360802325112, guid: fc5e7082b4f835e40bed25d7493e9524, type: 3}
       presentationHits: 1
       effects:
       - rid: 7605779530016096434

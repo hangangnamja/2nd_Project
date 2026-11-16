@@ -240,7 +240,8 @@ namespace Game.Battle.Status
                 finisher.Effects,
                 finisher.TargetType,
                 preferredTarget: null,
-                endsTransformation: true));
+                endsTransformation: true,
+                skill: finisher));
         }
 
         // 밀려난 효과를 로그로 남기고 "지워짐"으로 처리하며, 새로 들어간 버프면 사건을 알린다.

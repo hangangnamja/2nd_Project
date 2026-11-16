@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Game.Core;
 using UnityEngine;
 
 namespace Game.Data
@@ -18,6 +19,10 @@ namespace Game.Data
         [Tooltip("변신 중 치명적인 피해를 받으면 사망 대신 이 비율(변신 상태 최대 HP 기준)의 HP로 버티고 종결기 후 해제된다")]
         [SerializeField, Range(0f, 1f)] private float forcedReleaseHpRatio = 0.25f;
 
+        [Tooltip("변신 중 캐릭터 뒤에 붙는 모습 (헤일로·날개 등 프리팹). 비우면 아무것도 붙지 않는다")]
+        [Label("변신 모습")]
+        [SerializeField] private GameObject appearancePrefab;
+
         [Header("변신 스킬 (변신 중 1~3스를 대체)")]
         [SerializeField] private SkillData skill1 = new SkillData();
         [SerializeField] private SkillData skill2 = new SkillData();
@@ -30,6 +35,7 @@ namespace Game.Data
         public int TurnLimit => turnLimit;
         public float ForcedReleaseHpRatio => forcedReleaseHpRatio;
         public SkillData Finisher => finisher;
+        public GameObject AppearancePrefab => appearancePrefab;
 
         // 슬롯 번호(0 = 변신 1스)로 변신 스킬을 꺼낸다.
         public SkillData GetSkill(int slot) => slot switch
