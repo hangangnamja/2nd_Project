@@ -33,5 +33,11 @@ namespace Game.Battle.Effects
             caster.ChargeHitBlock(charges, display);
             context.Log($"  {caster.Name}: 피격 무효 {caster.HitBlockCharges}회 충전");
         }
+
+        // 상세 창 스킬 탭 설명.
+        public override string Describe(SkillTargetType skillTarget)
+        {
+            return $"피격 무효 {charges}회 충전";
+        }
     }
 }

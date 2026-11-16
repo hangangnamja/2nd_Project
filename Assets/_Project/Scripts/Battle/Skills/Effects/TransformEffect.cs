@@ -1,6 +1,7 @@
 using System;
 using Game.Core;
 using UnityEngine;
+using Game.Data;
 
 namespace Game.Battle.Effects
 {
@@ -30,6 +31,12 @@ namespace Game.Battle.Effects
 
             caster.Transform(caster.Data.Transformation);
             context.Log($"  {caster.Name}: {caster.Transformation.Data.TransformName} (HP {caster.CurrentHp}/{caster.MaxHp})");
+        }
+
+        // 상세 창 스킬 탭 설명.
+        public override string Describe(SkillTargetType skillTarget)
+        {
+            return "변신 (1~3스가 변신 스킬로 교체)";
         }
     }
 }

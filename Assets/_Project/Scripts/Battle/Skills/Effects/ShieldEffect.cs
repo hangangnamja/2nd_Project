@@ -55,5 +55,11 @@ namespace Game.Battle.Effects
                 context.Log($"  {target.Name}에게 {shieldStatus.DisplayName} +{amount} (합계 {shield.ShieldAmount})");
             }
         }
+
+        // 상세 창 스킬 탭 설명.
+        public override string Describe(SkillTargetType skillTarget)
+        {
+            return $"보호막 ({EffectText.EnumName(scaleStat)} {EffectText.Percent(maxHpRatio)}{(shieldStatus != null && !shieldStatus.IsPermanent ? $", {shieldStatus.Duration}턴" : string.Empty)})";
+        }
     }
 }

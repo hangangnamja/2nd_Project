@@ -109,5 +109,11 @@ namespace Game.Battle.Effects
 
             return null;
         }
+
+        // 상세 창 스킬 탭 설명.
+        public override string Describe(SkillTargetType skillTarget)
+        {
+            return $"{skillNumber}스를 함께 사용 (쿨타임 없음)";
+        }
     }
 }

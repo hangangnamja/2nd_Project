@@ -1,5 +1,6 @@
 using System;
 using Game.Core;
+using Game.Data;
 
 namespace Game.Battle.Effects
 {
@@ -17,6 +18,12 @@ namespace Game.Battle.Effects
             {
                 context.Log($"  {ally.Name} 퇴장");
             }
+        }
+
+        // 상세 창 스킬 탭 설명.
+        public override string Describe(SkillTargetType skillTarget)
+        {
+            return "다른 아군 전원 퇴장 (변신이 끝나면 복귀)";
         }
     }
 }

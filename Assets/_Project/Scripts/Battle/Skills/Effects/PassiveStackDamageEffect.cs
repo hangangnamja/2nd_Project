@@ -49,5 +49,11 @@ namespace Game.Battle.Effects
             int index = passiveNumber - 1;
             return index >= 0 && index < caster.Data.Passives.Count ? caster.Data.Passives[index] : null;
         }
+
+        // 상세 창 스킬 탭 설명.
+        public override string Describe(SkillTargetType skillTarget)
+        {
+            return $"공격력 {EffectText.Percent(baseMultiplier)} + 패시브 스택 1개당 {EffectText.Percent(multiplierPerStack)} 피해, 스택 전부 소모";
+        }
     }
 }

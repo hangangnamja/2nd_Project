@@ -43,5 +43,11 @@ namespace Game.Battle.Effects
                 context.Services.Summon(context.Caster, summonData);
             }
         }
+
+        // 상세 창 스킬 탭 설명.
+        public override string Describe(SkillTargetType skillTarget)
+        {
+            return $"{(summonData != null ? summonData.DisplayName : "부하")} {count}마리 소환 (최대 {maxOnField})";
+        }
     }
 }

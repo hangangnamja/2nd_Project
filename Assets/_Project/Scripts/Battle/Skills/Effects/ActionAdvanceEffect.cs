@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Game.Core;
 using UnityEngine;
+using Game.Data;
 
 namespace Game.Battle.Effects
 {
@@ -42,6 +43,12 @@ namespace Game.Battle.Effects
                 string timing = target.IsTakingTurn ? " (턴 종료 후 적용)" : string.Empty;
                 context.Log($"  {target.Name}: 행동 게이지 {ratio * 100f:F0}% 당김{timing}");
             }
+        }
+
+        // 상세 창 스킬 탭 설명. 행동 게이지를 당기는 비율과 대상(자신/스킬 대상).
+        public override string Describe(SkillTargetType skillTarget)
+        {
+            return $"{(targetCaster ? "자신의 " : string.Empty)}행동 게이지 {EffectText.Percent(ratio)} 당기기";
         }
     }
 }

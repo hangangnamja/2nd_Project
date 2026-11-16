@@ -2,6 +2,7 @@ using System;
 using Game.Core;
 using Game.Battle.Status;
 using UnityEngine;
+using Game.Data;
 
 namespace Game.Battle.Effects
 {
@@ -86,6 +87,14 @@ namespace Game.Battle.Effects
         {
             bool isSecondary = context.PrimaryTarget != null && target != context.PrimaryTarget;
             return isSecondary ? secondaryMultiplier : multiplier;
+        }
+
+        // 상세 창 스킬 탭 설명. 확산 스킬이면 메인·양옆 배율을 따로, 아니면 배율 하나만 보여준다.
+        public override string Describe(SkillTargetType skillTarget)
+        {
+            return skillTarget == SkillTargetType.EnemyBlast
+                ? $"메인 공격력 {EffectText.Percent(multiplier)} · 양옆 {EffectText.Percent(secondaryMultiplier)} 피해"
+                : $"공격력 {EffectText.Percent(multiplier)} 피해";
         }
     }
 }

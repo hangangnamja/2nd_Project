@@ -1,6 +1,7 @@
 using System;
 using Game.Core;
 using UnityEngine;
+using Game.Data;
 
 namespace Game.Battle.Effects
 {
@@ -91,6 +92,14 @@ namespace Game.Battle.Effects
 
             // Mathf.FloorToInt: 소수점을 버려 정수 회복량으로 만든다.
             return Mathf.FloorToInt(baseValue * ratio);
+        }
+
+        // 상세 창 스킬 탭 설명. 누구를(대상/자신/아군 전체) 어떤 기준 스탯의 몇 %로 회복하는지. EnumName: [InspectorName]의 한국어 이름.
+        public override string Describe(SkillTargetType skillTarget)
+        {
+            // 대상 최대 HP 기준은 회복받는 유닛 각자의 최대 HP라 "최대 HP"로만 적는다 (자신·아군 전체 회복일 때 "대상"이 헷갈리지 않게).
+            string scale = scaleStat == ScaleStat.TargetMaxHp ? "최대 HP" : EffectText.EnumName(scaleStat);
+            return $"{(healAllAllies ? "아군 전체 " : healCaster ? "자신 " : string.Empty)}HP 회복 ({scale} {EffectText.Percent(ratio)})";
         }
     }
 }

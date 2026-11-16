@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Game.Battle.Status;
 using Game.Core;
 using UnityEngine;
+using Game.Data;
 
 namespace Game.Battle.Effects
 {
@@ -37,6 +38,12 @@ namespace Game.Battle.Effects
                 context.Log($"  {target.Name}: 디버프 {removed.Count}개 제거");
                 StatusApplier.ReportRemoved(target, removed, context.Services);
             }
+        }
+
+        // 상세 창 스킬 탭 설명.
+        public override string Describe(SkillTargetType skillTarget)
+        {
+            return removeAll ? "디버프 전부 제거" : "가장 최근 디버프 1개 제거";
         }
     }
 }

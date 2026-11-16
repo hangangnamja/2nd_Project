@@ -82,13 +82,13 @@ MonoBehaviour:
       type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         status: {fileID: 11400000, guid: eb51916f1c9d12e49b37400d76970a91, type: 2}
-        count: 3
+        count: 1
         applyToAllAllies: 0
     - rid: 7605779575302521069
       type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         status: {fileID: 11400000, guid: 0752527e817703b4e8789c5262b662fb, type: 2}
-        count: 3
+        count: 1
         applyToAllAllies: 0
     - rid: 7605779575302521098
       type: {class: UseSkillEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Text;
 using Game.Battle.Status;
 using Game.Data;
 
@@ -76,25 +75,25 @@ namespace Game.UI
 
             foreach (StatModifier modifier in data.StatModifiers)
             {
-                lines.Add(FormatModifier(modifier));
+                lines.Add(EffectText.Modifier(modifier));
             }
 
             if (data.DamageAttackRatio > 0f)
             {
-                lines.Add($"턴 종료 시 피해 (부여 당시 공격력 {ToPercent(data.DamageAttackRatio)}{PerStack(data)})");
+                lines.Add($"턴 종료 시 피해 (부여 당시 공격력 {EffectText.Percent(data.DamageAttackRatio)}{PerStack(data)})");
             }
 
             if (data.DamageTargetMaxHpRatio > 0f)
             {
                 string cap = data.MaxHpDamageAttackCap > 0f
-                    ? $", 상한 부여자 공격력 {ToPercent(data.MaxHpDamageAttackCap)}"
+                    ? $", 상한 부여자 공격력 {EffectText.Percent(data.MaxHpDamageAttackCap)}"
                     : string.Empty;
-                lines.Add($"턴 종료 시 피해 (최대 HP {ToPercent(data.DamageTargetMaxHpRatio)}{cap}{PerStack(data)})");
+                lines.Add($"턴 종료 시 피해 (최대 HP {EffectText.Percent(data.DamageTargetMaxHpRatio)}{cap}{PerStack(data)})");
             }
 
             if (data.HealsOverTime)
             {
-                lines.Add($"턴 종료 시 회복 (부여 당시 시전자 최대 HP {ToPercent(data.HealSourceMaxHpRatio)} = {(int)(status.SnapshotMaxHp * data.HealSourceMaxHpRatio)})");
+                lines.Add($"턴 종료 시 회복 (부여 당시 시전자 최대 HP {EffectText.Percent(data.HealSourceMaxHpRatio)} = {(int)(status.SnapshotMaxHp * data.HealSourceMaxHpRatio)})");
             }
 
             if (status.HasShield)
@@ -123,53 +122,5 @@ namespace Game.UI
         {
             return data.UsesStackCount ? $" × 스택, 최대 {data.MaxStacks}스택" : string.Empty;
         }
-
-        // 스탯 보정 한 줄을 글로 만든다. 예: 공격력 +30%, 속도 +10, 방어력 -20%
-        private static string FormatModifier(StatModifier modifier)
-        {
-            var text = new StringBuilder(GetStatName(modifier.Stat));
-
-            if (modifier.Percent != 0f)
-            {
-                text.Append(' ').Append(FormatSigned(modifier.Percent * 100f)).Append('%');
-            }
-
-            if (modifier.Flat != 0f)
-            {
-                text.Append(' ').Append(FormatSigned(modifier.Flat));
-            }
-
-            return text.ToString();
-        }
-
-        // 부호를 붙인 숫자. 소수점이 필요 없으면 정수로 보인다. 예: 30 → "+30", -12.5 → "-12.5"
-        // "+0.##;-0.##": 양수 형식;음수 형식. 소수 둘째 자리까지, 필요 없는 0은 생략한다.
-        private static string FormatSigned(float value)
-        {
-            return value.ToString("+0.##;-0.##");
-        }
-
-        // 비율(0.6)을 퍼센트 글(60%)로 바꾼다.
-        private static string ToPercent(float ratio)
-        {
-            return $"{ratio * 100f:0.##}%";
-        }
-
-        // 스탯 종류의 화면 이름.
-        // switch 식: 값마다 돌려줄 결과를 나열하고, _ 는 나머지 모든 경우다.
-        private static string GetStatName(StatType stat) => stat switch
-        {
-            StatType.Attack => "공격력",
-            StatType.Defense => "방어력",
-            StatType.Speed => "속도",
-            StatType.CritRate => "치명 확률",
-            StatType.CritDamage => "치명 피해",
-            StatType.DamageBonus => "주는 피해",
-            StatType.DamageTakenIncrease => "받는 피해",
-            StatType.DamageReduction => "피해 감소",
-            StatType.DamageOverTimeBonus => "지속피해",
-            StatType.MaxHp => "최대 HP",
-            _ => stat.ToString(),
-        };
     }
 }

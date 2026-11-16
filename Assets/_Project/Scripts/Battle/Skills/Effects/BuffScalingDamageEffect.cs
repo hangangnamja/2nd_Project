@@ -1,6 +1,7 @@
 using System;
 using Game.Core;
 using UnityEngine;
+using Game.Data;
 
 namespace Game.Battle.Effects
 {
@@ -30,6 +31,12 @@ namespace Game.Battle.Effects
 
             // 람다식 _ => multiplier: 대상이 누구든(_ = 쓰지 않는 매개변수) 같은 배율을 돌려준다.
             DamageEffect.ApplyDamage(context, _ => multiplier);
+        }
+
+        // 상세 창 스킬 탭 설명. 기본 배율 + 버프 1개당 배율.
+        public override string Describe(SkillTargetType skillTarget)
+        {
+            return $"공격력 {EffectText.Percent(baseMultiplier)} + 버프 1개당 {EffectText.Percent(multiplierPerBuff)} 피해";
         }
     }
 }
