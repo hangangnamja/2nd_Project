@@ -13,12 +13,14 @@ MonoBehaviour:
   m_Name: Weapon_ImmortalBulwark
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.WeaponData
   id: immortal_bulwark
-  displayName: "\uBD88\uBA78\uC758 \uC131\uBCBD"
+  displayName: "\uC544\uC774\uC544\uC2A4"
   grade: 5
   type: 1
   icon: {fileID: 21300000, guid: 193b18f34e2e6954d99c809280d4c551, type: 3}
-  description: "\uC5B4\uB5A4 \uACF5\uACA9\uB3C4 \uB6AB\uC9C0 \uBABB\uD588\uB2E4\uB294
-    \uC804\uC124\uC758 \uBC29\uD328."
+  description: "\uAF43\uC78E\uC758 \uD615\uD0DC\uB97C \uD55C \uBC29\uD328. \n\n\uC804\uC124\uC5D0
+    \uB530\uB974\uBA74 \uB3D9\uBC29\uC758 \uC5B4\uB290 \uB098\uB77C\uC5D0\uC120 \uC774\uAC83\uC73C\uB85C
+    \uBCC4\uC758 \uC2EC\uC7A5\uC73C\uB85C \uB9CC\uB4E4\uC5B4\uB0B8 \uC131\uAC80\uC758
+    \uC77C\uACA9\uC744 \uB9C9\uC544\uB0C8\uB2E4\uACE0 \uD55C\uB2E4."
   attack: 700
   maxHp: 840
   defense: 84

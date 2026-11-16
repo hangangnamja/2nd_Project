@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Game.Battle.Status;
+using Game.Data;
 
 namespace Game.Battle
 {
@@ -199,8 +200,12 @@ namespace Game.Battle
         public int SkillSlot { get; }
         public string SkillName { get; }
 
-        public ActionStartInfo(BattleUnit caster, IReadOnlyList<BattleUnit> targets, BattleUnit primaryTarget, ActionSource source, int skillSlot, string skillName)
+        // 쓴 스킬 데이터 (스킬로 쓴 행동만, 추가 공격·패시브는 null). 연출이 스킬 전용 연출 프리팹을 찾는 데 쓴다.
+        public SkillData Skill { get; }
+
+        public ActionStartInfo(BattleUnit caster, IReadOnlyList<BattleUnit> targets, BattleUnit primaryTarget, ActionSource source, int skillSlot, string skillName, SkillData skill = null)
         {
+            Skill = skill;
             Caster = caster;
             Targets = targets;
             PrimaryTarget = primaryTarget;

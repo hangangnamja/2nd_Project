@@ -1,0 +1,71 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &6713828389412017804
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7694847265325103647}
+  - component: {fileID: 2702010877907069126}
+  m_Layer: 0
+  m_Name: FxMeteorShower
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7694847265325103647
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6713828389412017804}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2702010877907069126
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6713828389412017804}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 261f612fa7862564e84c42f13afa1f4b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game.UI.MeteorShowerFx
+  meteorPrefab: {fileID: 2183792003545046909, guid: fdab3032cf4f50d408d96812ac179afd, type: 3}
+  explosionPrefab: {fileID: 6698301425119578485, guid: 4e2ed44cf39366c4191735cc01b229a6, type: 3}
+  smallMeteors: 7
+  smallSpawnOffset: {x: -2.5, y: 10, z: 2}
+  smallFallSeconds: 0.42
+  smallInterval: 0.12
+  smallRadius: 4
+  smallShake: 0.1
+  giantMeteorPrefab: {fileID: 8844245677972392351, guid: eb7d637ba36f4e74791694797a2c780c, type: 3}
+  giantScale: 12
+  giantSpinDegrees: 35
+  giantSpawnOffset: {x: -9, y: 38, z: 12}
+  giantFallSeconds: 1.7
+  giantDelay: 0.25
+  giantExplosionScale: 5.5
+  giantShake: 0.9
+  giantShakeSeconds: 0.8
+  enemyViewSide: 12
+  enemyViewBack: 4
+  enemyViewHeight: -0.3
+  enemyViewLookHeight: 10
+  enemyViewFieldOfView: 68
+  cutBackAt: 0.78
+  windUpSeconds: 0.35
+  groundOffset: -1
