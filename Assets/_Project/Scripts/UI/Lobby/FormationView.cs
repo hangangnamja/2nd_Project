@@ -25,8 +25,17 @@ namespace Game.UI
         [SerializeField] private LobbyNavigator navigator;
         [SerializeField] private Text stageText;
 
-        [Tooltip("편성 칸 4개 (왼쪽부터). 칸 안의 Model 이미지와 Label 글자를 채운다")]
+        [Tooltip("편성 칸 4개 (왼쪽부터). 칸 자식: Illust(일러스트)·Model(일러스트 없을 때 실루엣)·RoleBar(직군 색 막대)·Number(칸 번호)·Level·Name·Empty(빈 칸 표시)·Editing(고르는 중 테두리)")]
         [SerializeField] private List<Button> slots = new List<Button>();
+
+        [Tooltip("편성 칸 4개를 담은 부모. 보유 목록이 열리면 목록에 가리지 않게 왼쪽으로 비켜 선다")]
+        [SerializeField] private RectTransform slotsRoot;
+
+        [Tooltip("보유 목록이 열렸을 때 편성 칸 줄이 옮겨 가는 가로 거리 (음수 = 왼쪽)")]
+        [SerializeField] private float listOpenShift = -300f;
+
+        [Tooltip("편성 칸 줄이 옮겨 가는 빠르기")]
+        [SerializeField, Min(0.1f)] private float slotsMoveSpeed = 12f;
 
         [SerializeField] private Button startButton;
         [SerializeField] private Button backButton;
@@ -58,6 +67,9 @@ namespace Game.UI
         [SerializeField] private Color healerColor = new Color(0.4f, 0.8f, 0.45f);
         [SerializeField] private Color emptyColor = new Color(1f, 1f, 1f, 0.1f);
 
+        [Tooltip("보유 목록 카드 바탕색 (직군 색은 위쪽 막대로만 보여준다)")]
+        [SerializeField] private Color cardColor = new Color(0.06f, 0.08f, 0.12f, 0.95f);
+
         // 지금 편성 (칸 번호 → 캐릭터, 빈 칸은 null). 세이브에서 읽어 오고, 바뀔 때마다 세이브에 저장한다.
         private readonly CharacterData[] party = new CharacterData[PartySize];
 
@@ -68,6 +80,9 @@ namespace Game.UI
         private StageData stage;
         private int editingSlot = -1;
         private bool isInitialized;
+
+        // 편성 칸 줄의 원래 자리 (보유 목록이 닫혔을 때 돌아갈 곳).
+        private Vector2 slotsHome;
 
         // 스테이지 선택에서 "전투 준비"를 누르면 호출된다: 고른 스테이지를 기억하고 편성 화면을 연다.
         public void Open(StageData selectedStage)
@@ -105,6 +120,7 @@ namespace Game.UI
             }
 
             isInitialized = true;
+            slotsHome = slotsRoot.anchoredPosition;
 
             for (int i = 0; i < teamTabs.Count; i++)
             {
@@ -174,7 +190,10 @@ namespace Game.UI
                 Button card = Instantiate(cardTemplate, listContainer);
                 card.gameObject.SetActive(true);
                 card.name = $"Card_{character.name}";
-                card.image.color = GetRoleColor(character);
+                card.image.color = cardColor;
+
+                // 직군은 카드 위쪽 가는 막대 색으로만 보여준다 (카드 전체를 직군 색으로 칠하면 목록이 너무 알록달록해짐).
+                card.transform.Find("RoleBar").GetComponent<Image>().color = GetRoleColor(character);
 
                 // 카드 위쪽에 일러스트의 머리 부분을 보여준다 (확대·자르기는 카드 템플릿의 IllustrationView 설정).
                 // GetComponentInChildren(true): 꺼져 있는 자식까지 찾는다 → 일러스트 칸이 꺼진 상태로 복제돼도 찾을 수 있다.
@@ -238,12 +257,28 @@ namespace Game.UI
             editingSlot = slotIndex;
             listPanel.SetActive(true);
             RefreshCards();
+            RefreshSlots();
         }
 
         private void CloseList()
         {
             editingSlot = -1;
             listPanel.SetActive(false);
+            RefreshSlots();
+        }
+
+        // 보유 목록이 열려 있으면 편성 칸 줄을 왼쪽으로, 닫히면 원래 자리로 부드럽게 옮긴다.
+        // 1 - Exp(-빠르기 × 시간): 프레임 속도와 무관하게 같은 빠르기로 목표에 다가가는 비율.
+        private void Update()
+        {
+            if (!isInitialized)
+            {
+                return;
+            }
+
+            Vector2 target = slotsHome + (listPanel.activeSelf ? new Vector2(listOpenShift, 0f) : Vector2.zero);
+            float follow = 1f - Mathf.Exp(-slotsMoveSpeed * Time.unscaledDeltaTime);
+            slotsRoot.anchoredPosition = Vector2.Lerp(slotsRoot.anchoredPosition, target, follow);
         }
 
         // 고른 캐릭터를 지금 칸에 넣는다. 이미 다른 칸에 있으면 두 칸의 캐릭터를 맞바꾼다 (같은 캐릭터 중복 편성 방지).
@@ -280,36 +315,50 @@ namespace Game.UI
             RefreshSlots();
         }
 
-        // 칸마다 일러스트(없으면 직군 색 박스)와 이름·레벨을 채운다. 편성이 비어 있으면 전투 시작을 막는다.
+        // 칸마다 일러스트(없으면 직군 색 실루엣)·직군 막대·칸 번호·레벨·이름을 채우고, 빈 칸은 "편성하기" 표시를 켠다.
+        // 지금 고르는 칸(보유 목록을 연 칸)은 하늘색 테두리. 편성이 비어 있으면 전투 시작을 막는다.
         private void RefreshSlots()
         {
             for (int i = 0; i < slots.Count; i++)
             {
                 CharacterData character = party[i];
-                Image model = slots[i].transform.Find("Model").GetComponent<Image>();
-                Text label = slots[i].transform.Find("Label").GetComponent<Text>();
+                Transform slot = slots[i].transform;
+                bool hasCharacter = character != null;
 
-                // 일러스트가 있으면 칸을 그림으로 채우고 색 박스는 숨긴다. 빈 칸·일러스트 없는 캐릭터는 색 박스를 그대로 쓴다.
+                // 일러스트가 있으면 칸을 그림으로 채우고 실루엣은 숨긴다. 일러스트 없는 캐릭터는 직군 색 실루엣, 빈 칸은 둘 다 숨김.
                 // ?.: 빈 칸(character = null)이면 Illustration을 읽지 않고 null → 일러스트 없음.
-                IllustrationView illust = slots[i].GetComponentInChildren<IllustrationView>(true);
+                IllustrationView illust = slot.GetComponentInChildren<IllustrationView>(true);
                 bool hasIllustration = illust != null && illust.Show(character?.Illustration);
-                model.gameObject.SetActive(!hasIllustration);
+                Image model = slot.Find("Model").GetComponent<Image>();
+                model.gameObject.SetActive(hasCharacter && !hasIllustration);
+                model.color = hasCharacter ? GetRoleColor(character) : emptyColor;
 
-                model.color = character != null ? GetRoleColor(character) : emptyColor;
-                label.text = character != null ? $"LV.{PlayerProfile.GetLevel(character)}  {character.DisplayName}" : "+";
+                Image roleBar = slot.Find("RoleBar").GetComponent<Image>();
+                roleBar.color = hasCharacter ? GetRoleColor(character) : emptyColor;
+
+                // {i + 1:00}: 두 자리로 맞춘 칸 번호 (01, 02, …).
+                slot.Find("Number").GetComponent<Text>().text = $"{i + 1:00}";
+                slot.Find("Level").GetComponent<Text>().text = hasCharacter ? $"Lv.{PlayerProfile.GetLevel(character)}" : string.Empty;
+                slot.Find("Name").GetComponent<Text>().text = hasCharacter ? character.DisplayName : string.Empty;
+                slot.Find("Empty").gameObject.SetActive(!hasCharacter);
+
+                // 아래 어두운 판(이름판 바탕)은 캐릭터가 있을 때만 (빈 칸에 빈 판만 남지 않게).
+                slot.Find("Shade").gameObject.SetActive(hasCharacter);
+                slot.Find("ShadeFade").gameObject.SetActive(hasCharacter);
+                slot.Find("Editing").gameObject.SetActive(i == editingSlot);
             }
 
             startButton.interactable = GetSelectedParty().Count > 0;
         }
 
-        // 목록 카드에 이름·레벨과 "편성 중" 표시를 채운다.
+        // 목록 카드에 이름·레벨을 쓰고, 이 팀에 이미 편성된 캐릭터면 "편성 중" 배지를 켠다.
         private void RefreshCards()
         {
             foreach ((Button card, CharacterData character) in cards)
             {
                 bool inParty = System.Array.IndexOf(party, character) >= 0;
-                string mark = inParty ? "\n<b>편성 중</b>" : string.Empty;
-                card.GetComponentInChildren<Text>(true).text = $"{character.DisplayName}\nLV.{PlayerProfile.GetLevel(character)}{mark}";
+                card.transform.Find("Text").GetComponent<Text>().text = $"{character.DisplayName}\n<color=#FFAA44>Lv.{PlayerProfile.GetLevel(character)}</color>";
+                card.transform.Find("InParty").gameObject.SetActive(inParty);
             }
         }
 

@@ -66,6 +66,7 @@
 - 무기 인벤과 재료 인벤은 세이브 목록부터 따로다: `SaveData.weapons`(개체 1개 = 1칸, `nextWeaponUid`로 개체 번호) / `SaveData.materials`(종류별 개수)
 - `PlayerProfile.Inventory.cs`(partial): 무기 추가(`AddWeapon`), 재료 증감(`AddMaterial`), 목록 조회, 일괄 분해(`PreviewDismantle`·`DismantleWeapons`), 저장 후 `InventoryChanged` 알림
   - 자동 분해: `StoreWeaponOrDismantle`이 칸이 꽉 찼고 3성이면 칸에 넣지 않고 분해 보상만 준다. 가챠 10회는 `CommitGachaPull`이 무기를 한꺼번에 넣고 한 번 저장한 뒤, 무기마다 자동 분해 여부를 돌려준다(`GachaResult.IsDismantled`)
+- 골드·보석은 재료 분류 `MaterialCategory.Currency`의 `MaterialData`(`Mat_Gold`·`Mat_Gem`, ID `gold`·`gems`)로 재료 탭에 보인다. 개수는 `MaterialSave`가 아니라 `SaveData.currency`에서 읽고(`GetMaterialCount`), `AddMaterial`로 더하면 재화 값에 더한다. 0개여도 목록에 넣고 정렬은 맨 앞. 흰 아이콘은 `MaterialData.IconColor`(아이콘 색)로 물들임 (골드 황금색, 보석 하늘색, 로비 우상단과 같은 색)
 - 화면: `InventoryView`(탭·목록·정렬·상세), `InventorySlotView`(칸 하나, 칸 원본을 복사해 재사용), `DismantlePopup`(등급 선택 → 미리 보기 → 분해). 등급 색은 `RarityColors`(가챠와 같은 값)
 - 에디터 메뉴 `InventoryDebugMenu`(Tools > Inventory): 테스트 아이템 지급, 무기 칸 채우기
 
@@ -190,7 +191,8 @@ UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
   - 효과 카드 글은 `StatusDescriptionBuilder`, 스킬·패시브 카드 글은 `SkillDescriptionBuilder`
   - 효과 블록마다 `SkillEffect.Describe`(설정 수치로 만든 한 줄 설명)를 override한다. 설명이 없는 블록은 `[SubclassMenu]` 이름으로 대신함 (`DescribeOrName`). 새 블록을 만들면 Describe도 함께 작성
   - 숫자·스탯 이름·enum 한국어 이름(`[InspectorName]`) 표기는 `EffectText`(Data) 공용
-- `TurnOrderView`: 행동 순서 칸을 "유닛 + 몇 번째 등장"으로 기억해 순서가 바뀌면 새 자리로 미끄러뜨린다 (레이아웃 그룹은 끄고 자리를 직접 계산). 당기기 표시는 `BattleUnit.TotalActionAdvanced`(누적 당기기, 표시용)를 지난번과 비교
+- 스킬 버튼: `SkillButtonView`(원형 버튼 하나의 모양: 테두리·빛·이름·칸 표시·쿨타임 덮개)를 `BattleHud`가 상태만 넘겨 그리게 하고, 고른 스킬 이름판(`skillPlate`)도 `BattleHud`가 채운다. 원 그림은 `Art/UI/Battle`(CircleFill·CircleRing·CircleGlow)
+- `TurnOrderView`: 칸마다 원형 초상화(`Disc` Mask + `IllustrationView`, 없으면 첫 글자)·테두리 색·이름·게이지. 지금 차례 칸은 `currentScale`배. 행동 순서 칸을 "유닛 + 몇 번째 등장"으로 기억해 순서가 바뀌면 새 자리로 미끄러뜨린다 (레이아웃 그룹은 끄고 자리를 직접 계산). 당기기 표시는 `BattleUnit.TotalActionAdvanced`(누적 당기기, 표시용)를 지난번과 비교
 - `Billboard`: 이름표·상태효과 줄이 카메라를 보고 거리에 맞춰 크기를 조절. `UnitView`의 조준 고리(`TargetRing`)는 카메라 쪽으로 당겨 그림
 - 숨겨진 유닛의 이펙트는 `BattleFxView`가 건너뜀
 

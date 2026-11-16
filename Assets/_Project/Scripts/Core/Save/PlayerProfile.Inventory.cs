@@ -144,15 +144,25 @@ namespace Game.Core
 
         // ---------- 재료 ----------
 
+        // 재화 재료의 ID (MaterialData의 ID 칸과 같아야 한다). 개수는 재료 목록이 아니라 세이브의 재화 값에서 읽는다.
+        public const string GoldId = "gold";
+        public const string GemsId = "gems";
+
         // 보유 재료 목록 (개수가 1 이상인 것만). 데이터베이스에 등록된 순서로 돌려준다.
+        // 재화(골드·보석)는 0개여도 늘 보여준다 (인벤토리에서 재화를 확인하는 자리이므로).
         public static List<OwnedMaterial> GetOwnedMaterials()
         {
             EnsureLoaded();
             var owned = new List<OwnedMaterial>();
             foreach (MaterialData material in database.Materials)
             {
+                if (material == null)
+                {
+                    continue;
+                }
+
                 int count = GetMaterialCount(material);
-                if (material != null && count > 0)
+                if (count > 0 || material.Category == MaterialCategory.Currency)
                 {
                     owned.Add(new OwnedMaterial(material, count));
                 }
@@ -164,8 +174,24 @@ namespace Game.Core
         public static int GetMaterialCount(MaterialData material)
         {
             EnsureLoaded();
+            if (material != null && material.Category == MaterialCategory.Currency)
+            {
+                return GetCurrencyAmount(material.Id);
+            }
+
             // ?.: 저장 기록이 없으면(null) count를 읽지 않고 null → ?? 0으로 0개.
             return FindMaterialSave(material?.Id)?.count ?? 0;
+        }
+
+        // 재화 재료의 개수 = 세이브의 재화 값 (골드·보석). 모르는 ID면 0.
+        private static int GetCurrencyAmount(string id)
+        {
+            return id switch
+            {
+                GoldId => data.currency.gold,
+                GemsId => data.currency.gems,
+                _ => 0,
+            };
         }
 
         // 재료를 amount개 얻는다 (저장까지). 최대 개수를 넘는 양은 버린다.
@@ -220,6 +246,21 @@ namespace Game.Core
         {
             if (material == null || amount <= 0)
             {
+                return;
+            }
+
+            // 재화는 재료 목록이 아니라 재화 값에 더한다 (재료 최대 개수 제한도 받지 않음).
+            if (material.Category == MaterialCategory.Currency)
+            {
+                if (material.Id == GoldId)
+                {
+                    data.currency.gold += amount;
+                }
+                else if (material.Id == GemsId)
+                {
+                    data.currency.gems += amount;
+                }
+
                 return;
             }
 

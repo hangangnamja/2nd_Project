@@ -33,7 +33,7 @@ namespace Game.UI
         // 무기 개체 하나를 보여준다. 등급 = 무기 성급.
         public void ShowWeapon(OwnedWeapon weapon)
         {
-            ShowCommon(weapon.Data.Icon, (int)weapon.Data.Grade);
+            ShowCommon(weapon.Data.Icon, Color.white, (int)weapon.Data.Grade);
             bottomText.text = $"Lv.{weapon.Level}";
             equippedTag.SetActive(weapon.IsEquipped);
         }
@@ -41,7 +41,7 @@ namespace Game.UI
         // 재료 한 종류를 보여준다. 개수는 천 단위 쉼표(N0 서식: 1,234).
         public void ShowMaterial(OwnedMaterial material)
         {
-            ShowCommon(material.Data.Icon, material.Data.Grade);
+            ShowCommon(material.Data.Icon, material.Data.IconColor, material.Data.Grade);
             bottomText.text = $"×{material.Count:N0}";
             equippedTag.SetActive(false);
         }
@@ -51,8 +51,8 @@ namespace Game.UI
             selectedMark.SetActive(selected);
         }
 
-        // 무기·재료 공통: 아이콘과 등급 색, ★ 개수.
-        private void ShowCommon(Sprite sprite, int grade)
+        // 무기·재료 공통: 아이콘(iconColor로 물들임)과 등급 색, ★ 개수.
+        private void ShowCommon(Sprite sprite, Color iconColor, int grade)
         {
             Color color = RarityColors.Get(grade);
             frame.color = color;
@@ -61,6 +61,7 @@ namespace Game.UI
             glow.color = new Color(color.r, color.g, color.b, 0.45f);
 
             icon.sprite = sprite;
+            icon.color = iconColor;
             icon.enabled = sprite != null;
             icon.preserveAspect = true;
 

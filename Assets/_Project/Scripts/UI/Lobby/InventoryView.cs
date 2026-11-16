@@ -152,9 +152,10 @@ namespace Game.UI
             List<OwnedMaterial> materials = PlayerProfile.GetOwnedMaterials();
 
             // Sort(비교 람다): 분류 → 등급 순으로 정렬한다. CompareTo는 앞이 작으면 음수 → 앞에 온다.
+            // 재화(골드·보석)는 분류 순서와 상관없이 맨 앞에 둔다 (CategoryOrder가 -1).
             materials.Sort((a, b) =>
             {
-                int byCategory = a.Data.Category.CompareTo(b.Data.Category);
+                int byCategory = CategoryOrder(a.Data.Category).CompareTo(CategoryOrder(b.Data.Category));
                 return byCategory != 0 ? byCategory : a.Data.Grade.CompareTo(b.Data.Grade);
             });
 
@@ -287,6 +288,7 @@ namespace Game.UI
 
             MaterialData data = material.Data;
             ShowDetailHeader(data.Icon, data.DisplayName, data.Grade, GetCategoryName(data.Category));
+            detailIcon.color = data.IconColor;
             detailInfo.text = $"보유  <b>{material.Count:N0}</b>개";
             detailDescription.text = data.Description;
         }
@@ -297,6 +299,7 @@ namespace Game.UI
             Color color = RarityColors.Get(grade);
             detailFrame.color = color;
             detailIcon.sprite = icon;
+            detailIcon.color = Color.white;
             detailIcon.enabled = icon != null;
             detailIcon.preserveAspect = true;
             detailName.text = itemName;
@@ -311,8 +314,15 @@ namespace Game.UI
             {
                 MaterialCategory.Experience => "경험치 재료",
                 MaterialCategory.Promotion => "진급 재료",
+                MaterialCategory.Currency => "재화",
                 _ => "무기 재료",
             };
+        }
+
+        // 재료 탭 정렬 순서: 재화 먼저(-1), 나머지는 분류 enum 순서.
+        private static int CategoryOrder(MaterialCategory category)
+        {
+            return category == MaterialCategory.Currency ? -1 : (int)category;
         }
 
         // 일괄 분해가 끝나면 결과 문구를 띄운다 (목록은 InventoryChanged로 이미 다시 그려졌다).

@@ -205,7 +205,7 @@ MonoBehaviour:
     - rid: 7605779530016096490
       type: {class: IsolationBoundaryEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
-        boundaryName: "\uACE0\uB9BD"
+        boundaryName: "\uD640\uB85C \uC2F8\uC6B0\uB294 \uAE38"
         statModifiers:
         - stat: 0
           percent: 0.6
