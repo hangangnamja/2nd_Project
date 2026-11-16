@@ -28,6 +28,8 @@ MonoBehaviour:
     targetType: 0
     cooldown: 0
     startCooldown: 0
+    presentationPrefab: {fileID: 0}
+    presentationHits: 1
     effects:
     - rid: 7605779465967765100
     - rid: 7605779688687140959
@@ -36,13 +38,17 @@ MonoBehaviour:
     targetType: 4
     cooldown: 3
     startCooldown: 0
+    presentationPrefab: {fileID: 0}
+    presentationHits: 1
     effects:
     - rid: 7605779465967765101
   skill3:
-    skillName: "\uACF5\uC5F0"
+    skillName: "\uACF5\uC5F0 \uC2DC\uC791\uD560\uAC8C~"
     targetType: 2
     cooldown: 6
     startCooldown: 0
+    presentationPrefab: {fileID: 0}
+    presentationHits: 1
     effects:
     - rid: 7605779465967765102
   passives:

@@ -24,31 +24,37 @@ MonoBehaviour:
   critRate: 0.05
   critDamage: 0.5
   skill1:
-    skillName: "\uD3C9\uD0C0"
+    skillName: "\uC774\uBC88 \uC2E4\uD5D8 \uB300\uC0C1\uC740...."
     targetType: 0
     cooldown: 0
     startCooldown: 0
+    presentationPrefab: {fileID: 0}
+    presentationHits: 1
     effects:
     - rid: 7605779465967763966
     - rid: 7605779465967763967
   skill2:
-    skillName: "\uD655\uC0B0"
+    skillName: "\uD37C\uC9C0\uB294 \uC5ED\uBCD1"
     targetType: 5
     cooldown: 3
     startCooldown: 0
+    presentationPrefab: {fileID: 0}
+    presentationHits: 1
     effects:
     - rid: 7605779465967763968
     - rid: 7605779465967763969
   skill3:
-    skillName: "\uB3C5 \uC548\uAC1C"
+    skillName: "\uD610\uC624\uC2A4\uB7EC\uC6B4 \uC545\uCDE8"
     targetType: 1
     cooldown: 4
     startCooldown: 0
+    presentationPrefab: {fileID: 0}
+    presentationHits: 1
     effects:
     - rid: 7605779465967763970
     - rid: 7605779465967763971
   passives:
-  - passiveName: "\uB9F9\uB3C5 \uC624\uB77C"
+  - passiveName: "\uB3C5\uADF9\uBB3C \uC804\uBB38\uAC00"
     trigger: 2
     execution: 0
     maxTriggersPerTurn: 0

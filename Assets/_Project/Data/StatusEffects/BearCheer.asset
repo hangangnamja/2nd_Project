@@ -15,14 +15,17 @@ MonoBehaviour:
   displayName: "\uACF0\uB3CC\uC774\uC758 \uC751\uC6D0"
   description: "\uC774 \uBC84\uD504\uAC00 \uC5B4\uB5A0\uD55C \uBC29\uC2DD\uC73C\uB85C\uAC74
     \uC0AC\uB77C\uC9C8\uACBD\uC6B0 \uACF5\uACA9\uB825 \uC99D\uAC00 \uBC84\uD504\uB97C
-    \uBD80\uC5EC\uD55C\uB2E4"
+    \uBD80\uC5EC\uD55C\uB2E4\n\n\"\uACF0\uB3CC\uC774\uB294 \uAC15\uD558\uAC70\uB4E0\uC694!
+    \"\n- \uC218\uB098 -"
   category: 0
   stackMode: 1
+  maxStacks: 99
   duration: 3
   features: 16
   damageAttackRatio: 0
   damageTargetMaxHpRatio: 0
   maxHpDamageAttackCap: 0
+  damagePopupColor: {r: 1, g: 0.55, b: 0.3, a: 1}
   healSourceMaxHpRatio: 0
   statModifiers: []
   icon: {fileID: 2800000, guid: f23b84bcf11f465a80e75732bbca6e12, type: 3}

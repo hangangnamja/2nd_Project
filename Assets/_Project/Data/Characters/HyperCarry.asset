@@ -33,7 +33,7 @@ MonoBehaviour:
     effects:
     - rid: 7605779530016096421
   skill2:
-    skillName: "\uAC00\uC18D \uBCA0\uAE30"
+    skillName: "\uB610 \uB2E4\uB978 \uB0B4\uC77C\uC744 \uC704\uD574"
     targetType: 1
     cooldown: 2
     startCooldown: 0
@@ -43,7 +43,7 @@ MonoBehaviour:
     - rid: 7605779530016096422
     - rid: 7605779530016096423
   skill3:
-    skillName: "\uAC01\uC131"
+    skillName: "\uC774 \uBAB8\uC744 \uBD88\uD0DC\uC6B0\uB9AC\uB77C"
     targetType: 2
     cooldown: 5
     startCooldown: 2
@@ -87,7 +87,7 @@ MonoBehaviour:
       - rid: 7605779530016096426
       - rid: 7605779530016096427
     skill2:
-      skillName: "\uBC18\uACA9 \uD0DC\uC138"
+      skillName: "\uACE0\uD1B5\uAC01\uC778"
       targetType: 2
       cooldown: 3
       startCooldown: 0
@@ -99,7 +99,7 @@ MonoBehaviour:
       - rid: 7605779530016096430
       - rid: 7605779530016096431
     skill3:
-      skillName: "\uC12C\uBA78"
+      skillName: "\uD30C\uBA78\uC744 \uBD80\uB974\uB9AC\uB77C"
       targetType: 1
       cooldown: 2
       startCooldown: 0
@@ -109,7 +109,7 @@ MonoBehaviour:
       - rid: 7605779530016096432
       - rid: 7605779530016096433
     finisher:
-      skillName: "\uC885\uACB0"
+      skillName: "\uD68C\uADC0"
       targetType: 1
       cooldown: 0
       startCooldown: 0

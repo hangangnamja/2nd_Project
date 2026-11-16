@@ -13,16 +13,18 @@ MonoBehaviour:
   m_Name: Taunt
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StatusEffectData
   displayName: "\uC2DC\uC120\uC9D1\uC911"
-  description: "\uBCF4\uD638\uB9C9\uC774 \uC788\uB294 \uB3D9\uC548 \uC801\uC758 \uB2E8\uC77C\xB7\uD655\uC0B0
-    \uACF5\uACA9\uC774 \uC774 \uC720\uB2DB\uB9CC \uB178\uB9B0\uB2E4. \uBCF4\uD638\uB9C9\uC774
-    \uAE68\uC9C0\uBA74 \uC0AC\uB77C\uC9C4\uB2E4"
+  description: "\uC801\uAD70\uC774 \uD574\uB2F9 \uB300\uC0C1\uB9CC \uACF5\uACA9\uD558\uAC8C
+    \uB41C\uB2E4 \n\n\"\uB2E4\uB978\uACF3 \uBCFC \uC5EC\uC720\uAC00 \uC788\uB098?\"\n-
+    \uCE74\uC774\uC0AC\uB974 - "
   category: 0
   stackMode: 1
+  maxStacks: 99
   duration: 1
   features: 0
   damageAttackRatio: 0
   damageTargetMaxHpRatio: 0
   maxHpDamageAttackCap: 0
+  damagePopupColor: {r: 1, g: 0.55, b: 0.3, a: 1}
   healSourceMaxHpRatio: 0
   statModifiers: []
   icon: {fileID: 2800000, guid: ea2f4c93bfee94242b7cbfcc11799f99, type: 3}

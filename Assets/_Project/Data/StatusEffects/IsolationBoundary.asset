@@ -12,15 +12,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4e7ea1fe386d9a7468a3d5897f0a5561, type: 3}
   m_Name: IsolationBoundary
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StatusEffectData
-  displayName: "경계: 고립"
-  description: "경계를 펼친 동안 공격력·방어력·최대 HP가 크게 오르고, 기절 등 행동 제어에 면역이 된다. 변신이 끝나면 함께 사라진다."
+  displayName: "\uACBD\uACC4: \uD640\uB85C \uC2F8\uC6B0\uB294 \uAE38"
+  description: "\uACF5\uACA9\uB825\xB7\uBC29\uC5B4\uB825\xB7\uCD5C\uB300 HP\uAC00
+    \uD06C\uAC8C \uC624\uB974\uACE0, \uAE30\uC808 \uB4F1 \uD589\uB3D9 \uC81C\uC5B4\uC5D0
+    \uBA74\uC5ED\uC774 \uB41C\uB2E4. \uBCC0\uC2E0\uC774 \uB05D\uB098\uBA74 \uD568\uAED8
+    \uC0AC\uB77C\uC9C4\uB2E4.\n\n\"\uC774 \uBAB8\uC744 \uBD88\uD0DC\uC6B0\uB9AC\uB77C\""
   category: 0
   stackMode: 1
+  maxStacks: 99
   duration: 3
   features: 0
   damageAttackRatio: 0
   damageTargetMaxHpRatio: 0
   maxHpDamageAttackCap: 0
+  damagePopupColor: {r: 1, g: 0.55, b: 0.3, a: 1}
   healSourceMaxHpRatio: 0
   statModifiers: []
   icon: {fileID: 2800000, guid: 0e1cc081e1e54e2aa9a1a758298701f6, type: 3}
