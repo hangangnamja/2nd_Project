@@ -47,7 +47,7 @@
 | `GachaRulesData`: 확률·천장·반천·A 확정·비용·디버그 무료 (배너 공통) | `GachaSave`(세이브): 천장·A 확정 카운터, 픽업 확정 여부 |
 | `WeaponData`·`MaterialData`: 무기(등급 3~5성, 종류 칼·방패·마법지팡이·로자리오 = 장착 직군, 풀 육성 스탯)·재료(분류, 등급) 종류 | `WeaponSave`(개체 번호·레벨·진급·경험치·장착)·`MaterialSave`(개수) → `OwnedWeapon`·`OwnedMaterial`. 무기 스탯 = `WeaponStats.Calculate`(풀 육성 스탯 × `BattleRulesData.GetWeaponStatRatio`) |
 | `InventoryRulesData`: 무기 칸 수, 재료 최대 개수, 분해 재료·등급별 보상 | - |
-| `GrowthRulesData`: 레벨별 필요 경험치(StatTable "경험치" 시트), 진급 간격·횟수, 경험치 재료(재료 + 1개당 경험치), 디버그 재료 무한 | `OwnedCharacterSave.exp`·`promotion` → `OwnedCharacter` |
+| `GrowthRulesData`: 레벨별 필요 경험치(StatTable "경험치" 시트), 진급 간격·횟수, 경험치 재료(재료 + 1개당 경험치), 진급 재료·단계별 개수(`GetPromotionCost`), 디버그 재료 무한(진급 재료 포함) | `OwnedCharacterSave.exp`·`promotion` → `OwnedCharacter` |
 | `GameDatabase` (`Resources/`): ID → 캐릭터·스테이지·무기·재료 SO 찾기, 인벤토리 규칙, 새 게임 시작 캐릭터 | `SaveData` (JSON): ID와 바뀌는 값만 저장 |
 
 ### 가챠
@@ -80,6 +80,7 @@
 - 가챠 무기: `GachaMachine`이 캐릭터 구간 뒤 무기 구간(5성 1% → 4성 10% → 3성 나머지)으로 등급을 정하고 `GetWeaponsOfGrade`에서 고른다. 연출은 결과 등급 색만 보므로 4·5성 무기도 캐릭터와 같은 빛
   - 재료 칸 `GrowthMaterialSlot`의 누름·홀드 반복은 `HoldRepeatButton`(누른 채로 있으면 점점 빨리 반복)
   - 실행은 `PlayerProfile.LevelUp`·`Promote`(`PlayerProfile.Growth.cs`): 저장 후 `OwnedCharactersChanged` → 육성 창·전투원 화면이 다시 그려짐
+  - 진급은 캐릭터·무기 공용 `TryPayPromotion`(진급 재료 확인·소모, 재료 무한이면 소모 없음)을 거친다. 진급 화면 버튼은 `HasPromotionMaterials`로 켜고 끈다
 
 ### 세이브 (기획서 9장)
 - `SaveData`: 파일에 그대로 저장되는 내용. 필드 이름이 곧 JSON 키라, 이름·구조를 바꾸면 `version`을 올리고 `SaveStorage.Upgrade`에 변환을 추가
@@ -402,7 +403,7 @@ Assets/_Project/
 
 ### 육성·재화
 - 성장 재화 획득처(재화 던전·스테이지 보상): 경험치 재료·무기 강화석. 생기면 성장 규칙의 디버그 "재료 무한"을 끔 (캐릭터·무기 둘 다)
-- 진급 재료 (지금은 무료 진급), 골드 사용처
+- 진급 재료 수량 확정 (진급 휘장·무기 개조 키트 소모는 구현, 개수 임시), 골드 사용처
 - 중복 캐릭터 처리 (돌파 / 재화 변환, 미정)
 - 무기 종류별 스탯 차이 여부 (지금은 등급만으로 차등, 미정)
 

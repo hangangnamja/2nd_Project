@@ -22,4 +22,6 @@ MonoBehaviour:
     experience: 1000
   - material: {fileID: 11400000, guid: c7b410ab671ab1c479d487f79a612139, type: 2}
     experience: 3000
+  promotionMaterial: {fileID: 11400000, guid: ce0316f4d1013014898fed8183f16874, type: 2}
+  promotionCosts: 0200000004000000080000000c00000014000000
   infiniteMaterials: 1

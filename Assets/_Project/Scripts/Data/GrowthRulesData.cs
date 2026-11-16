@@ -57,6 +57,13 @@ namespace Game.Data
         [Tooltip("육성 창 재료 칸 (왼쪽부터 = 작은 재료부터)")]
         [SerializeField] private List<ExpMaterialEntry> expMaterials = new List<ExpMaterialEntry>();
 
+        [Tooltip("진급할 때 쓰는 재료 (캐릭터 = 진급 휘장, 무기 = 무기 개조 키트)")]
+        [Label("진급 재료")]
+        [SerializeField] private MaterialData promotionMaterial;
+
+        [Tooltip("진급마다 필요한 진급 재료 개수. 0번 = 진급 1회째(Lv10에서), 마지막 = 진급 5회째(Lv50에서)")]
+        [SerializeField] private List<int> promotionCosts = new List<int>();
+
         [Tooltip("체크하면 재료를 갖고 있지 않아도 쓸 수 있고 줄지도 않는다 (재화 던전이 생기기 전 테스트용)")]
         [Label("디버그: 재료 무한")]
         [SerializeField] private bool infiniteMaterials = true;
@@ -65,6 +72,14 @@ namespace Game.Data
         public int MaxPromotion => maxPromotion;
         public IReadOnlyList<ExpMaterialEntry> ExpMaterials => expMaterials;
         public bool InfiniteMaterials => infiniteMaterials;
+        public MaterialData PromotionMaterial => promotionMaterial;
+
+        // 지금 진급 횟수(promotion)에서 다음 진급에 필요한 진급 재료 개수. 표에 없으면 0(무료).
+        // 예: 진급 0회 → 1회째 진급 비용 = promotionCosts[0]
+        public int GetPromotionCost(int promotion)
+        {
+            return promotion >= 0 && promotion < promotionCosts.Count ? promotionCosts[promotion] : 0;
+        }
 
         // 그 레벨에서 다음 레벨까지 필요한 경험치. 최대 레벨이면 0.
         public int GetExpToNext(int level)
