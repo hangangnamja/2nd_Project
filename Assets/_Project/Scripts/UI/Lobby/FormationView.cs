@@ -7,10 +7,12 @@ using UnityEngine.UI;
 
 namespace Game.UI
 {
-    // 편성 화면 (스테이지 선택의 "전투 준비" 다음, 기획서 2장 편성: 4인 파티).
-    //  - 가운데 4칸: 칸마다 캐릭터 모델 자리(지금은 직군 색 박스) + 이름·레벨. 빈 칸은 "+"
+    // 편성 화면 (기획서 2장 편성: 4인 파티, 팀 4개 저장).
+    //  - 두 가지로 열린다: 메인 화면의 편성 버튼(편성 관리, 전투 시작 없음) / 스테이지 선택의 "전투 준비"(출격)
+    //  - 위쪽 팀 탭 1~4: 고르면 그 팀의 편성을 불러온다. 옆 입력 칸에서 팀 이름을 바꾼다
+    //  - 가운데 4칸: 칸마다 캐릭터 일러스트(없으면 직군 색 박스) + 이름·레벨. 빈 칸은 "+"
     //  - 칸을 누르면 오른쪽에 보유 캐릭터 목록 → 고르면 그 칸에 넣는다 (이미 편성된 캐릭터면 두 칸을 맞바꾼다)
-    //  - 좌하단 전투 시작: 지금 편성과 고른 스테이지로 Battle 씬을 연다
+    //  - 좌하단 전투 시작(출격일 때만): 지금 팀과 고른 스테이지로 Battle 씬을 연다
     // 칸·목록의 모양은 씬에서 만들고, 이 컴포넌트는 편성 상태를 들고 내용을 채운다.
     // 보유 캐릭터·레벨·편성은 세이브(PlayerProfile)에서 읽고, 편성을 바꾸면 바로 세이브에 저장한다.
     public class FormationView : MonoBehaviour
@@ -28,6 +30,16 @@ namespace Game.UI
 
         [SerializeField] private Button startButton;
         [SerializeField] private Button backButton;
+
+        [Header("팀")]
+        [Tooltip("팀 탭 4개 (1팀부터). 누르면 그 팀의 편성을 불러온다")]
+        [SerializeField] private List<Button> teamTabs = new List<Button>();
+
+        [Tooltip("지금 팀의 이름 입력 칸. 입력을 마치면(엔터·다른 곳 누름) 저장한다")]
+        [SerializeField] private InputField teamNameInput;
+
+        [SerializeField] private Color teamTabSelectedColor = new Color(0.45f, 0.8f, 1f);
+        [SerializeField] private Color teamTabNormalColor = new Color(0.2f, 0.24f, 0.32f);
 
         [Header("보유 캐릭터 목록")]
         [SerializeField] private GameObject listPanel;
@@ -52,6 +64,7 @@ namespace Game.UI
         // 보유 목록에서 만든 카드들 (캐릭터와 짝).
         private readonly List<(Button card, CharacterData character)> cards = new List<(Button, CharacterData)>();
 
+        // 출격할 스테이지. 메인 화면에서 편성 관리로 열었으면 null (전투 시작 버튼을 숨긴다).
         private StageData stage;
         private int editingSlot = -1;
         private bool isInitialized;
@@ -59,15 +72,27 @@ namespace Game.UI
         // 스테이지 선택에서 "전투 준비"를 누르면 호출된다: 고른 스테이지를 기억하고 편성 화면을 연다.
         public void Open(StageData selectedStage)
         {
-            InitializeOnce();
             stage = selectedStage;
-
             string code = string.IsNullOrEmpty(stage.StageCode) ? string.Empty : $"{stage.StageCode}  ";
-            stageText.text = $"출격  {code}{stage.StageName}  (추천 LV.{stage.EnemyLevel})";
+            ShowScreen($"출격  {code}{stage.StageName}  (추천 LV.{stage.EnemyLevel})");
+        }
 
+        // 메인 화면의 편성 버튼: 출격 없이 팀만 편성·저장한다 (전투 시작 버튼 숨김, 뒤로 가면 메인 화면).
+        public void OpenForManage()
+        {
+            stage = null;
+            ShowScreen("편성 관리  팀을 골라 편성하고 이름을 붙일 수 있습니다");
+        }
+
+        // 두 경로 공통: 안내 글을 쓰고, 지금 고른 팀을 불러와 화면을 켠다.
+        private void ShowScreen(string info)
+        {
+            InitializeOnce();
+            stageText.text = info;
+            startButton.gameObject.SetActive(stage != null);
+            LoadCurrentTeam();
             CloseList();
             navigator.Show(gameObject);
-            RefreshSlots();
         }
 
         // 처음 열 때 한 번만: 저장된 편성과 보유 목록을 채우고, 버튼과 보유 목록 변경 알림을 연결한다.
@@ -81,11 +106,14 @@ namespace Game.UI
 
             isInitialized = true;
 
-            List<CharacterData> savedParty = PlayerProfile.GetParty();
-            for (int i = 0; i < PartySize && i < savedParty.Count; i++)
+            for (int i = 0; i < teamTabs.Count; i++)
             {
-                party[i] = savedParty[i];
+                int teamIndex = i;
+                teamTabs[i].onClick.AddListener(() => SelectTeam(teamIndex));
             }
+
+            // onEndEdit: 입력을 마쳤을 때(엔터, 칸 밖을 누름) 입력한 글자를 넘겨 부른다 → 그때 한 번만 저장.
+            teamNameInput.onEndEdit.AddListener(RenameCurrentTeam);
 
             for (int i = 0; i < slots.Count; i++)
             {
@@ -95,7 +123,19 @@ namespace Game.UI
             }
 
             startButton.onClick.AddListener(StartBattle);
-            backButton.onClick.AddListener(() => navigator.ShowStageSelect());
+
+            // 뒤로: 출격 중이면 스테이지 선택으로, 편성 관리면 메인 화면으로.
+            backButton.onClick.AddListener(() =>
+            {
+                if (stage != null)
+                {
+                    navigator.ShowStageSelect();
+                }
+                else
+                {
+                    navigator.ShowMain();
+                }
+            });
             clearSlotButton.onClick.AddListener(ClearEditingSlot);
             closeListButton.onClick.AddListener(CloseList);
 
@@ -148,6 +188,48 @@ namespace Game.UI
                 card.onClick.AddListener(() => PickCharacter(picked));
                 cards.Add((card, character));
             }
+        }
+
+        // 팀 탭을 눌렀을 때: 그 팀을 고른 팀으로 저장하고 편성을 불러온다.
+        private void SelectTeam(int teamIndex)
+        {
+            PlayerProfile.SelectTeam(teamIndex);
+            LoadCurrentTeam();
+            CloseList();
+        }
+
+        // 지금 고른 팀의 편성을 칸에 채우고, 탭 강조와 이름 칸을 맞춘다.
+        private void LoadCurrentTeam()
+        {
+            List<CharacterData> saved = PlayerProfile.GetParty();
+            for (int i = 0; i < PartySize; i++)
+            {
+                party[i] = i < saved.Count ? saved[i] : null;
+            }
+
+            RefreshTeamTabs();
+            RefreshSlots();
+        }
+
+        // 고른 팀 탭만 밝은 색, 나머지는 어두운 색. 탭 글자는 팀 번호 + 이름.
+        private void RefreshTeamTabs()
+        {
+            int current = PlayerProfile.CurrentTeam;
+            for (int i = 0; i < teamTabs.Count; i++)
+            {
+                teamTabs[i].image.color = i == current ? teamTabSelectedColor : teamTabNormalColor;
+                teamTabs[i].GetComponentInChildren<Text>(true).text = $"{i + 1}  {PlayerProfile.GetTeamName(i)}";
+            }
+
+            // SetTextWithoutNotify: 글자만 바꾸고 onEndEdit 같은 알림은 보내지 않는다 (탭 전환이 이름 저장으로 이어지지 않게).
+            teamNameInput.SetTextWithoutNotify(PlayerProfile.GetTeamName(current));
+        }
+
+        // 이름 입력을 마치면 지금 팀 이름으로 저장하고 탭 글자를 고친다. 비우면 기본 이름("팀 n")으로 돌아간다.
+        private void RenameCurrentTeam(string newName)
+        {
+            PlayerProfile.SetTeamName(PlayerProfile.CurrentTeam, newName);
+            RefreshTeamTabs();
         }
 
         // 칸 i를 바꾸려고 보유 목록을 연다.

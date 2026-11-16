@@ -34,6 +34,9 @@ namespace Game.Core
         // 편성 칸 수 (기획서 2장 4인 파티)
         public const int FormationSize = 4;
 
+        // 저장해 둘 수 있는 팀 수 (1~4팀)
+        public const int TeamCount = 4;
+
         // Resources 폴더 안의 GameDatabase 에셋 이름
         private const string DatabaseResourceName = "GameDatabase";
 
@@ -160,12 +163,12 @@ namespace Game.Core
 
         // ---------- 편성 ----------
 
-        // 저장된 편성을 칸 순서대로 돌려준다. 빈 칸·보유하지 않은 캐릭터 칸은 null.
+        // 지금 고른 팀의 편성을 칸 순서대로 돌려준다. 빈 칸·보유하지 않은 캐릭터 칸은 null.
         public static List<CharacterData> GetParty()
         {
             EnsureLoaded();
             var party = new List<CharacterData>();
-            foreach (string id in data.party)
+            foreach (string id in data.teams[data.currentTeam].members)
             {
                 bool isOwned = id != null && FindOwnedSave(id) != null;
                 party.Add(isOwned ? database.FindCharacter(id) : null);
@@ -174,18 +177,111 @@ namespace Game.Core
             return party;
         }
 
-        // 편성을 칸 순서대로 저장한다 (빈 칸은 null).
+        // 지금 고른 팀의 편성을 칸 순서대로 저장한다 (빈 칸은 null).
         public static void SetParty(IReadOnlyList<CharacterData> party)
         {
             EnsureLoaded();
-            data.party.Clear();
+            List<string> members = data.teams[data.currentTeam].members;
+            members.Clear();
             foreach (CharacterData character in party)
             {
                 // ?.: character가 null(빈 칸)이면 Id를 읽지 않고 null을 넣는다.
-                data.party.Add(character?.Id);
+                members.Add(character?.Id);
             }
 
             Save();
+        }
+
+        // 지금 고른 팀 번호 (0 = 1팀).
+        public static int CurrentTeam
+        {
+            get
+            {
+                EnsureLoaded();
+                return data.currentTeam;
+            }
+        }
+
+        // 고른 팀을 바꾸고 저장한다. 이후 GetParty·SetParty는 이 팀을 다룬다.
+        // Mathf.Clamp: 번호를 0 ~ 팀 수 - 1로 제한한다 (잘못된 번호로 없는 팀을 고르지 않게).
+        public static void SelectTeam(int index)
+        {
+            EnsureLoaded();
+            int clamped = Mathf.Clamp(index, 0, TeamCount - 1);
+            if (data.currentTeam == clamped)
+            {
+                return;
+            }
+
+            data.currentTeam = clamped;
+            Save();
+        }
+
+        // 팀 이름. 비어 있으면 "팀 n"으로 보여준다.
+        public static string GetTeamName(int index)
+        {
+            EnsureLoaded();
+            string saved = data.teams[index].name;
+            return string.IsNullOrWhiteSpace(saved) ? DefaultTeamName(index) : saved;
+        }
+
+        // 팀 이름을 바꾸고 저장한다. 앞뒤 공백은 지우고, 비우면 기본 이름으로 돌아간다.
+        // ?.Trim(): name이 null이면 Trim을 부르지 않고 null.
+        public static void SetTeamName(int index, string name)
+        {
+            EnsureLoaded();
+            string trimmed = name?.Trim();
+            data.teams[index].name = string.IsNullOrEmpty(trimmed) ? null : trimmed;
+            Save();
+        }
+
+        private static string DefaultTeamName(int index) => $"팀 {index + 1}";
+
+        // 팀 목록을 팀 수만큼 갖추고, 팀마다 칸 수를 맞춘다. 버전 4 이하 세이브(팀이 없음)는 예전 편성(party)을 1팀으로 옮긴다.
+        // 새 게임도 시작 캐릭터를 party에 넣어 두므로 같은 경로로 1팀이 된다.
+        private static void EnsureTeams()
+        {
+            bool changed = false;
+            if (data.teams == null)
+            {
+                data.teams = new List<TeamSave>();
+            }
+
+            if (data.teams.Count == 0 && data.party != null && data.party.Count > 0)
+            {
+                data.teams.Add(new TeamSave { members = new List<string>(data.party) });
+                data.party.Clear();
+                changed = true;
+            }
+
+            while (data.teams.Count < TeamCount)
+            {
+                data.teams.Add(new TeamSave());
+                changed = true;
+            }
+
+            // 팀마다 칸을 정확히 칸 수만큼 (모자라면 빈 칸 null을 채우고, 넘치면 자른다).
+            foreach (TeamSave team in data.teams)
+            {
+                team.members ??= new List<string>();
+                while (team.members.Count < FormationSize)
+                {
+                    team.members.Add(null);
+                    changed = true;
+                }
+
+                if (team.members.Count > FormationSize)
+                {
+                    team.members.RemoveRange(FormationSize, team.members.Count - FormationSize);
+                    changed = true;
+                }
+            }
+
+            data.currentTeam = Mathf.Clamp(data.currentTeam, 0, TeamCount - 1);
+            if (changed)
+            {
+                Save();
+            }
         }
 
         // ---------- 스테이지 ----------
@@ -241,6 +337,7 @@ namespace Game.Core
             }
 
             FixPromotionsForLevel();
+            EnsureTeams();
         }
 
         // 진급 기능보다 먼저 Lv60으로 지급된 캐릭터는 진급 0회로 저장돼 있다 → 레벨에 필요한 진급 횟수로 올려 준다.

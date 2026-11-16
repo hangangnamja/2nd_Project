@@ -13,7 +13,8 @@ namespace Game.Core
         // 2: 무기 인벤(weapons, nextWeaponUid)·재료 인벤(materials) 추가
         // 3: 캐릭터 경험치(exp) 추가, 진급 횟수를 레벨에 맞게 보정
         // 4: 무기 경험치(WeaponSave.exp) 추가
-        public const int CurrentVersion = 4;
+        // 5: 편성을 팀 4개(teams, 팀 이름 포함)로 바꿈. 예전 편성(party)은 1팀으로 옮긴다
+        public const int CurrentVersion = 5;
 
         public int version = CurrentVersion;
         public CurrencySave currency = new CurrencySave();
@@ -21,8 +22,14 @@ namespace Game.Core
         public GachaSave gacha = new GachaSave();
         public List<StageRecordSave> stages = new List<StageRecordSave>();
 
-        // 편성 칸 순서대로 캐릭터 ID. 빈 칸은 null로 저장해 칸 위치를 유지한다.
+        // 버전 4까지의 편성 (칸 순서대로 캐릭터 ID). 버전 5부터는 쓰지 않고, 불러올 때 1팀으로 옮긴 뒤 비운다.
         public List<string> party = new List<string>();
+
+        // 저장해 둔 팀들 (1~4팀). 팀마다 이름과 칸 순서대로 캐릭터 ID (빈 칸은 null).
+        public List<TeamSave> teams = new List<TeamSave>();
+
+        // 지금 고른 팀 번호 (0 = 1팀). 전투 준비 편성 화면이 이 팀으로 출격한다.
+        public int currentTeam;
 
         // 무기 인벤토리: 개체 하나가 한 칸 (같은 무기라도 개체마다 레벨이 다르다, 기획서 9장)
         public List<WeaponSave> weapons = new List<WeaponSave>();
@@ -48,6 +55,14 @@ namespace Game.Core
 
         // 장착한 캐릭터 ID. 장착하지 않았으면 null. 장착 중인 무기는 일괄 분해에서 빠진다.
         public string equippedTo;
+    }
+
+    // 저장해 둔 팀 하나: 이름 + 칸 순서대로 캐릭터 ID (빈 칸은 null로 칸 위치 유지).
+    [Serializable]
+    public class TeamSave
+    {
+        public string name;
+        public List<string> members = new List<string>();
     }
 
     // 보유 재료 한 종류의 개수.

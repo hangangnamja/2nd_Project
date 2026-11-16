@@ -30,6 +30,9 @@ namespace Game.UI
         [Tooltip("메인 화면의 전투원(OPERATOR) 버튼")]
         [SerializeField] private Button operatorButton;
 
+        [Tooltip("메인 화면의 편성(SQUAD) 버튼 → 출격 없이 팀 편성만")]
+        [SerializeField] private Button formationButton;
+
         [Tooltip("메인 화면으로 돌아가는 버튼들 (뒤로, 홈)")]
         [SerializeField] private List<Button> homeButtons = new List<Button>();
 
@@ -57,11 +60,20 @@ namespace Game.UI
             inventoryButton.onClick.AddListener(() => Show(inventoryScreen));
             operatorButton.onClick.AddListener(() => Show(operatorScreen));
 
+            // 편성 화면은 열 때 모드(편성 관리)를 정해야 하므로 FormationView를 거쳐 연다.
+            formationButton.onClick.AddListener(() => formationScreen.GetComponent<FormationView>().OpenForManage());
+
             foreach (Button button in homeButtons)
             {
                 button.onClick.AddListener(() => Show(mainScreen));
             }
 
+            Show(mainScreen);
+        }
+
+        // 메인 화면으로 돌아간다 (편성 관리에서 뒤로).
+        public void ShowMain()
+        {
             Show(mainScreen);
         }
 

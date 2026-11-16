@@ -15,6 +15,7 @@
 
 - UI는 uGUI Canvas 사용 (1920×1080 기준, Scale With Screen Size)
 - Lobby 씬: `LobbyCanvas` 아래 화면 패널(`MainScreen`, `StageSelectScreen`, `FormationScreen`, `GachaScreen`, …)을 `LobbyNavigator`가 하나만 켜서 전환. 새 화면은 패널로 추가하고 Navigator에 등록
+- 편성 화면 `FormationView`는 두 경로로 열림: 메인 화면 편성 버튼(`OpenForManage`, 출격 없음) / 스테이지 선택의 전투 준비(`Open(stage)`). 팀 4개는 세이브의 `teams`·`currentTeam`, `PlayerProfile.GetParty/SetParty`는 지금 고른 팀을 다룸 (`SelectTeam`·`GetTeamName`·`SetTeamName`)
 - 로비 → 전투: 스테이지 선택(`StageSelectView`) → 편성(`FormationView`) → `BattleSetup.Create`(편성 + 레벨 + 고른 스테이지)를 `BattleLaunch`(static)에 맡기고 Battle 씬을 불러옴 → `BattleManager`가 시작할 때 꺼내 씀. 맡긴 값이 없으면(씬 직접 실행) Inspector의 테스트 설정 사용
 - 보유 캐릭터·편성은 세이브(`PlayerProfile`)에서 읽음. 로비에서 시작한 전투는 캐릭터별 보유 레벨로 싸우고, 이기면 스테이지 클리어를 저장
 - Build Settings: Lobby(0) → Battle(1)
