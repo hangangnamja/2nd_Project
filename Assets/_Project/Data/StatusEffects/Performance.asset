@@ -12,15 +12,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4e7ea1fe386d9a7468a3d5897f0a5561, type: 3}
   m_Name: Performance
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StatusEffectData
-  displayName: "공연"
-  description: "공연하는 동안 아군 전체의 치명확률과 주는 피해가 오른다. 공연 중에는 행동하지 않고 턴을 넘기며, 넘긴 턴마다 아군 전체를 회복한다."
+  displayName: "\uACF5\uC5F0"
+  description: "\uC774 \uC720\uB2DB\uC740 \uACF5\uC5F0\uC911\uC774\uB2E4\n\n\" \uC774
+    \uC74C\uC545\uC740 \uC138\uC0C1\uC744 \uBC14\uAFC0 \uC74C\uC545\uC774\uC57C!
+    \"\n- \uC544\uC2A4\uD2B8\uB77C -"
   category: 0
   stackMode: 1
+  maxStacks: 99
   duration: 3
   features: 0
   damageAttackRatio: 0
   damageTargetMaxHpRatio: 0
   maxHpDamageAttackCap: 0
+  damagePopupColor: {r: 1, g: 0.55, b: 0.3, a: 1}
   healSourceMaxHpRatio: 0
   statModifiers: []
   icon: {fileID: 2800000, guid: 32f6c3ab1b3f4405b74ef8324663e9af, type: 3}

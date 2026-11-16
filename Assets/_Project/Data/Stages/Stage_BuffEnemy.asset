@@ -15,7 +15,7 @@ MonoBehaviour:
   id: Stage_BuffEnemy
   stageName: "\uCD95\uC801\uC758 \uB358\uC804"
   stageCode: 
-  description: 
+  description: "\uD14C\uC2A4\uD2B8\uC6A9"
   enemyLevel: 60
   waves:
   - enemies:
