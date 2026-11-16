@@ -12,7 +12,8 @@ namespace Game.Core
     {
         // 2: 무기 인벤(weapons, nextWeaponUid)·재료 인벤(materials) 추가
         // 3: 캐릭터 경험치(exp) 추가, 진급 횟수를 레벨에 맞게 보정
-        public const int CurrentVersion = 3;
+        // 4: 무기 경험치(WeaponSave.exp) 추가
+        public const int CurrentVersion = 4;
 
         public int version = CurrentVersion;
         public CurrencySave currency = new CurrencySave();
@@ -41,6 +42,9 @@ namespace Game.Core
         public string id;
         public int level = 1;
         public int promotion;
+
+        // 지금 레벨에서 다음 레벨까지 쌓인 경험치
+        public int exp;
 
         // 장착한 캐릭터 ID. 장착하지 않았으면 null. 장착 중인 무기는 일괄 분해에서 빠진다.
         public string equippedTo;

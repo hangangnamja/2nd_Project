@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2bdc5230873a94c4f9283c64797b6d1b, type: 3}
+  m_Name: Weapon_SilverRosary
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.WeaponData
+  id: silver_rosary
+  displayName: "\uC740\uBE5B \uB85C\uC790\uB9AC\uC624"
+  grade: 4
+  type: 3
+  icon: {fileID: 21300000, guid: b6e87b54374529f49990ac936c9cbff0, type: 3}
+  description: "\uC740 \uAD6C\uC2AC\uB9C8\uB2E4 \uAE30\uB3C4\uBB38\uC774 \uC0C8\uACA8\uC9C4
+    \uB85C\uC790\uB9AC\uC624."
+  attack: 500
+  maxHp: 600
+  defense: 60

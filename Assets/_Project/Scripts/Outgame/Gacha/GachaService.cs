@@ -39,7 +39,7 @@ namespace Game.Outgame
                 Random,
                 database.GetCharactersOfGrade(CharacterGrade.S),
                 database.GetCharactersOfGrade(CharacterGrade.A),
-                database.GetWeaponsOfGrade(WeaponGrade.ThreeStar));
+                database.GetWeaponsOfGrade);
 
             // 천장 카운터는 세이브의 값을 machine이 직접 갱신하고, 아래 CommitGachaPull에서 함께 저장한다.
             GachaSave state = PlayerProfile.GachaState;

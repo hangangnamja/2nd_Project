@@ -27,6 +27,10 @@ namespace Game.Data
         [SerializeField, Min(1f)] private float balancedAttackAtLv1 = 130f;
         [SerializeField, Min(1f)] private float balancedAttackAtLv60 = 800f;
 
+        [Header("무기 성장")]
+        [Tooltip("무기 Lv1 스탯 = 최대 스탯(Lv60·진급 5회) × 이 비율. 나머지는 캐릭터와 같은 모양(레벨당 + 진급 점프)으로 오른다 (StatTable 상위 무기 Lv1 80 / Lv60 500 = 0.16)")]
+        [SerializeField, Range(0f, 1f)] private float weaponLv1Ratio = 0.16f;
+
         private const int MaxLevel = 60;
         private const int MaxAscension = 5;
         private const int AscensionInterval = 10;
@@ -65,6 +69,17 @@ namespace Game.Data
         //  - 적 공격력은 "아군 HP의 몇 %를 깎는지"로 정하므로 아군 HP 성장을 따라간다
         //  - 적 방어력은 K 계산과 같은 균형형 방어력 성장을 따라간다
         // 아군과 같은 곡선을 쓰면 고레벨에서 적 HP가 공격력보다 2배 빨리 커져 전투가 지나치게 길어진다.
+        // 무기 스탯 비율 (최대 스탯 대비): Lv1 = weaponLv1Ratio, Lv60·진급 5회 = 1.
+        // 그 사이는 캐릭터 성장과 같은 식(레벨당 증가 + 진급 점프)으로 채운다 → 진급하면 무기도 점프한다.
+        // 예: 공격력 최대 500 → Lv1 80, Lv60·진급 5회 500
+        public float GetWeaponStatRatio(int level, int promotion)
+        {
+            // 균형형 식에 Lv1 = 0, Lv60 = 1을 넣으면 "Lv1→최대까지 몇 % 왔는지"(0~1)가 나온다.
+            int ascension = Mathf.Clamp(promotion, 0, MaxAscension);
+            float progress = GetBalancedStat(0f, 1f, level, ascension);
+            return weaponLv1Ratio + (1f - weaponLv1Ratio) * progress;
+        }
+
         // 적은 진급이 없으므로 그 레벨까지 진급을 마친 아군과 같은 곡선 위치를 쓴다 (예: Lv10 적 = 진급 1회 기준).
         public StatScaling GetEnemyScaling(int level)
         {

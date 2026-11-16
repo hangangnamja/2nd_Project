@@ -29,8 +29,14 @@ namespace Game.Data
         [Tooltip("무기 칸 수·재료 최대 개수·분해 보상")]
         [SerializeField] private InventoryRulesData inventoryRules;
 
-        [Tooltip("레벨별 필요 경험치·진급 구간·경험치 재료")]
+        [Tooltip("캐릭터 성장: 레벨별 필요 경험치·진급 구간·경험치 재료")]
         [SerializeField] private GrowthRulesData growthRules;
+
+        [Tooltip("무기 성장: 캐릭터와 같은 방식, 재료는 무기 강화석")]
+        [SerializeField] private GrowthRulesData weaponGrowthRules;
+
+        [Tooltip("레벨 성장 곡선 (무기 스탯 계산에 쓴다)")]
+        [SerializeField] private BattleRulesData battleRules;
 
         [Header("새 게임")]
         [Tooltip("처음 시작할 때 보유하는 캐릭터. 앞에서부터 최대 4명이 첫 편성이 된다")]
@@ -38,6 +44,8 @@ namespace Game.Data
 
         public IReadOnlyList<StartingCharacter> StartingCharacters => startingCharacters;
         public GrowthRulesData GrowthRules => growthRules;
+        public GrowthRulesData WeaponGrowthRules => weaponGrowthRules;
+        public BattleRulesData BattleRules => battleRules;
         public GachaRulesData GachaRules => gachaRules;
         public InventoryRulesData InventoryRules => inventoryRules;
         public IReadOnlyList<MaterialData> Materials => materials;

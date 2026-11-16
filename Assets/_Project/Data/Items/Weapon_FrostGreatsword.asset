@@ -15,9 +15,10 @@ MonoBehaviour:
   id: frost_greatsword
   displayName: "\uC11C\uB9AC \uB300\uAC80"
   grade: 4
+  type: 0
   icon: {fileID: 21300000, guid: 03453d3e5321c8c4fb3470e7815393a6, type: 3}
   description: "\uCE7C\uB0A0\uC5D0 \uB298 \uC11C\uB9AC\uAC00 \uB9FA\uD600 \uC788\uB294
     \uB300\uAC80."
-  attack: 42
-  maxHp: 0
-  defense: 10
+  attack: 500
+  maxHp: 600
+  defense: 60

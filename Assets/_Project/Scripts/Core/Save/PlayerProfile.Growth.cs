@@ -17,10 +17,10 @@ namespace Game.Core
             return saved != null ? new OwnedCharacter(character, saved.level, saved.promotion, saved.exp) : null;
         }
 
-        // 육성 창에서 쓸 수 있는 재료 개수. 디버그 "재료 무한"이면 제한 없음(int.MaxValue).
-        public static int GetUsableMaterialCount(MaterialData material)
+        // 육성 창에서 쓸 수 있는 재료 개수. 그 성장 규칙이 디버그 "재료 무한"이면 제한 없음(int.MaxValue).
+        public static int GetUsableMaterialCount(GrowthRulesData rules, MaterialData material)
         {
-            return GrowthRules.InfiniteMaterials ? int.MaxValue : GetMaterialCount(material);
+            return rules.InfiniteMaterials ? int.MaxValue : GetMaterialCount(material);
         }
 
         // 경험치 재료를 써서 레벨업한다. counts[i] = 성장 규칙의 i번째 재료를 몇 개 쓰는지.
@@ -30,7 +30,23 @@ namespace Game.Core
             EnsureLoaded();
             OwnedCharacterSave saved = FindOwnedSave(character.Id);
             GrowthRulesData rules = GrowthRules;
-            if (saved == null || !HasMaterials(rules, counts))
+            if (saved == null || !TryApplyExp(rules, counts, saved.level, saved.exp, saved.promotion, out ExpResult result))
+            {
+                return false;
+            }
+
+            saved.level = result.Level;
+            saved.exp = result.Exp;
+            SaveGrowth(materialsChanged: !rules.InfiniteMaterials);
+            return true;
+        }
+
+        // 캐릭터·무기 레벨업 공용: 재료를 확인·소모하고 경험치를 더한 결과를 out으로 돌려준다 (저장은 부른 쪽이 한다).
+        // out: 함수가 값을 채워 돌려주는 매개변수 → 성공 여부(bool)와 결과(ExpResult)를 함께 받는다.
+        private static bool TryApplyExp(GrowthRulesData rules, IReadOnlyList<int> counts, int level, int exp, int promotion, out ExpResult result)
+        {
+            result = default;
+            if (!HasMaterials(rules, counts))
             {
                 return false;
             }
@@ -47,12 +63,7 @@ namespace Game.Core
             }
 
             ConsumeMaterials(rules, counts);
-
-            ExpResult result = rules.AddExp(saved.level, saved.exp, rules.GetLevelCap(saved.promotion), totalExp);
-            saved.level = result.Level;
-            saved.exp = result.Exp;
-
-            SaveGrowth(materialsChanged: !rules.InfiniteMaterials);
+            result = rules.AddExp(level, exp, rules.GetLevelCap(promotion), totalExp);
             return true;
         }
 
