@@ -224,7 +224,7 @@ namespace Game.UI
 
             foreach (PassiveData passive in unit.Data.Passives)
             {
-                entries.Add((null, SkillDescriptionBuilder.BuildPassive(unit, passive), passiveCardColor));
+                entries.Add((null, SkillDescriptionBuilder.BuildPassive(passive, unit.GetPassiveStacks(passive)), passiveCardColor));
             }
 
             AddTransformationEntries(unit, entries);

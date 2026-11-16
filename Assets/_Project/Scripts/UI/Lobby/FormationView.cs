@@ -256,12 +256,15 @@ namespace Game.UI
             }
 
             var levels = new List<int>();
+            var promotions = new List<int>();
             foreach (CharacterData character in selected)
             {
-                levels.Add(PlayerProfile.GetLevel(character));
+                OwnedCharacter owned = PlayerProfile.GetOwned(character);
+                levels.Add(owned.Level);
+                promotions.Add(owned.Promotion);
             }
 
-            BattleLaunch.Request(BattleSetup.Create(selected, levels, stage));
+            BattleLaunch.Request(BattleSetup.Create(selected, levels, promotions, stage));
 
             // LoadScene: 지금 씬을 닫고 이름이 같은 씬을 연다. 씬이 Build Settings에 등록돼 있어야 한다.
             SceneManager.LoadScene(battleSceneName);

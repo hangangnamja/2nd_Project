@@ -20,5 +20,5 @@ MonoBehaviour:
   aGuaranteeInterval: 10
   pickupChance: 0.5
   gemsPerPull: 100
-  obtainedLevel: 60
+  obtainedLevel: 1
   freePulls: 1

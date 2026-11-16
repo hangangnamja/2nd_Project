@@ -1079,8 +1079,10 @@ namespace Game.Battle
             // 캐릭터마다 보유 레벨이 다를 수 있으므로, 레벨 배율도 아군마다 따로 구한다.
             for (int i = 0; i < setup.AllyParty.Count; i++)
             {
+                // 진급 횟수를 알면(로비에서 시작) 실제 진급 기준, 모르면(테스트 설정) 그 레벨까지 진급을 마친 것으로 본다.
                 int level = setup.GetAllyLevel(i);
-                StatScaling allyScaling = rules.GetAllyScaling(level);
+                int promotion = setup.GetAllyPromotion(i);
+                StatScaling allyScaling = promotion >= 0 ? rules.GetAllyScaling(level, promotion) : rules.GetAllyScaling(level);
                 allies.Add(new BattleUnit(setup.AllyParty[i], isAlly: true, formationIndex: i, level: level, allyScaling));
             }
 

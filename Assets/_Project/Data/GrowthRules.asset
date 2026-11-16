@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 494309dc0da28824e9c8c5a258d1f167, type: 3}
+  m_Name: GrowthRules
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.GrowthRulesData
+  expToNextLevel: 2c0100005e01000090010000f401000058020000bc020000520300001a040000e2040000080700008f07000011080000980800001f090000a1090000280a0000af0a0000310b0000b80b0000481200006f13000091140000b8150000df16000001180000281900004f1a0000711b0000981c0000302a0000882c0000e02e00003831000090330000e835000040380000983a0000f03c0000483f0000cc4200007c4700002c4c0000dc5000008c5500003c5a0000ec5e00009c6300004c680000fc6c000098850000f88e000058980000b8a1000018ab000078b40000d8bd000038c7000098d00000f8d90000
+  levelsPerPromotion: 10
+  maxPromotion: 5
+  expMaterials:
+  - material: {fileID: 11400000, guid: 4d56eb476f944fd49b274c38a7837a9f, type: 2}
+    experience: 300
+  - material: {fileID: 11400000, guid: e67e7df0caffff5409ed63a81db6316b, type: 2}
+    experience: 1000
+  - material: {fileID: 11400000, guid: c7b410ab671ab1c479d487f79a612139, type: 2}
+    experience: 3000
+  infiniteMaterials: 1

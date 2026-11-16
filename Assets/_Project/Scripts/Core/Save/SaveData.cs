@@ -11,7 +11,8 @@ namespace Game.Core
     public class SaveData
     {
         // 2: 무기 인벤(weapons, nextWeaponUid)·재료 인벤(materials) 추가
-        public const int CurrentVersion = 2;
+        // 3: 캐릭터 경험치(exp) 추가, 진급 횟수를 레벨에 맞게 보정
+        public const int CurrentVersion = 3;
 
         public int version = CurrentVersion;
         public CurrencySave currency = new CurrencySave();
@@ -67,6 +68,9 @@ namespace Game.Core
         public string id;
         public int level = 1;
         public int promotion;
+
+        // 지금 레벨에서 다음 레벨까지 쌓인 경험치 (레벨이 오르면 필요량만큼 빠진다)
+        public int exp;
     }
 
     // 가챠 카운터 (기획서 7-1). 다음 픽업 배너로 이월되므로 배너가 아니라 플레이어 단위로 저장한다.

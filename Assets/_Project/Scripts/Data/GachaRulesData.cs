@@ -33,8 +33,8 @@ namespace Game.Data
         [Tooltip("1회 뽑기 보석 (기획서 8장: 1뽑 = 보석 100개)")]
         [SerializeField, Min(0)] private int gemsPerPull = 100;
 
-        [Tooltip("새로 얻은 캐릭터의 레벨 (육성 시스템 전까지 임시)")]
-        [SerializeField, Range(1, 60)] private int obtainedLevel = 60;
+        [Tooltip("새로 얻은 캐릭터의 레벨 (기본 Lv1, 이후 전투원 화면에서 육성)")]
+        [SerializeField, Range(1, 60)] private int obtainedLevel = 1;
 
         [Tooltip("체크하면 보석 없이 뽑을 수 있다 (기획서 2장: 심사자용 디버그 모드 재화 무한)")]
         [SerializeField] private bool freePulls = true;

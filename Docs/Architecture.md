@@ -42,11 +42,12 @@
 | `StageData`: 적 레벨 + 웨이브 목록(웨이브마다 적 편성, 자리별 무적). 보상은 이후 | `StageRunner`: 현재 웨이브, 웨이브 클리어 판정, 다음 웨이브 유무 |
 | `BattleSetup`: 이번 전투의 아군 편성·레벨 + 스테이지 (지금은 테스트 에셋, 이후 로비가 만들어 넘김) | - |
 | `EnemyCharacterData`: `CharacterData` + 행동 패턴 목록 (패턴이 필요한 적만) | `BattleManager.DecideEnemyAction`: 패턴을 순서대로 확인해 스킬·대상 결정 |
-| `BattleRulesData`: 전투 공통 수치 (방어 상수 K 계산 파라미터, 레벨 성장 곡선) | `BattleUnit` 기본 스탯 = 데이터 스탯(Lv1) × 레벨 배율(`StatScaling`), 전투 시작 때 고정 |
+| `BattleRulesData`: 전투 공통 수치 (방어 상수 K 계산 파라미터, 레벨 성장 곡선) | `BattleUnit` 기본 스탯 = 데이터 스탯(Lv1) × 레벨 배율(`StatScaling`), 전투 시작 때 고정. 아군 배율은 `GetAllyScaling(레벨, 진급)` (로비 → `BattleSetup`이 진급 횟수도 넘김, 모르면 그 레벨까지 진급 완료로 계산) |
 | `GachaBannerData`: 배너 이름·강조 문구·종료 일시·픽업 S 1명 | `GachaView`: 보여주는 배너 순서 |
 | `GachaRulesData`: 확률·천장·반천·A 확정·비용·디버그 무료 (배너 공통) | `GachaSave`(세이브): 천장·A 확정 카운터, 픽업 확정 여부 |
 | `WeaponData`·`MaterialData`: 무기(등급 3~5성, 기초 스탯)·재료(분류, 등급) 종류 | `WeaponSave`(개체 번호·레벨·장착)·`MaterialSave`(개수) → `OwnedWeapon`·`OwnedMaterial` |
 | `InventoryRulesData`: 무기 칸 수, 재료 최대 개수, 분해 재료·등급별 보상 | - |
+| `GrowthRulesData`: 레벨별 필요 경험치(StatTable "경험치" 시트), 진급 간격·횟수, 경험치 재료(재료 + 1개당 경험치), 디버그 재료 무한 | `OwnedCharacterSave.exp`·`promotion` → `OwnedCharacter` |
 | `GameDatabase` (`Resources/`): ID → 캐릭터·스테이지·무기·재료 SO 찾기, 인벤토리 규칙, 새 게임 시작 캐릭터 | `SaveData` (JSON): ID와 바뀌는 값만 저장 |
 
 ### 가챠
@@ -66,6 +67,14 @@
   - 자동 분해: `StoreWeaponOrDismantle`이 칸이 꽉 찼고 3성이면 칸에 넣지 않고 분해 보상만 준다. 가챠 10회는 `CommitGachaPull`이 무기를 한꺼번에 넣고 한 번 저장한 뒤, 무기마다 자동 분해 여부를 돌려준다(`GachaResult.IsDismantled`)
 - 화면: `InventoryView`(탭·목록·정렬·상세), `InventorySlotView`(칸 하나, 칸 원본을 복사해 재사용), `DismantlePopup`(등급 선택 → 미리 보기 → 분해). 등급 색은 `RarityColors`(가챠와 같은 값)
 - 에디터 메뉴 `InventoryDebugMenu`(Tools > Inventory): 테스트 아이템 지급, 무기 칸 채우기
+
+### 전투원 화면 (기획서 2장)
+- `OperatorView`: 켜질 때마다 `PlayerProfile.GetOwnedCharacters`로 오른쪽 목록(`OperatorListItem`, 원본 칸 복사)을 다시 만들고, 고른 캐릭터로 정보 패널·스킬 탭을 채운다
+- 스탯은 `BattleRulesData.GetAllyScaling(레벨)`로 전투와 같은 배율을 곱해 보여준다 (공격력·방어력은 전투처럼 버림)
+- 스킬 탭은 전투 상세 창과 같은 `SkillDescriptionBuilder`·`DetailEntryView`를 쓴다. 전투 밖이라 남은 쿨타임·스택은 -1로 넘겨 그 줄을 생략
+- 육성 창 `GrowthPopup`: 고른 재료 개수만 들고, 미리 보기·실제 레벨업 모두 `GrowthRulesData.AddExp`(상한에서 멈추고 넘친 양은 버림) 하나로 계산
+  - 재료 칸 `GrowthMaterialSlot`의 누름·홀드 반복은 `HoldRepeatButton`(누른 채로 있으면 점점 빨리 반복)
+  - 실행은 `PlayerProfile.LevelUp`·`Promote`(`PlayerProfile.Growth.cs`): 저장 후 `OwnedCharactersChanged` → 육성 창·전투원 화면이 다시 그려짐
 
 ### 세이브 (기획서 9장)
 - `SaveData`: 파일에 그대로 저장되는 내용. 필드 이름이 곧 JSON 키라, 이름·구조를 바꾸면 `version`을 올리고 `SaveStorage.Upgrade`에 변환을 추가
@@ -372,7 +381,7 @@ Assets/_Project/
 - 별 미션 3개(사이클 제한 등)와 기록 저장
 
 ### 육성·인벤토리
-- 전투원 화면: 보유 캐릭터 목록, 스킬·스탯 확인
+- 전투원 화면: 보유 목록·스탯·스킬 보기는 구현됨. 레벨업·진급·무기 장착 버튼은 자리만
 - 캐릭터 레벨업·진급 (경험치 곡선·진급 재료 미정) → 저장 후 `PlayerProfile.OwnedCharactersChanged` 알림
 - 무기: 레벨·진급, 장착, 전투 스탯 반영 (개체 보관·분해는 인벤토리로 구현됨)
 

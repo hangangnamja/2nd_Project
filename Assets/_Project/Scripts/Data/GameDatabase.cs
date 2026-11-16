@@ -29,11 +29,15 @@ namespace Game.Data
         [Tooltip("무기 칸 수·재료 최대 개수·분해 보상")]
         [SerializeField] private InventoryRulesData inventoryRules;
 
+        [Tooltip("레벨별 필요 경험치·진급 구간·경험치 재료")]
+        [SerializeField] private GrowthRulesData growthRules;
+
         [Header("새 게임")]
         [Tooltip("처음 시작할 때 보유하는 캐릭터. 앞에서부터 최대 4명이 첫 편성이 된다")]
         [SerializeField] private List<StartingCharacter> startingCharacters = new List<StartingCharacter>();
 
         public IReadOnlyList<StartingCharacter> StartingCharacters => startingCharacters;
+        public GrowthRulesData GrowthRules => growthRules;
         public GachaRulesData GachaRules => gachaRules;
         public InventoryRulesData InventoryRules => inventoryRules;
         public IReadOnlyList<MaterialData> Materials => materials;
