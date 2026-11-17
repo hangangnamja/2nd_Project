@@ -5,10 +5,11 @@ using UnityEngine;
 namespace Game.Data
 {
     // 버프인지 디버프인지. 버프 10칸, 디버프 10칸을 따로 쓴다 (기획서 3-7).
+    // [InspectorName]: Inspector 드롭다운과 설명 글(EffectText.EnumName)에 보일 한국어 이름. 저장 값(숫자)은 그대로다.
     public enum StatusCategory
     {
-        Buff,
-        Debuff,
+        [InspectorName("버프")] Buff,
+        [InspectorName("디버프")] Debuff,
     }
 
     // 같은 효과를 다시 걸었을 때의 처리 방식 (기획서 3-7).
@@ -59,7 +60,7 @@ namespace Game.Data
         [Tooltip("툴팁에 표시할 짧은 설명 (선택). 수치는 자동으로 표시된다")]
         [SerializeField, TextArea(1, 3)] private string description;
         [SerializeField] private StatusCategory category = StatusCategory.Debuff;
-        [Tooltip("디버프 전용. 버프는 같은 버프끼리 중첩되지 않으므로 이 값과 관계없이 항상 갱신형이다")]
+        [Tooltip("다시 걸었을 때 처리 방식. 버프·디버프 모두 이 설정을 따른다 (아군 버프는 원칙상 갱신)")]
         [SerializeField] private StatusStackMode stackMode = StatusStackMode.Stack;
 
         [Tooltip("스택 방식일 때 쌓을 수 있는 최대 스택 (화상·독 = 99)")]
@@ -121,8 +122,9 @@ namespace Game.Data
         public int Duration => duration;
         public int MaxStacks => maxStacks;
 
-        // 1칸에 스택으로 쌓이는 디버프인지 (버프는 항상 갱신형이라 해당 없음).
-        public bool UsesStackCount => category == StatusCategory.Debuff && stackMode == StatusStackMode.StackCount;
+        // 1칸에 스택으로 쌓이는 효과인지. 디버프(화상·독 시험)와 버프(보스 1 공세) 모두 쓸 수 있다.
+        // 버프도 1칸이라 "같은 버프는 중첩 불가" 원칙과 충돌하지 않는다: 칸은 하나, 숫자만 쌓인다.
+        public bool UsesStackCount => stackMode == StatusStackMode.StackCount;
         public Texture2D Icon => icon;
         public StatusFeatures Features => features;
 

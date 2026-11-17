@@ -124,6 +124,15 @@ namespace Game.Battle.Status
             Refresh(appliedOrder);
         }
 
+        // 강탈로 받은 같은 스택 효과를 합친다: 스택을 더하고(최대 스택까지) 남은 턴은 긴 쪽으로 맞춘다.
+        public void MergeStacks(StatusInstance incoming, long appliedOrder)
+        {
+            Stacks = System.Math.Min(Data.MaxStacks, Stacks + incoming.Stacks);
+            SnapshotAttack = System.Math.Max(SnapshotAttack, incoming.SnapshotAttack);
+            SnapshotMaxHp = System.Math.Max(SnapshotMaxHp, incoming.SnapshotMaxHp);
+            KeepLongerRemaining(incoming.RemainingTurns, appliedOrder);
+        }
+
         // 아이콘 숫자: 스택 효과는 "×스택", 영구 표시는 빈 글자, 나머지는 남은 턴.
         public string IconText => Data.IsPermanent ? string.Empty
             : Data.UsesStackCount ? $"×{Stacks}"

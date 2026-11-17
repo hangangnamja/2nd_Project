@@ -746,6 +746,9 @@ namespace Game.Battle
                     // Statuses.Debuffs.Count: 자신에게 걸린 디버프 칸 수. 기준 1이면 "디버프가 하나도 없을 때"만 참.
                     // 행동을 고르는 시점(턴 시작)에 확인하므로, 지속피해는 아직 발동 전이라 걸려 있는 그대로 센다.
                     return enemy.Statuses.Debuffs.Count < pattern.Threshold;
+                case PatternCondition.SelfBuffStacksAtLeast:
+                    // CountBuffStacks: 버프 칸의 스택 합. 공세처럼 1칸에 쌓이는 버프는 칸 수가 아니라 스택 수로 센다.
+                    return enemy.Statuses.CountBuffStacks() >= pattern.Threshold;
                 default:
                     return true;
             }

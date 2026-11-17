@@ -15,7 +15,13 @@ MonoBehaviour:
   id: Stage_BuffEnemy
   stageName: "\uCD95\uC801\uC758 \uB358\uC804"
   stageCode: 
-  description: "\uD14C\uC2A4\uD2B8\uC6A9"
+  description: "\uC870\uC0AC\uACB0\uACFC \uD30C\uAD34 \uBD88\uAC00\uB2A5\uD55C \uC218\uC815\uC73C\uB85C\uBD80\uD130
+    \n\uC9C0\uC18D\uC801\uC73C\uB85C \uD798\uC744 \uC5BB\uB294\uB4EF \uD558\uB2E4.\n\uC774\uB85C\uC6B4
+    \uD6A8\uACFC\uAC00 \uC313\uC77C\uB54C\uB9C8\uB2E4 \uACF5\uACA9 \uD328\uD134\uC774
+    \uBC14\uB00C\uACE0 \n\uACF5\uACA9\uB825\uACFC \uD53C\uD574\uACBD\uAC10\uB960\uC774
+    \uC0C1\uC2B9\uD558\uB294\uB4EF \uD558\uB2E4.\n\uB2E8\uAE30\uACB0\uC804 \uD639\uC740
+    \uCD5C\uB300\uD55C \uCD95\uC801\uD55C \uD798\uC744 \uBE7C\uC557\uC744\uAC83\uC744
+    \uAD8C\uC7A5\uD55C\uB2E4. "
   enemyLevel: 60
   waves:
   - enemies:
@@ -30,5 +36,5 @@ MonoBehaviour:
       invulnerable: 1
     - character: {fileID: 11400000, guid: 62e5dbe00f5ec034986f2b0d4a3ea3b2, type: 2}
       invulnerable: 0
-    - character: {fileID: 11400000, guid: bed0a34fe4b62ad4b8fdc97627c63e83, type: 2}
+    - character: {fileID: 11400000, guid: 580e8412b08ccb442a39cc831c018dfa, type: 2}
       invulnerable: 1

@@ -28,13 +28,17 @@ MonoBehaviour:
     targetType: 0
     cooldown: 0
     startCooldown: 0
+    presentationPrefab: {fileID: 0}
+    presentationHits: 1
     effects:
     - rid: 7605779530016096610
   skill2:
-    skillName: "\uAC15\uD0C0"
-    targetType: 0
+    skillName: "\uAD11\uC5ED \uAC15\uD0C0"
+    targetType: 1
     cooldown: 0
     startCooldown: 0
+    presentationPrefab: {fileID: 0}
+    presentationHits: 1
     effects:
     - rid: 7605779530016096611
   skill3:
@@ -42,16 +46,48 @@ MonoBehaviour:
     targetType: 1
     cooldown: 0
     startCooldown: 0
+    presentationPrefab: {fileID: 0}
+    presentationHits: 1
     effects:
     - rid: 7605779530016096612
-    - rid: 7605779530016096613
     - rid: 7605779530016096614
-  passives: []
+  passives:
+  - passiveName: "\uCD95\uC801\uC758 \uAC11\uC8FC"
+    trigger: 16
+    execution: 0
+    maxTriggersPerTurn: 0
+    turnLimitScope: 0
+    maxTriggersPerBattle: 0
+    inactiveWhileTransformed: 0
+    maxStacks: 0
+    stacksPerOwnAction: 0
+    stackCostPerTrigger: 0
+    stacksGainedPerTrigger: 0
+    hpThreshold: 0
+    requiredStatus: {fileID: 0}
+    tauntDisplay: {fileID: 0}
+    auraModifiers:
+    - stat: 5
+      percent: 0.1
+      flat: 0
+    - stat: 7
+      percent: 0.1
+      flat: 0
+    countedCategory: 0
+    countComparison: 0
+    countThreshold: 0
+    countCap: 0
+    effects: []
   patterns:
-  - patternName: "\uBC84\uD504 4\uAC1C \u2192 \uCD95\uC801 \uD574\uBC29"
-    condition: 1
-    threshold: 4
+  - patternName: "\uACF5\uC138 10\uC2A4\uD0DD \u2192 \uCD95\uC801 \uD574\uBC29"
+    condition: 5
+    threshold: 10
     skillNumber: 3
+    target: 0
+  - patternName: "\uACF5\uC138 4\uC2A4\uD0DD \uC774\uC0C1 \u2192 \uAD11\uC5ED"
+    condition: 5
+    threshold: 4
+    skillNumber: 2
     target: 0
   - patternName: "\uD3C9\uC18C \uB2E8\uC77C \uACF5\uACA9"
     condition: 0
@@ -72,19 +108,13 @@ MonoBehaviour:
     - rid: 7605779530016096611
       type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
-        multiplier: 1
-        secondaryMultiplier: 1
+        multiplier: 1.5
+        secondaryMultiplier: 0
     - rid: 7605779530016096612
-      type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      type: {class: MaxHpDamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
-        multiplier: 5
-        secondaryMultiplier: 5
-    - rid: 7605779530016096613
-      type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
-      data:
-        status: {fileID: 11400000, guid: f1fa4cf29ade1b34e899309dd9fcb892, type: 2}
-        count: 1
-        applyToAllAllies: 0
+        attackMultiplier: 1
+        maxHpRatio: 0.9
     - rid: 7605779530016096614
       type: {class: ConsumeAllBuffsEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data: 

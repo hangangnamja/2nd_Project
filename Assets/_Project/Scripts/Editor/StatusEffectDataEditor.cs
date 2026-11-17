@@ -32,16 +32,13 @@ namespace Game.EditorTools
             Draw("description");
             Draw("category");
 
-            // 버프는 항상 갱신형이라 중첩 방식이 의미 없으므로 디버프일 때만 보여준다.
-            if (IsDebuff())
-            {
-                Draw("stackMode");
+            // 중첩 방식은 버프·디버프 모두 보여준다 (버프는 '스택'만 따르고 나머지는 갱신형으로 처리).
+            Draw("stackMode");
 
-                // 스택 방식(enumValueIndex 2 = StackCount)일 때만 최대 스택 칸을 보여준다.
-                if (serializedObject.FindProperty("stackMode").enumValueIndex == (int)StatusStackMode.StackCount)
-                {
-                    Draw("maxStacks");
-                }
+            // 스택 방식(enumValueIndex 2 = StackCount)일 때만 최대 스택 칸을 보여준다.
+            if (serializedObject.FindProperty("stackMode").enumValueIndex == (int)StatusStackMode.StackCount)
+            {
+                Draw("maxStacks");
             }
 
             Draw("duration");

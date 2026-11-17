@@ -83,9 +83,7 @@ namespace Game.EditorTools
             var triggerValue = (PassiveTrigger)trigger.intValue;
 
             // 상시형: 사건에 반응하지 않아 실행 시점·횟수·효과 목록을 쓰지 않는다.
-            bool isAlwaysOn = triggerValue == PassiveTrigger.Aura
-                || triggerValue == PassiveTrigger.TauntWhileShielded
-                || triggerValue == PassiveTrigger.WhileSummonsAlive;
+            bool isAlwaysOn = PassiveData.IsAlwaysOnTrigger(triggerValue);
 
             AddField(rows, property, "passiveName");
             AddField(rows, property, "trigger");
@@ -139,6 +137,23 @@ namespace Game.EditorTools
                     // 오라와 같은 보정 칸을 쓰지만 같은 편 전원이 아니라 자신에게만 건다.
                     rows.Add(new Row { Header = "부하가 있는 동안 (자신)" });
                     AddField(rows, property, "auraModifiers", "자신 스탯 보정");
+                    AddField(rows, property, "tauntDisplay");
+                    break;
+                case PassiveTrigger.WhileOwnStatusCount:
+                    // 조건을 만족하는 동안 보정을 그대로 건다 (개수와 무관).
+                    rows.Add(new Row { Header = "상태효과 수 조건 (자신)" });
+                    AddField(rows, property, "countedCategory");
+                    AddField(rows, property, "countThreshold");
+                    AddField(rows, property, "countComparison");
+                    AddField(rows, property, "auraModifiers", "자신 스탯 보정");
+                    AddField(rows, property, "tauntDisplay");
+                    break;
+                case PassiveTrigger.ScalesWithOwnStatusCount:
+                    // 보정 칸은 1개당 값이고, 개수만큼 곱해서 건다.
+                    rows.Add(new Row { Header = "상태효과 수 비례 (자신)" });
+                    AddField(rows, property, "countedCategory");
+                    AddField(rows, property, "countCap");
+                    AddField(rows, property, "auraModifiers", "1개당 자신 스탯 보정");
                     AddField(rows, property, "tauntDisplay");
                     break;
             }

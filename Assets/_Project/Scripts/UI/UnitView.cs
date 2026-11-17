@@ -311,14 +311,22 @@ namespace Game.UI
                 statuses.Insert(0, auraIcon);
             }
 
-            // 조건이 맞아 켜진 상시 패시브(시선집중, 부하가 있는 동안 피해 감소): 표시용 효과를 맨 앞에 보여준다.
-            // 조건이 꺼지면(보호막 깨짐, 부하 전멸) 다음 갱신에서 바로 사라진다.
+            // 조건이 맞아 켜진 상시 패시브(시선집중, 부하가 있는 동안 피해 감소, 상태효과 수 조건·비례): 표시용 효과를 맨 앞에 보여준다.
+            // 조건이 꺼지면(보호막 깨짐, 부하 전멸, 개수 변화) 다음 갱신에서 바로 사라진다.
             foreach (PassiveData passive in Unit.GetActiveConditionalPassives())
             {
                 StatusEffectData display = passive.DisplayStatus;
                 if (display != null)
                 {
-                    statuses.Insert(0, GetDisplayIcon(display));
+                    StatusInstance icon = GetDisplayIcon(display);
+
+                    // 비례형은 남은 턴 자리에 지금 몇 배인지(버프 개수 등)를 적는다.
+                    if (passive.Trigger == PassiveTrigger.ScalesWithOwnStatusCount)
+                    {
+                        icon.SetRemainingTurnsForDisplay(Unit.GetSelfPassiveScale(passive));
+                    }
+
+                    statuses.Insert(0, icon);
                 }
             }
 

@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Game.Battle;
 using Game.Battle.Status;
+using Game.Data;
 using UnityEngine;
 
 namespace Game.UI
@@ -61,6 +62,12 @@ namespace Game.UI
 
         [Tooltip("3스 컷인")]
         [SerializeField] private SkillCutInView cutIn;
+
+        [Tooltip("적이 스킬을 쓸 때 화면 위쪽에 띄우는 스킬 이름 띠")]
+        [SerializeField] private SkillNameBanner enemySkillBanner;
+
+        [Tooltip("체크하면 보스(적 데이터의 '보스' 표시)의 스킬만 이름을 띄운다. 끄면 모든 적")]
+        [SerializeField] private bool enemySkillBannerBossOnly = true;
 
         [Header("보호막·HP바")]
         [Tooltip("보호막이 다 깎이는 순간 터지는 파편 이펙트")]
@@ -350,6 +357,19 @@ namespace Game.UI
         //  2) 아군 3스면 컷인
         //  3) 상대를 노리는 행동이면 대상 쪽으로 돌진(공격 모션), 아니면 제자리에서 떠오르며 빛남(버프·회복 모션)
         // 다음 박자(타격·버프)는 돌진이 닿는 순간 / 가장 높이 떠오른 순간에 나온다.
+        // 적의 스킬 이름 띠를 띄울 행동인지: 적이 스킬로 직접 쓴 행동(추가 공격·패시브 제외)이고, 보스만 옵션이면 보스일 때만.
+        // "is EnemyCharacterData enemy && …": 패턴 매칭으로 적 데이터인지 확인하면서 enemy 변수에 담아 바로 IsBoss를 읽는다.
+        private bool ShouldShowEnemySkillName(ActionStartInfo action)
+        {
+            if (enemySkillBanner == null || action.Caster.IsAlly || action.Source != ActionSource.Skill)
+            {
+                return false;
+            }
+
+            return !enemySkillBannerBossOnly
+                || (action.Caster.Data is EnemyCharacterData enemy && enemy.IsBoss);
+        }
+
         private IEnumerator PlayAction(ActionStartInfo action)
         {
             BattleUnit caster = action.Caster;
@@ -373,6 +393,13 @@ namespace Game.UI
             {
                 cutIn.Play(caster.Data.Illustration, caster.Name, action.SkillName);
                 yield return new WaitForSecondsRealtime(cutIn.Duration);
+            }
+
+            // 적이 스킬(패턴)을 쓰면 이름 띠를 먼저 띄우고, 이름을 읽을 시간만큼 기다린 뒤 공격 모션으로 넘어간다.
+            if (ShouldShowEnemySkillName(action))
+            {
+                enemySkillBanner.Show(caster.Name, action.SkillName);
+                yield return new WaitForSecondsRealtime(enemySkillBanner.LeadSeconds);
             }
 
             attackerPosition = isCasterVisible ? casterView.transform.position : (Vector3?)null;
