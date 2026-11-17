@@ -84,9 +84,11 @@ namespace Game.Data
                 status.IsPermanent ? "영구" : $"{status.Duration}턴",
             };
 
+            // 스택 효과는 수치가 1스택 기준이라 "스택당"을 붙인다.
+            string perStack = status.UsesStackCount ? $" (스택당, 최대 {status.MaxStacks}스택)" : string.Empty;
             foreach (StatModifier modifier in status.StatModifiers)
             {
-                parts.Add(Modifier(modifier));
+                parts.Add(Modifier(modifier) + perStack);
             }
 
             if (status.DamageAttackRatio > 0f)

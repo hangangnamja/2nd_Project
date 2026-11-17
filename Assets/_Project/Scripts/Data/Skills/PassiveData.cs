@@ -63,6 +63,22 @@ namespace Game.Data
         // 이 캐릭터의 턴이 시작될 때마다 (기절로 행동하지 못하는 턴도 포함, 행동을 고르기 전). 효과 대상 = 자신.
         // 보스 2: 자기 턴마다 피격 무효 4회 충전 → 턴 끝의 지속피해가 바로 벗겨 낸다.
         [InspectorName("자기 턴 시작 시")] OnOwnTurnStart,
+
+        // 상시: 자신에게 걸린 상태효과(고른 분류: 버프 또는 디버프) 칸 수가 기준을 만족하는 동안 "자신 스탯 보정"을 건다.
+        // 조건만 맞으면 개수와 상관없이 같은 값. 보스 2: 디버프가 2개 미만인 동안 속도 증가.
+        // 칸 수로 세므로 스택 효과(1칸에 숫자로 쌓임)는 1개다. 표시 효과가 있으면 켜진 동안 아이콘을 띄운다.
+        [InspectorName("자신의 상태효과 수 조건 (상시)")] WhileOwnStatusCount,
+
+        // 상시: 자신에게 걸린 상태효과(고른 분류) 칸 수만큼 "자신 스탯 보정"을 곱해서 건다 (1개당 보정 × 개수, 최대 개수까지).
+        // 보스 1: 버프 1개당 피해 증가 10% + 피해 감소 10%. 0개면 꺼진다. 표시 효과 아이콘에는 지금 개수를 적는다.
+        [InspectorName("자신의 상태효과 수 비례 (상시)")] ScalesWithOwnStatusCount,
+    }
+
+    // 상태효과 수 조건 패시브에서 개수를 기준과 비교하는 방식. 에셋에는 숫자 순서로 저장되므로 새 항목은 맨 뒤에 추가한다.
+    public enum StatusCountComparison
+    {
+        [InspectorName("이상")] AtLeast,
+        [InspectorName("미만")] Below,
     }
 
     // 턴당 횟수 제한을 어느 턴 기준으로 세는지.
@@ -160,6 +176,23 @@ namespace Game.Data
         [Tooltip("아군 전원(자신 포함)에게 적용할 스탯 보정. 예: 지속피해 증가 +20%")]
         [SerializeField] private List<StatModifier> auraModifiers = new List<StatModifier>();
 
+        // 상태효과 수 (발동 조건이 '자신의 상태효과 수 조건/비례 (상시)'일 때만) (PassiveDataDrawer가 발동 조건에 맞을 때만 이 칸을 보여준다)
+        [Tooltip("어느 분류의 상태효과 칸 수를 셀지 (버프 / 디버프)")]
+        [Label("셀 상태효과")]
+        [SerializeField] private StatusCategory countedCategory = StatusCategory.Buff;
+
+        [Tooltip("'상태효과 수 조건'에서 개수를 기준과 비교하는 방식. 예: 디버프 2개 미만 = 기준 2 + 미만")]
+        [Label("비교")]
+        [SerializeField] private StatusCountComparison countComparison = StatusCountComparison.Below;
+
+        [Tooltip("'상태효과 수 조건'의 기준 개수")]
+        [Label("기준 개수", Min = 0f)]
+        [SerializeField] private int countThreshold = 1;
+
+        [Tooltip("'상태효과 수 비례'에서 보정을 곱할 최대 개수. 0이면 제한 없음 (칸이 10개라 사실상 최대 10)")]
+        [Label("최대 개수", Min = 0f)]
+        [SerializeField] private int countCap;
+
         // [SerializeReference] + [SubclassSelector]: 스킬 효과 목록과 같은 방식으로 효과 종류를 골라 넣는다.
         [SerializeReference, SubclassSelector]
         private List<SkillEffect> effects = new List<SkillEffect>();
@@ -180,6 +213,45 @@ namespace Game.Data
         public float HpThreshold => hpThreshold;
         public StatusEffectData DisplayStatus => tauntDisplay;
         public IReadOnlyList<StatModifier> AuraModifiers => auraModifiers;
+        public StatusCategory CountedCategory => countedCategory;
+        public StatusCountComparison CountComparison => countComparison;
+        public int CountThreshold => countThreshold;
+        public int CountCap => countCap;
+
+        // 사건에 반응하지 않고 조건이 맞는 동안 계속 켜져 있는 패시브인지 (실행 시점·횟수·효과 목록을 쓰지 않음).
+        public bool IsAlwaysOn => IsAlwaysOnTrigger(trigger);
+
+        // 상시형 발동 조건인지. Inspector 칸 숨김(에디터)과 설명 글이 같은 기준을 쓰도록 한 곳에 모은다.
+        // "is A or B ...": 패턴 매칭으로, value가 나열한 값 중 하나와 같으면 true.
+        public static bool IsAlwaysOnTrigger(PassiveTrigger value)
+        {
+            return value is PassiveTrigger.Aura
+                or PassiveTrigger.TauntWhileShielded
+                or PassiveTrigger.WhileSummonsAlive
+                or PassiveTrigger.WhileOwnStatusCount
+                or PassiveTrigger.ScalesWithOwnStatusCount;
+        }
+
+        // 세어 온 상태효과 개수(count)로 "자신 스탯 보정"을 몇 배 걸지 정한다. 0이면 꺼짐.
+        //  - 조건형: 기준을 만족하면 1배, 아니면 0
+        //  - 비례형: 개수 그대로, 최대 개수가 있으면 그 값까지 (Mathf.Min = 둘 중 작은 값)
+        public int GetStatusCountScale(int count)
+        {
+            if (trigger == PassiveTrigger.WhileOwnStatusCount)
+            {
+                bool met = countComparison == StatusCountComparison.AtLeast
+                    ? count >= countThreshold
+                    : count < countThreshold;
+                return met ? 1 : 0;
+            }
+
+            if (trigger == PassiveTrigger.ScalesWithOwnStatusCount)
+            {
+                return countCap > 0 ? Mathf.Min(count, countCap) : count;
+            }
+
+            return 0;
+        }
         public IReadOnlyList<SkillEffect> Effects => effects;
     }
 }

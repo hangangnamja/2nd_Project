@@ -57,11 +57,14 @@ namespace Game.UI
                 AddStackRules(lines, passive);
             }
 
-            // 오라·상시 패시브는 효과 블록 대신 "오라 스탯 보정" 칸의 보정을 건다.
+            // 오라·상시 패시브는 효과 블록 대신 "오라 스탯 보정" 칸의 보정을 건다. 비례형은 1개당 값이라 "(버프 1개당)"을 붙인다.
+            string perCount = passive.Trigger == PassiveTrigger.ScalesWithOwnStatusCount
+                ? $" ({EffectText.EnumName(passive.CountedCategory)} 1개당)"
+                : string.Empty;
             foreach (StatModifier modifier in passive.AuraModifiers)
             {
                 string scope = passive.Trigger == PassiveTrigger.Aura ? "아군 전체" : "자신";
-                lines.Add($"• {scope} {EffectText.Modifier(modifier)}");
+                lines.Add($"• {scope} {EffectText.Modifier(modifier)}{perCount}");
             }
 
             // 패시브 효과의 대상은 발동 조건이 정하므로, 대상 규칙은 기본(적 단일)으로 넘긴다 (확산 배율 표시만 쓰는 값).
@@ -85,10 +88,18 @@ namespace Game.UI
                 parts.Add($"기준 HP {EffectText.Percent(passive.HpThreshold)}");
             }
 
-            bool isConstant = passive.Trigger == PassiveTrigger.Aura
-                || passive.Trigger == PassiveTrigger.TauntWhileShielded
-                || passive.Trigger == PassiveTrigger.WhileSummonsAlive;
-            if (!isConstant)
+            else if (passive.Trigger == PassiveTrigger.WhileOwnStatusCount)
+            {
+                // 예: "자신의 디버프 2개 미만"
+                parts.Add($"자신의 {EffectText.EnumName(passive.CountedCategory)} {passive.CountThreshold}개 {EffectText.EnumName(passive.CountComparison)}");
+            }
+            else if (passive.Trigger == PassiveTrigger.ScalesWithOwnStatusCount && passive.CountCap > 0)
+            {
+                parts.Add($"최대 {passive.CountCap}개");
+            }
+
+            // 상시 패시브는 사건에 반응하지 않으므로 실행 시점을 붙이지 않는다.
+            if (!passive.IsAlwaysOn)
             {
                 parts.Add(EffectText.EnumName(passive.Execution));
             }

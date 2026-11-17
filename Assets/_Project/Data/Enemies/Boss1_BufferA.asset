@@ -12,8 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e992233e7e3770a46b319cf2760de460, type: 3}
   m_Name: Boss1_BufferA
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.EnemyCharacterData
+  id: 
   displayName: "\uACF5\uC138\uC758 \uC0AC\uB3C4"
   role: 1
+  grade: 1
+  illustration: {fileID: 0}
   maxHp: 248
   attack: 99
   defense: 48
@@ -25,25 +28,28 @@ MonoBehaviour:
     targetType: 3
     cooldown: 0
     startCooldown: 0
+    presentationPrefab: {fileID: 0}
+    presentationHits: 1
     effects:
     - rid: 7605779530016096615
-    - rid: 7605779530016096616
   skill2:
     skillName: "\uACF5\uC138 \uBD80\uC5EC"
     targetType: 3
     cooldown: 0
     startCooldown: 0
+    presentationPrefab: {fileID: 0}
+    presentationHits: 1
     effects:
     - rid: 7605779530016096617
-    - rid: 7605779530016096618
   skill3:
     skillName: "\uACF5\uC138 \uBD80\uC5EC"
     targetType: 3
     cooldown: 0
     startCooldown: 0
+    presentationPrefab: {fileID: 0}
+    presentationHits: 1
     effects:
     - rid: 7605779530016096619
-    - rid: 7605779530016096620
   passives: []
   patterns:
   - patternName: "\uBCF4\uC2A4\uC5D0\uAC8C \uACF5\uC138 \uBD80\uC5EC"
@@ -51,36 +57,27 @@ MonoBehaviour:
     threshold: 0
     skillNumber: 1
     target: 1
+  isBoss: 0
+  countdownDisplay: {fileID: 0}
+  countdownTurns: 2
   references:
     version: 2
     RefIds:
     - rid: 7605779530016096615
       type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
-        status: {fileID: 11400000, guid: dd2b771b6c89ead438aba503b9f8ec80, type: 2}
-        count: 1
-    - rid: 7605779530016096616
-      type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
-      data:
-        status: {fileID: 11400000, guid: edf1d1a0fe27e8f4a9d22283792da664, type: 2}
-        count: 1
+        status: {fileID: 11400000, guid: 39d0e3b66a6c4167a1a27e65c619b92b, type: 2}
+        count: 2
+        applyToAllAllies: 0
     - rid: 7605779530016096617
       type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
-        status: {fileID: 11400000, guid: dd2b771b6c89ead438aba503b9f8ec80, type: 2}
-        count: 1
-    - rid: 7605779530016096618
-      type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
-      data:
-        status: {fileID: 11400000, guid: edf1d1a0fe27e8f4a9d22283792da664, type: 2}
-        count: 1
+        status: {fileID: 11400000, guid: 39d0e3b66a6c4167a1a27e65c619b92b, type: 2}
+        count: 2
+        applyToAllAllies: 0
     - rid: 7605779530016096619
       type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
-        status: {fileID: 11400000, guid: dd2b771b6c89ead438aba503b9f8ec80, type: 2}
-        count: 1
-    - rid: 7605779530016096620
-      type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
-      data:
-        status: {fileID: 11400000, guid: edf1d1a0fe27e8f4a9d22283792da664, type: 2}
-        count: 1
+        status: {fileID: 11400000, guid: 39d0e3b66a6c4167a1a27e65c619b92b, type: 2}
+        count: 2
+        applyToAllAllies: 0

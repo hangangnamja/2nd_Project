@@ -638,6 +638,7 @@ namespace Game.Battle
         }
 
         // 자신에게 걸린 상태효과(버프·디버프 칸)의 보정만 꺼낸다.
+        // 스택 효과(보스 1 공세)는 1스택 보정 × 스택 수를 한 줄로 넘긴다 (Scaled). 그 외 효과의 Stacks는 1이라 그대로다.
         private System.Collections.Generic.IEnumerable<StatModifier> GetStatusModifiers(StatType stat)
         {
             foreach (StatusInstance status in Statuses.GetAll())
@@ -646,7 +647,7 @@ namespace Game.Battle
                 {
                     if (modifier.Stat == stat)
                     {
-                        yield return modifier;
+                        yield return status.Data.UsesStackCount ? modifier.Scaled(status.Stacks) : modifier;
                     }
                 }
             }
@@ -660,23 +661,22 @@ namespace Game.Battle
                 yield return modifier;
             }
 
-            // "소환한 부하가 있는 동안" 패시브: 부하가 한 마리라도 전장에 있으면 자신에게만 보정을 건다 (군단 지휘관 피해 감소 50%).
-            // 부하 수와 상관없이 같은 값이다. 버프 칸이 아니므로 강탈되지 않는다.
-            if (!IsDead && CountLivingSummons() > 0)
+            // 자신에게만 거는 상시 패시브 (부하가 있는 동안, 상태효과 수 조건·비례): 지금 배수만큼 "자신 스탯 보정"을 건다.
+            // 예: 군단 지휘관 = 부하가 있으면 피해 감소 50%, 축적의 수호자 = 버프 1개당 피해 증가·감소 10% × 버프 수.
+            // 버프 칸이 아니므로 강탈되지 않는다. 배수가 2 이상(비례형)이면 Scaled로 1개당 보정 × 개수를 한 줄로 넘긴다.
+            foreach (PassiveData passive in Data.Passives)
             {
-                foreach (PassiveData passive in Data.Passives)
+                int scale = GetSelfPassiveScale(passive);
+                if (scale <= 0)
                 {
-                    if (passive.Trigger != PassiveTrigger.WhileSummonsAlive)
-                    {
-                        continue;
-                    }
+                    continue;
+                }
 
-                    foreach (StatModifier modifier in passive.AuraModifiers)
+                foreach (StatModifier modifier in passive.AuraModifiers)
+                {
+                    if (modifier.Stat == stat)
                     {
-                        if (modifier.Stat == stat)
-                        {
-                            yield return modifier;
-                        }
+                        yield return scale == 1 ? modifier : modifier.Scaled(scale);
                     }
                 }
             }
@@ -838,13 +838,41 @@ namespace Game.Battle
             return count;
         }
 
-        // 지금 조건이 맞아 켜져 있는 상시 패시브 (시선집중, 부하가 있는 동안 보정). 머리 위 표시 아이콘에 쓴다.
+        // 자신에게만 보정을 거는 상시 패시브의 지금 배수. 0 = 꺼짐, 1 = 그대로, 2 이상 = 그 배수 (상태효과 수 비례).
+        // 쓰러지면 모두 꺼진다. 스탯 계산과 머리 위 아이콘(켜짐 여부·개수 표시)이 같은 값을 쓴다.
+        public int GetSelfPassiveScale(PassiveData passive)
+        {
+            if (IsDead)
+            {
+                return 0;
+            }
+
+            switch (passive.Trigger)
+            {
+                case PassiveTrigger.WhileSummonsAlive:
+                    return CountLivingSummons() > 0 ? 1 : 0;
+                case PassiveTrigger.WhileOwnStatusCount:
+                case PassiveTrigger.ScalesWithOwnStatusCount:
+                    return passive.GetStatusCountScale(CountOwnStatuses(passive.CountedCategory));
+                default:
+                    return 0;
+            }
+        }
+
+        // 자신에게 걸린 버프 또는 디버프의 칸 수 (스택 효과는 1칸 = 1개).
+        public int CountOwnStatuses(StatusCategory category)
+        {
+            return category == StatusCategory.Buff ? Statuses.Buffs.Count : Statuses.Debuffs.Count;
+        }
+
+        // 지금 조건이 맞아 켜져 있는 상시 패시브 (시선집중, 부하가 있는 동안·상태효과 수 보정). 머리 위 표시 아이콘에 쓴다.
         public System.Collections.Generic.IEnumerable<PassiveData> GetActiveConditionalPassives()
         {
             foreach (PassiveData passive in Data.Passives)
             {
-                bool isActive = passive.Trigger == PassiveTrigger.TauntWhileShielded ? IsTaunting
-                    : passive.Trigger == PassiveTrigger.WhileSummonsAlive && !IsDead && CountLivingSummons() > 0;
+                bool isActive = passive.Trigger == PassiveTrigger.TauntWhileShielded
+                    ? IsTaunting
+                    : GetSelfPassiveScale(passive) > 0;
 
                 if (isActive)
                 {

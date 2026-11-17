@@ -57,9 +57,21 @@ namespace Game.Battle.Status
 
         // 다른 유닛에게서 빼앗아 온 효과를 남은 턴 그대로 받는다 (버프 강탈, 기획서 4-3).
         // 같은 버프를 이미 가지고 있으면 남은 턴이 긴 쪽으로 맞추고 하나만 남긴다 (갱신이므로 isNew = false).
+        // 스택 효과는 1칸 그대로 스택째 옮겨 온다 → 강탈 딜러에게는 스택 수와 상관없이 새 버프 1개다.
         public StatusAddResult Receive(StatusInstance incoming)
         {
             List<StatusInstance> slots = GetSlots(incoming.Data.Category);
+
+            // 같은 스택 효과를 이미 가지고 있으면 칸을 더 쓰지 않고 스택을 합친다 (최대 스택까지).
+            if (incoming.Data.UsesStackCount)
+            {
+                StatusInstance stacked = FindByData(slots, incoming.Data);
+                if (stacked != null)
+                {
+                    stacked.MergeStacks(incoming, nextAppliedOrder++);
+                    return new StatusAddResult(stacked, isNew: false, pushedOut: null);
+                }
+            }
 
             if (IsRefreshOnly(incoming.Data))
             {
@@ -83,6 +95,18 @@ namespace Game.Battle.Status
             var removed = new List<StatusInstance>(buffs);
             buffs.Clear();
             return removed;
+        }
+
+        // 버프 칸의 스택 합: 스택 효과는 스택 수, 나머지 버프는 1개씩 센다 (보스 1 공세 스택 패턴 조건).
+        public int CountBuffStacks()
+        {
+            int total = 0;
+            foreach (StatusInstance buff in buffs)
+            {
+                total += buff.Stacks;
+            }
+
+            return total;
         }
 
         // 버프·디버프를 모두 비운다 (부활: 쓰러질 때 걸려 있던 효과는 모두 사라진 것으로 본다, 기획서 3-9).
@@ -150,12 +174,13 @@ namespace Game.Battle.Status
             return FindByData(GetSlots(data.Category), data);
         }
 
-        // 같은 효과를 다시 걸면 갱신만 하는지.
-        // 같은 버프는 중첩되지 않는다 (기획서 3-7): 버프는 데이터 설정과 관계없이 항상 갱신형으로 처리한다.
-        // 디버프만 데이터의 중첩 방식(중첩 / 갱신)을 따른다.
+        // 같은 효과를 다시 걸면 갱신만 하는지. 버프·디버프 모두 데이터의 중첩 방식을 따른다.
+        // 버프는 원칙상 "같은 버프 중첩 불가"(기획서 3-7)라 아군 버프 에셋은 모두 '갱신'으로 두고,
+        // 보스 1 공세처럼 걸 때마다 새 칸을 차지해야 하는 적 전용 버프만 '중첩'으로 둔다.
+        //   (중첩 버프는 칸마다 따로라 강탈하면 칸 수만큼 새 버프가 된다)
         private static bool IsRefreshOnly(StatusEffectData data)
         {
-            return data.Category == StatusCategory.Buff || data.StackMode == StatusStackMode.Refresh;
+            return data.StackMode == StatusStackMode.Refresh;
         }
 
         // 칸이 가득 찼으면 가장 빨리 끝날 효과를 밀어내 자리를 만들고, 밀려난 효과를 돌려준다 (없으면 null).

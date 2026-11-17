@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e7ea1fe386d9a7468a3d5897f0a5561, type: 3}
+  m_Name: Onslaught
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StatusEffectData
+  displayName: "\uACF5\uC138"
+  description: "\uC801 \uC804\uC6A9 \uBC84\uD504. \uAC78 \uB54C\uB9C8\uB2E4 \uC0C8 \uCE78\uC744 \uCC28\uC9C0\uD558\uACE0, \uAC15\uD0C8\uD558\uBA74 \uCE78 \uC218\uB9CC\uD07C \uC0C8 \uBC84\uD504\uAC00 \uB41C\uB2E4"
+  category: 0
+  stackMode: 0
+  maxStacks: 10
+  duration: 3
+  features: 1
+  damageAttackRatio: 0
+  damageTargetMaxHpRatio: 0
+  maxHpDamageAttackCap: 0
+  damagePopupColor: {r: 1, g: 0.55, b: 0.3, a: 1}
+  healSourceMaxHpRatio: 0
+  statModifiers:
+  - stat: 0
+    percent: 0.2
+    flat: 0
+  icon: {fileID: 2800000, guid: 82167155eb3d43a8b30a8f3b89d151a0, type: 3}
+  isPersonal: 0
+  isPermanent: 0
+  convertsTo: {fileID: 0}

@@ -50,5 +50,17 @@ namespace Game.Data
         public StatType Stat => stat;
         public float Percent => percent;
         public float Flat => flat;
+
+        // 수치에 times를 곱한 보정을 새로 만든다 (원본은 그대로). 스택 효과의 "1스택 보정 × 스택 수"에 쓴다.
+        // 예: 공격력 +10% × 6스택 → 공격력 +60% 한 줄. 여러 줄이 아니라 한 줄이라, 공·방 % 버프 중첩 감소에서도 버프 하나로 계산된다.
+        public StatModifier Scaled(int times)
+        {
+            return new StatModifier
+            {
+                stat = stat,
+                percent = percent * times,
+                flat = flat * times,
+            };
+        }
     }
 }

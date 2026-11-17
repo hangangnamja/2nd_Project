@@ -184,6 +184,8 @@ UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
   - 구도 = `CameraShot`(기준점 + 오프셋, 바라볼 기준점 + 오프셋, 화각). 캡슐은 원점이 몸 가운데(y -1~1)
   - 차례 시작 때 자동으로 골라진 스킬은 구도를 바꾸지 않고, 플레이어가 다른 스킬을 누르면 그 스킬 대상 규칙에 맞는 장면으로 바뀜
 - `BossHpBarView`: 상단 보스 HP바. `EnemyCharacterData.IsBoss`인 전장의 적을 찾아 이름·HP·보호막·버프 줄을 그리고(줄은 `PartyCardView.ShowRow` 공용), 누르면 `UnitDetailPanel`
+- `BattleTargetPicker`: 캡슐을 누르면 뗄 때 대상 선택(`SelectTarget`, 같은 캡슐 위에서 뗐을 때만), `longPressSeconds` 이상 누르고 있으면 `UnitDetailPanel.Open` (적도 아군 카드와 같은 상세 창)
+- `SkillNameBanner`: 적(기본은 보스만, `BattleFxView.enemySkillBannerBossOnly`)이 스킬로 행동하면 `BattleFxView.PlayAction`이 이름 띠를 띄우고 `LeadSeconds`만큼 기다린 뒤 공격 모션
 - 아군·보스 캡슐의 머리 위 상태효과 줄(`UnitStatusBar`)은 끔 → 아군은 아래 카드, 보스는 상단 HP바에서만 보여준다
 - HP 막대는 세로 그라데이션 그림(`Art/UI/BarGradient`)을 Image 색으로 물들여 쓴다 (기본 UISprite는 늘리면 끝이 어둡게 번짐)
 - `PartyBarView`·`PartyCardView`: 아래 아군 초상화 카드 (HP·스택·차례·대상 표시, 누르면 `SelectTarget`). 카드 아래 버프 줄·디버프 줄(줄마다 5칸 + "…")(목록은 `UnitView.BuildDisplayedStatuses`와 같음). 꾹 누르면(`LongPressed`, 손을 뗄 때의 클릭은 무시) `UnitDetailPanel`
@@ -288,9 +290,13 @@ UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
   - 경계마다 블록 하위 클래스 + 런타임 `Boundary` 하위 클래스: 스탯 보정(`StatModifiers`), 행동 제어 면역, 표시용 효과(`DisplayStatus`), 끝날 조건(`ShouldEnd`)
     - 펼치면 주인의 `BattleUnit.ActiveBoundary`가 되어 스탯 계산(상태효과 칸 밖 보정)·면역(`IsCrowdControlImmune`)·머리 위 아이콘(`UnitView`)에 반영된다. 버프 칸이 아니라 강탈·소모·만료 대상이 아니다
   - `BattleManager`가 변신 해제·사망 확정 직후 `Boundaries.CheckEnd()`를 불러 끝날 조건을 확인한다
-- 스택 효과 (기획서 3-7, 지금 쓰는 효과 없음): 상태효과 중첩 방식 `StackCount`면 `StatusContainer.Add`가 기존 칸의 `StatusInstance.AddStack`(스택 +1·최대 스택·남은 턴 갱신·스냅샷은 높은 쪽)만 부른다
+- 중첩 방식은 버프·디버프 공통으로 데이터를 따른다 (`StatusContainer.IsRefreshOnly`). 아군 버프 에셋은 모두 '갱신', 보스 1 공세만 '중첩'(걸 때마다 새 칸)
+- 스택 효과 (기획서 3-7, 버프·디버프 공통, 지금 쓰는 효과 없음): 상태효과 중첩 방식 `StackCount`면 `StatusContainer.Add`가 기존 칸의 `StatusInstance.AddStack`(스택 +1·최대 스택·남은 턴 갱신·스냅샷은 높은 쪽)만 부른다
   - 지속피해는 `DamageCalculator.CalculateDamageOverTime`에 스택 수를 넘겨 1스택 피해 × 스택. 아이콘 숫자는 `StatusInstance.IconText`("×스택")
+  - 스탯 보정은 `BattleUnit.GetStatusModifiers`가 `StatModifier.Scaled(스택)`로 한 줄로 넘긴다 (공·방 % 중첩 감소에서도 버프 1개)
+  - 강탈로 받을 때(`StatusContainer.Receive`) 같은 스택 효과가 있으면 `MergeStacks`로 스택을 합친다 (새 버프가 아님). 없으면 1칸 그대로 새 버프
 - 적 패턴 조건 `SelfDebuffCountBelow`(자신의 디버프 N개 미만, 스택 효과는 1칸 = 1개): 보스 2의 디버프 없는 턴 공격
+- 적 패턴 조건 `SelfBuffStacksAtLeast`(자신의 버프 스택 합 N 이상, 스택이 없는 버프는 1칸 = 1, `StatusContainer.CountBuffStacks`): 보스 1 공세 4개 광역·10개 축적 해방
 - 피격 무효 (지금 쓰는 보스 없음): `BattleUnit.HitBlockCharges`(버프 칸 밖의 횟수)를 `StatusApplier.DealDamage`가 무적 확인 다음에 1회 쓰고 피해를 0으로 바꾼다 (보호막·피해 기록·HP 돌파 사건 없음, 연출은 `DamageTakenInfo.BlockedLabel` "무효")
   - 피해 함수만 막으므로 같은 스킬의 다른 효과 블록은 그대로 실행된다. 충전은 패시브 발동 조건 `OnOwnTurnStart`(자기 턴 시작 시, `BattleManager.BeginTurn` → `PassiveRunner.HandleOwnTurnStart`)
   - 아이콘은 충전 블록의 표시 효과를 `UnitView.BuildDisplayedStatuses`가 남은 횟수와 함께 맨 앞에 넣는다
@@ -300,10 +306,14 @@ UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
   - 부하는 `BattleUnit.Summoner`를 가져 `IsSummon` → 승리 조건(`StageRunner.IsWaveCleared`)에서 빠지고, 소환자가 쓰러지면 `ConfirmDeaths`에서 함께 `Vanish`
   - `Vanish`는 처치 사건 없이 사라지는 처리 (자폭·함께 퇴장). 자기 턴 중에 사라진 유닛은 턴 종료의 지속피해·남은 턴 처리를 건너뛴다
   - 패시브 발동 조건 `WhileSummonsAlive`(상시): 소환한 부하가 있는 동안 "오라 스탯 보정" 칸을 자신에게만 적용 (`GetNonStatusModifiers`)
+- 자기 보정 상시 패시브는 `BattleUnit.GetSelfPassiveScale`(0 = 꺼짐, 1 = 그대로, 2 이상 = 그 배수) 하나로 판정해, 스탯 계산(`GetNonStatusModifiers`)과 아이콘이 같은 값을 쓴다
+  - `WhileOwnStatusCount`(상태효과 수 조건): 자신의 버프 또는 디버프 칸 수가 기준 이상/미만이면 보정 1배. 보스 2: 디버프 2개 미만이면 속도 증가
+  - `ScalesWithOwnStatusCount`(상태효과 수 비례): 칸 수(최대 개수까지)만큼 `StatModifier.Scaled`. 보스 1: 버프 1개당 피해 증가·피해 감소 10%. 아이콘의 숫자 = 지금 개수
+  - 칸 수로 세므로 스택 효과는 1개. 판정·배수 계산은 `PassiveData.GetStatusCountScale`, 상시형 목록은 `PassiveData.IsAlwaysOnTrigger`(에디터·설명 글 공용)
   - 패시브 발동 조건 `OnEnter`(등장 시): 전투 시작(전원)·웨이브 시작(새 적) 때 `PassiveRunner.HandleUnitsEntered`가 실행 → 시작 부하 소환. 화면 캡슐을 만들기 전에 실행해 부하가 처음부터 자리에 선다
   - 적 패턴 조건 `OwnTurnAtLeast`(자기 턴 N번째 이상, `BattleUnit.OwnTurnsTaken`)·`SummonsBelow`(소환한 부하 N마리 미만)
   - 카운트다운 아이콘: `EnemyCharacterData`의 표시 효과·행동 턴으로 `UnitView`가 남은 턴(행동 턴 - 지난 자기 턴)을 그린다
-- 상시 패시브 아이콘: `BattleUnit.GetActiveConditionalPassives`(시선집중·부하가 있는 동안)의 표시 효과(`PassiveData.DisplayStatus`)를 `UnitView`가 맨 앞에 넣는다
+- 상시 패시브 아이콘: `BattleUnit.GetActiveConditionalPassives`(시선집중·부하가 있는 동안·상태효과 수 조건/비례)의 표시 효과(`PassiveData.DisplayStatus`)를 `UnitView`가 맨 앞에 넣는다
 - 부활 (기획서 3-9): `BattleUnit.Revive`가 `IsDead`를 풀고 HP·상태효과(비움)·남은 거리(10000)를 정한다. 쿨타임·스택은 유지
   - 자가 부활은 패시브 발동 조건 `OnOwnDeath`: `ConfirmDeaths`의 처치 사건 → `PassiveRunner`가 처치자 반응 다음에 쓰러진 본인의 패시브를 실행
   - 쓰러진 아군을 고르는 대상 규칙 `AllySingleOrFallen`: `IsValidTarget`이 퇴장하지 않은 아군이면 쓰러졌어도 허용
@@ -376,7 +386,7 @@ Assets/_Project/
 
 ### 스테이지·적
 - 기본 스테이지 1-1 ~ 1-7: 테스트 적(잡몹·정예·보스)으로 2웨이브 구성
-- 보스 1 축적의 수호자(지금은 `Stage_BuffEnemy` 2웨이브, `Stage_Boss1`은 테스트용): 무적 버프몹 2 + 보스, 축적 해방(광역 + 기절 + 버프 소모)
+- 보스 1 축적의 수호자(지금은 `Stage_BuffEnemy` 2웨이브, `Stage_Boss1`은 테스트용): 무적 공세의 사도 2 + 보스, 공세 중첩 버프(4개 이상 광역, 10개 축적 해방 = 버프 해제 + 공격력 100% + 최대 HP 90%)
 - 보스 2 갑각의 거체(`Stage_Boss2`, 보스전 2번째 칸, 2웨이브): HP 2배, 디버프가 없는 턴에 아군 전체 최대 HP 40% 피해
 - 보스 3 군단 지휘관(`Stage_Boss3`, 보스전 3번째 칸, 2웨이브): 등장 때 부하 2마리, 부하(자폭병) 소환·최대 4, 부하가 있는 동안 피해 감소 50%, 부하는 2번째 자기 턴에 자폭(광역 + 기절)
 
@@ -405,7 +415,7 @@ Assets/_Project/
 - 타격감 보강 남은 후보: 치명·3스 카메라 줌 펀치, 스쿼시&스트레치, 방향 있는 히트 스파크, 돌진 잔상, 처치 폭발 (다단 히트·보호막 깨짐·HP바 흔들림은 구현, 화면 가장자리 번쩍임은 넣어 봤다가 뺌)
 - 효과음 (타격·치명·처치·돌진·시전·컷인, 임시 소리 파일 필요)
 - 스킬 전용 연출: 지금은 선브링어 변신 3스(메테오)와 하이퍼캐리 변신기(황금 구체)·종결기(영역 붕괴)만. 다른 캐릭터 3스는 `SkillFx`로 추가
-- 전투 UI 정식 배치: 현재 행동 캐릭터 패널, 스킬 이름 알림 (보스 HP바·아군 카드·상세 창·행동 순서 초상화·원형 스킬 버튼은 구현)
+- 전투 UI 정식 배치: 현재 행동 캐릭터 패널, 아군 스킬 이름 알림 (보스 스킬 이름 띠·보스 HP바·아군 카드·상세 창·행동 순서 초상화·원형 스킬 버튼은 구현)
 - 방어력 관통 (기획서 10장 미정)
 
 ### 보스·스테이지

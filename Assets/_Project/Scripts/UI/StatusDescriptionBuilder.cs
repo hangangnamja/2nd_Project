@@ -73,9 +73,10 @@ namespace Game.UI
                 lines.Add($"걸려 있는 동안 효과 없음. 지워지면 {data.ConvertsTo.DisplayName}(으)로 바뀜");
             }
 
+            // 스택 효과는 1스택 수치 뒤에 "× 스택"을 붙인다 (실제 적용은 수치 × 스택 수).
             foreach (StatModifier modifier in data.StatModifiers)
             {
-                lines.Add(EffectText.Modifier(modifier));
+                lines.Add(EffectText.Modifier(modifier) + PerStack(data));
             }
 
             if (data.DamageAttackRatio > 0f)
