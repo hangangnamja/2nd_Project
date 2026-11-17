@@ -35,6 +35,49 @@ namespace Game.Battle
             return false;
         }
 
+        // 대기 중인 추가 공격을 모두 꺼내 목록으로 돌려준다 (대기열은 빈다).
+        // 턴 끌어오기에서, 끌어오기 전에 예약된 추가 공격(반격·종결기)을 끌어온 턴들이 끝날 때까지 따로 맡아 두는 데 쓴다.
+        public List<FollowUpAttack> TakeAllFollowUps()
+        {
+            var taken = new List<FollowUpAttack>(followUps);
+            followUps.Clear();
+            return taken;
+        }
+
+        // 맡아 두었던 추가 공격을 원래 순서대로 대기열 끝에 다시 넣는다.
+        public void RestoreFollowUps(List<FollowUpAttack> held)
+        {
+            foreach (FollowUpAttack followUp in held)
+            {
+                followUps.Enqueue(followUp);
+            }
+        }
+
+        // 지금 턴이 끝난 뒤 바로 행동시킬 "끌어온 턴" (반격 태세). 예약된 순서대로 실행된다.
+        private readonly Queue<PulledTurn> pulledTurns = new Queue<PulledTurn>();
+
+        // 끌어온 턴이 하나라도 예약되어 있는지.
+        public bool HasPulledTurns => pulledTurns.Count > 0;
+
+        // unit의 다음 정규 턴을 지금 턴이 끝난 직후로 끌어온다. target: 단일 공격이면 노릴 유닛 (끌어온 유닛).
+        public void EnqueuePulledTurn(BattleUnit unit, BattleUnit target)
+        {
+            pulledTurns.Enqueue(new PulledTurn(unit, target));
+        }
+
+        // 예약된 끌어온 턴을 하나 꺼낸다. 없으면 false.
+        public bool TryDequeuePulledTurn(out PulledTurn pulledTurn)
+        {
+            if (pulledTurns.Count > 0)
+            {
+                pulledTurn = pulledTurns.Dequeue();
+                return true;
+            }
+
+            pulledTurn = null;
+            return false;
+        }
+
         // unit에게 이번 턴이 끝난 뒤 추가 턴을 준다.
         // 같은 턴에 이미 추가 턴이 예정되어 있으면 겹치지 않고 1회로 처리하며 false를 돌려준다 (기획서 4-3 강탈 딜러 규칙).
         public bool GrantExtraTurn(BattleUnit unit)
@@ -98,6 +141,20 @@ namespace Game.Battle
 
             effect = null;
             return false;
+        }
+    }
+
+    // 끌어온 턴 하나: 누구의 턴을, 누구를 노리게 끌어왔는지.
+    // 끌어온 턴은 그 유닛의 실제 정규 턴이다 → AI가 스킬을 고르고, 턴 종료 처리(지속피해·남은 턴·쿨타임·게이지 리셋)도 그대로 한다.
+    public class PulledTurn
+    {
+        public BattleUnit Unit { get; }
+        public BattleUnit Target { get; }
+
+        public PulledTurn(BattleUnit unit, BattleUnit target)
+        {
+            Unit = unit;
+            Target = target;
         }
     }
 

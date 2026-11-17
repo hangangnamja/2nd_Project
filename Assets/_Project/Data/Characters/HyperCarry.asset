@@ -201,6 +201,7 @@ MonoBehaviour:
       type: {class: RecordedDamageCounterEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
         recordStatus: {fileID: 11400000, guid: e6b482ee0a98058459ebfbdf5c99e764, type: 2}
+        baseMultiplier: 1.5
         ratio: 4
     - rid: 7605779530016096490
       type: {class: IsolationBoundaryEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}

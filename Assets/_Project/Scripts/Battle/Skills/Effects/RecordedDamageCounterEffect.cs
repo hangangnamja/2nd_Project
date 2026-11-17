@@ -8,18 +8,23 @@ namespace Game.Battle.Effects
 {
     // 시전자에게 걸린 "피해 기록" 효과(반격 태세)에 쌓인 피해에 비례해 대상 전원에게 피해를 주고, 그 효과를 지운다.
     // 받은 피해를 그대로 돌려주지 않고 "시전자 최대 HP 대비 비율"로 바꾼 뒤 공격력 배율로 쓴다:
-    //   스킬 배율 = (받은 피해 / 시전자 최대 HP) × 계수 → 피해 = 공격력 × 스킬 배율 (이후 피해 증가·치명·방어력은 일반 공격과 같음)
+    //   스킬 배율 = 기본 배율 + (받은 피해 / 시전자 최대 HP) × 계수 → 피해 = 공격력 × 스킬 배율 (이후 피해 증가·치명·방어력은 일반 공격과 같음)
+    // 기본 배율: 적이 약해 받은 피해가 적어도 반격이 평타(1스 100%)보다 약해지지 않게 하는 최소 몫.
     // 이유: 적 공격력은 아군 HP 곡선(Lv60 ×12.5), 적 HP는 아군 공격력 곡선(×6.15)을 따라 커져서,
     //       받은 피해를 그대로 쓰면 레벨이 오를수록 반격이 적 HP보다 빨리 커진다. 비율로 바꾸면 레벨과 상관없이 같은 비율이 나온다.
-    // 예: 최대 HP 16,250, 받은 피해 5,520 (34%), 계수 4.0 → 공격력 136% 광역
+    // 예: 기본 150%, 최대 HP 16,250, 받은 피해 5,520 (34%), 계수 4.0 → 150% + 136% = 공격력 286% 광역
     // 효과 블록 드롭다운에 보여줄 분류/이름과 설명 (SubclassMenuAttribute).
-    [SubclassMenu("공격/받은 피해 비례 반격", "피해 기록 효과에 쌓인 받은 피해(최대 HP 대비 비율) × 계수를 공격력 배율로 반격하고 기록을 지운다 (반격 태세)", 120)]
+    [SubclassMenu("공격/받은 피해 비례 반격", "기본 배율 + 피해 기록 효과에 쌓인 받은 피해(최대 HP 대비 비율) × 계수를 공격력 배율로 반격하고 기록을 지운다 (반격 태세)", 120)]
     [Serializable]
     public class RecordedDamageCounterEffect : SkillEffect
     {
         [Tooltip("받은 피해를 기록하는 상태효과 (반격 태세)")]
         [Label("피해 기록 효과")]
         [SerializeField] private StatusEffectData recordStatus;
+
+        [Tooltip("받은 피해와 상관없이 항상 들어가는 공격력 배율 (1.5 = 공격력 150%)")]
+        [Label("기본 배율", Min = 0f)]
+        [SerializeField] private float baseMultiplier = 1.5f;
 
         [Tooltip("받은 피해 비율(최대 HP 대비) → 공격력 배율 계수. 4.0이면 최대 HP의 50%를 받았을 때 공격력 200%")]
         [Label("계수", Min = 0f)]
@@ -38,9 +43,10 @@ namespace Game.Battle.Effects
                 return;
             }
 
-            // 받은 피해를 최대 HP 대비 비율로 바꿔 공격력 배율을 만든다. 예: 5,520 / 16,250 ≈ 0.34 → × 4 = 1.36 (136%)
+            // 받은 피해를 최대 HP 대비 비율로 바꿔 기본 배율에 더한다. 예: 5,520 / 16,250 ≈ 0.34 → × 4 = 1.36 → 1.5 + 1.36 = 2.86 (286%)
+            // 받은 피해가 0이어도 기본 배율만큼은 반격한다.
             double takenRatio = record.RecordedDamage / (double)caster.MaxHp;
-            float multiplier = (float)(takenRatio * ratio);
+            float multiplier = baseMultiplier + (float)(takenRatio * ratio);
             context.Log($"  {caster.Name}: 받은 피해 {record.RecordedDamage} (최대 HP의 {takenRatio:P0}) → 공격력 {multiplier:P0} 반격");
 
             if (multiplier > 0f)
@@ -57,7 +63,7 @@ namespace Game.Battle.Effects
         // 상세 창 스킬 탭 설명.
         public override string Describe(SkillTargetType skillTarget)
         {
-            return $"받은 피해 비율(최대 HP 대비) × {ratio:0.##}배 공격력으로 반격";
+            return $"공격력 {EffectText.Percent(baseMultiplier)} + 받은 피해 비율(최대 HP 대비) × {ratio:0.##}배 공격력으로 반격";
         }
     }
 }
