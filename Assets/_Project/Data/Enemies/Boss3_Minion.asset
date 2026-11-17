@@ -28,6 +28,8 @@ MonoBehaviour:
     targetType: 0
     cooldown: 0
     startCooldown: 0
+    presentationPrefab: {fileID: 0}
+    presentationHits: 1
     effects:
     - rid: 7605779598317453482
   skill2:
@@ -35,6 +37,8 @@ MonoBehaviour:
     targetType: 1
     cooldown: 0
     startCooldown: 0
+    presentationPrefab: {fileID: 0}
+    presentationHits: 1
     effects:
     - rid: 7605779598317453483
     - rid: 7605779598317453484
@@ -44,6 +48,8 @@ MonoBehaviour:
     targetType: 0
     cooldown: 0
     startCooldown: 0
+    presentationPrefab: {fileID: 0}
+    presentationHits: 1
     effects: []
   passives: []
   patterns:
@@ -57,6 +63,7 @@ MonoBehaviour:
     threshold: 0
     skillNumber: 1
     target: 0
+  isBoss: 0
   countdownDisplay: {fileID: 11400000, guid: 901c1383e72a90d44b4631f2ac698113, type: 2}
   countdownTurns: 2
   references:
