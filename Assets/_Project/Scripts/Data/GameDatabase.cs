@@ -98,11 +98,28 @@ namespace Game.Data
             return null;
         }
 
-        // ID가 같은 스테이지를 기본 → 보스 스테이지 순서로 찾는다. 없으면 null.
+        // ID가 같은 스테이지를 기본 → 토벌(보스) → 탐색 던전 순서로 찾는다. 없으면 null.
         public StageData FindStage(string id)
         {
-            // ??: 왼쪽(기본 스테이지에서 찾은 결과)이 null일 때만 오른쪽(보스 스테이지에서 찾기)을 실행해 그 결과를 쓴다.
-            return FindStageIn(stageCatalog.NormalStages, id) ?? FindStageIn(stageCatalog.BossStages, id);
+            // ??: 왼쪽 결과가 null일 때만 오른쪽(다음 목록에서 찾기)을 실행해 그 결과를 쓴다.
+            return FindStageIn(stageCatalog.NormalStages, id)
+                ?? FindStageIn(stageCatalog.BossStages, id)
+                ?? FindExplorationStage(id);
+        }
+
+        // 탐색 장소마다 난이도별 스테이지에서 찾는다.
+        private StageData FindExplorationStage(string id)
+        {
+            foreach (ExplorationSite site in stageCatalog.ExplorationSites)
+            {
+                StageData found = FindStageIn(site.Difficulties, id);
+                if (found != null)
+                {
+                    return found;
+                }
+            }
+
+            return null;
         }
 
         private static StageData FindStageIn(IReadOnlyList<StageData> stages, string id)

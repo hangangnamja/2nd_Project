@@ -17,7 +17,8 @@
 - Lobby 씬: `LobbyCanvas` 아래 화면 패널(`MainScreen`, `StageSelectScreen`, `FormationScreen`, `GachaScreen`, …)을 `LobbyNavigator`가 하나만 켜서 전환. 새 화면은 패널로 추가하고 Navigator에 등록
 - 편성 화면 `FormationView`는 두 경로로 열림: 메인 화면 편성 버튼(`OpenForManage`, 출격 없음) / 스테이지 선택의 전투 준비(`Open(stage)`). 팀 4개는 세이브의 `teams`·`currentTeam`, `PlayerProfile.GetParty/SetParty`는 지금 고른 팀을 다룸 (`SelectTeam`·`GetTeamName`·`SetTeamName`)
 - 로비 → 전투: 스테이지 선택(`StageSelectView`) → 편성(`FormationView`) → `BattleSetup.Create`(편성 + 레벨 + 고른 스테이지)를 `BattleLaunch`(static)에 맡기고 Battle 씬을 불러옴 → `BattleManager`가 시작할 때 꺼내 씀. 맡긴 값이 없으면(씬 직접 실행) Inspector의 테스트 설정 사용
-- 보유 캐릭터·편성은 세이브(`PlayerProfile`)에서 읽음. 로비에서 시작한 전투는 캐릭터별 보유 레벨로 싸우고, 이기면 스테이지 클리어를 저장
+- 보유 캐릭터·편성은 세이브(`PlayerProfile`)에서 읽음. 로비에서 시작한 전투는 캐릭터별 보유 레벨로 싸우고, 이기면 `PlayerProfile.CompleteStage`가 보상 지급 + 클리어 기록을 한 번에 저장하고 받은 보상을 돌려줌 → `BattleManager.Rewards` → `BattleResultView`가 표시 (결과 색·파티 카드 `ResultPartyCard`·보상 칸 `ResultRewardSlot`, 칸은 씬의 꺼 둔 원본을 복사)
+- 스테이지 선택 `StageSelectView`: 탭 스테이지 / 토벌 / 탐색. 탐색 장소를 고르면 상세 패널의 난이도 버튼으로 스테이지를 고름. `GameDatabase.FindStage`는 탐색 스테이지까지 찾음
 - Build Settings: Lobby(0) → Battle(1)
 - **직접 실행 경로**: Battle 씬을 에디터에서 바로 실행해도 동작해야 한다
   - 공용 매니저가 없으면 자동 생성
@@ -40,7 +41,7 @@
 |---|---|
 | `CharacterData`: 등급, 직군, 일러스트(화면 공용, 비면 실루엣), 기본 스탯, 치명, 속도, 1~3스, 패시브, 변신 스킬 세트 | `BattleUnit`: 현재 스탯·HP, 남은 거리, 남은 쿨타임, 상태효과 칸, 패시브 스택·사용 횟수 |
 | `StatusEffectData`: 화상·독·버프의 공통 정의 (지속 턴, 중첩/갱신) + **효과 종류**(스탯 보정·지속피해·지속 회복·행동 불가·지연 버프·피해 기록·디버프 면역·피해 무효 중 복수 선택). Inspector는 고른 종류의 칸만 표시 (`StatusEffectDataEditor`) | `StatusInstance`: 실제로 걸린 효과 1개 (정의 참조, 부여자, 남은 턴, 시전 당시 공격력 스냅샷) |
-| `StageData`: 적 레벨 + 웨이브 목록(웨이브마다 적 편성, 자리별 무적). 보상은 이후 | `StageRunner`: 현재 웨이브, 웨이브 클리어 판정, 다음 웨이브 유무 |
+| `StageData`: 적 레벨 + 웨이브 목록(웨이브마다 적 편성, 자리별 무적) + 보상(`clearRewards` 매번, `firstClearRewards` 첫 클리어만, 재료 + 개수). `StageCatalog`: 기본·토벌 목록 + 탐색 장소(`ExplorationSite`: 장소 이름·재화 표기·난이도별 스테이지) | `StageRunner`: 현재 웨이브, 웨이브 클리어 판정, 다음 웨이브 유무 |
 | `BattleSetup`: 이번 전투의 아군 편성·레벨 + 스테이지 (지금은 테스트 에셋, 이후 로비가 만들어 넘김) | - |
 | `EnemyCharacterData`: `CharacterData` + 행동 패턴 목록 (패턴이 필요한 적만) | `BattleManager.DecideEnemyAction`: 패턴을 순서대로 확인해 스킬·대상 결정 |
 | `BattleRulesData`: 전투 공통 수치 (방어 상수 K 계산 파라미터, 레벨 성장 곡선) | `BattleUnit` 기본 스탯 = 데이터 스탯(Lv1) × 레벨 배율(`StatScaling`), 전투 시작 때 고정. 아군 배율은 `GetAllyScaling(레벨, 진급)` (로비 → `BattleSetup`이 진급 횟수도 넘김, 모르면 그 레벨까지 진급 완료로 계산) |
@@ -442,7 +443,7 @@ Assets/_Project/
 
 ### 아웃게임 기타
 - 시작(타이틀) 화면: 세이브 불러오기, 공용 매니저 생성
-- 메인 화면: 재화·플레이어 레벨·이름을 세이브와 연결 (지금은 고정 글자), 나머지 버튼(설정·공지·우편·출석·친구·업적 등)은 틀만
+- 메인 화면: 플레이어 레벨·이름을 세이브와 연결 (지금은 고정 글자, 재화는 `CurrencyBarView`로 연결됨), 나머지 버튼(설정·공지·우편·출석·친구·업적 등)은 틀만
 - 심사자용 디버그 모드: 재화 무한, 모든 스테이지 개방
 - 업적 (후순위)
 

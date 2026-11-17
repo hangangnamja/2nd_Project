@@ -24,3 +24,28 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 7de1e41aa274baa49bc9d6623f21b631, type: 2}
   - {fileID: 11400000, guid: 8bc94e752a50441291ccef9eb325d59f, type: 2}
   - {fileID: 11400000, guid: 99d971f1fc660a04292ab568122e406c, type: 2}
+  explorationSites:
+  - siteName: "\uB3D9\uAD74"
+    rewardLabel: "\uACE8\uB4DC"
+    difficulties:
+    - {fileID: 11400000, guid: 7b2d1e270f3952640bea249625530e83, type: 2}
+    - {fileID: 11400000, guid: 7707a8bb7db77284e9a99622167a61f1, type: 2}
+    - {fileID: 11400000, guid: e467d310271fbeb4dbcd090d49fc41af, type: 2}
+  - siteName: "\uD3D0\uAD11"
+    rewardLabel: "\uBB34\uAE30 \uAC15\uD654\uC11D"
+    difficulties:
+    - {fileID: 11400000, guid: 6101af40aa192f54ea72beace3ede9af, type: 2}
+    - {fileID: 11400000, guid: 9a5713c4b628c4b448adb5aae94e1155, type: 2}
+    - {fileID: 11400000, guid: 1d15aaeeb66ac1e4b820572b1528f170, type: 2}
+  - siteName: "\uACF5\uD130"
+    rewardLabel: "\uC791\uC804 \uAE30\uB85D"
+    difficulties:
+    - {fileID: 11400000, guid: edcb246789a471d4d80f3615e18b66d3, type: 2}
+    - {fileID: 11400000, guid: 9eebb110b50452c4dbc712e7b2c71d49, type: 2}
+    - {fileID: 11400000, guid: 5f2f975f01bea094eb6438d715f8e2b6, type: 2}
+  - siteName: "\uC720\uC801"
+    rewardLabel: "\uC9C4\uAE09 \uC7AC\uB8CC"
+    difficulties:
+    - {fileID: 11400000, guid: 868c4dd7ef9bc664db773eaa4d77da05, type: 2}
+    - {fileID: 11400000, guid: 6c10d5fd440a99d45a780de183afb880, type: 2}
+    - {fileID: 11400000, guid: 8daaf73a58334764abb5b804667f5541, type: 2}
