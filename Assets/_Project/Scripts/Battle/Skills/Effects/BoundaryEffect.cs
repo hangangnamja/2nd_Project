@@ -85,7 +85,7 @@ namespace Game.Battle.Effects
         {
             this.statModifiers = statModifiers;
             this.crowdControlImmune = crowdControlImmune;
-            this.endsWithOwnerTransformation = endsWithOwnerTransformation;
+            this.endsWithOwnerTransformation = endsWithOwnerTransformation; 
             this.displayStatus = displayStatus;
         }
 
