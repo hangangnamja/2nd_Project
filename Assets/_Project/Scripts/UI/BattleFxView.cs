@@ -171,6 +171,9 @@ namespace Game.UI
         // 대상마다 지금까지 보여준 피해 비율 (0 ~ 1). 1이 되면 그 대상의 타격이 끝난 것.
         private readonly Dictionary<BattleUnit, float> shownRatio = new Dictionary<BattleUnit, float>();
 
+        // 스킬 전용 연출 코루틴이 아직 돌고 있는지. 끝났는데도 알림을 못 받은 대상은 더 기다리지 않고 남은 피해를 마저 보여준다.
+        private bool isSkillFxRunning;
+
         [Tooltip("연출의 일부 타격(잔챙이 메테오 등)의 손맛 세기 (1 = 일반 타격)")]
         [SerializeField, Range(0f, 1f)] private float partialImpactScale = 0.35f;
 
@@ -317,6 +320,32 @@ namespace Game.UI
             // yield return null: 다음 프레임까지 멈춘다.
             yield return null;
 
+            // 마무리 대기(endHold) 중에 새 박자가 들어오면 이 코루틴이 이어서 재생한다.
+            // 대기 중에는 isRunning이 true라 Enqueue가 새 재생을 시작하지 않으므로, 여기서 다시 확인하지 않으면
+            // 박자가 남은 채 재생이 끝나 IsPlaying이 영원히 true → 전투가 다음 턴으로 못 넘어가 멈춘다.
+            do
+            {
+                yield return PlayQueuedBeats();
+                yield return new WaitForSeconds(endHold);
+            }
+            while (beats.Count > 0);
+
+            isRunning = false;
+
+            // 이번 턴의 전용 연출이 끝났으면, 타격이 오지 않은 대상의 기다림·알림을 비운다
+            // → 다음 턴의 다른 타격(지속피해 등)이 지난 연출의 알림을 기다리며 멈추지 않게.
+            if (!isSkillFxRunning)
+            {
+                ClearImpactWaiting();
+            }
+
+            // 연출이 끝났으므로 붙잡아 둔 화면 HP를 놓아 실제 값을 보여준다.
+            ShownHp.ReleaseAll();
+        }
+
+        // 지금 쌓인 박자를 앞에서부터 하나씩 재생한다 (재생 중에 들어온 박자도 이어서).
+        private IEnumerator PlayQueuedBeats()
+        {
             while (beats.Count > 0)
             {
                 List<FxEntry> beat = beats[0];
@@ -344,12 +373,6 @@ namespace Game.UI
                 float duration = PlayBeat(beat);
                 yield return new WaitForSeconds(Mathf.Max(beatInterval, duration));
             }
-
-            yield return new WaitForSeconds(endHold);
-            isRunning = false;
-
-            // 연출이 끝났으므로 붙잡아 둔 화면 HP를 놓아 실제 값을 보여준다.
-            ShownHp.ReleaseAll();
         }
 
         // 행동 시작 연출 (스킬·추가 공격·눈에 보이는 패시브 모두):
@@ -461,9 +484,8 @@ namespace Game.UI
         {
             Vector3 casterPosition = casterView.transform.position;
             var targets = new List<(BattleUnit Unit, Vector3 Position)>();
-            awaitingImpact.Clear();
-            impactQueue.Clear();
-            shownRatio.Clear();
+            ClearImpactWaiting();
+            isSkillFxRunning = true;
             foreach (BattleUnit target in action.Targets)
             {
                 UnitView view = stageView.FindView(target);
@@ -487,6 +509,7 @@ namespace Game.UI
         private IEnumerator RunSkillFx(IEnumerator routine, UnitView casterView, bool changesAppearance)
         {
             yield return routine;
+            isSkillFxRunning = false;
             foreach (BattleUnit unit in awaitingImpact)
             {
                 impactQueue.Add((unit, 1f));
@@ -526,18 +549,47 @@ namespace Game.UI
 
             while (pending.Count > 0)
             {
-                if (impactQueue.Count > 0)
+                // 이 박자가 기다리는 대상의 알림만 꺼낸다 (같은 프레임에 닿은 메테오 여러 개 = 한 번의 손맛).
+                // 다른 대상의 알림은 대기열에 남겨 둔다 → 한 스킬의 타격이 여러 박자로 나뉘어도 뒤 박자가 자기 알림을 받는다.
+                List<(BattleUnit Unit, float Share)> arrived = TakeImpactsFor(pending);
+                if (arrived.Count > 0)
                 {
-                    // 쌓인 알림을 한꺼번에 꺼낸다 (같은 프레임에 닿은 메테오 여러 개 = 한 번의 손맛).
-                    var arrived = new List<(BattleUnit Unit, float Share)>(impactQueue);
-                    impactQueue.Clear();
                     yield return PlayArrivedImpacts(arrived, pending);
+                }
+                else if (!isSkillFxRunning)
+                {
+                    // 연출은 끝났는데 더 올 알림이 없다: 남은 대상의 피해를 마저 보여주고 끝낸다 (영원히 기다리지 않게).
+                    Debug.LogWarning($"[BattleFx] 전용 연출 알림이 오지 않은 대상 마무리: {string.Join(", ", new List<BattleUnit>(pending.Keys).ConvertAll(unit => unit.Name))}");
+                    var rest = new List<(BattleUnit Unit, float Share)>();
+                    foreach (BattleUnit unit in pending.Keys)
+                    {
+                        rest.Add((unit, 1f));
+                    }
+
+                    yield return PlayArrivedImpacts(rest, pending);
                 }
 
                 yield return null;
             }
 
             yield return new WaitForSeconds(beatInterval);
+        }
+
+        // 알림 대기열에서 pending(이 박자가 기다리는 대상)의 알림만 꺼내고, 나머지는 그대로 남긴다.
+        // RemoveAll(조건): 조건이 true인 원소를 지운다. 지우기 전에 같은 조건의 원소를 FindAll로 따로 모아 돌려준다.
+        private List<(BattleUnit Unit, float Share)> TakeImpactsFor(Dictionary<BattleUnit, FxEntry> pending)
+        {
+            List<(BattleUnit Unit, float Share)> taken = impactQueue.FindAll(impact => pending.ContainsKey(impact.Unit));
+            impactQueue.RemoveAll(impact => pending.ContainsKey(impact.Unit));
+            return taken;
+        }
+
+        // 전용 연출을 기다리는 상태를 모두 비운다 (새 연출 시작, 턴 재생이 끝남).
+        private void ClearImpactWaiting()
+        {
+            awaitingImpact.Clear();
+            impactQueue.Clear();
+            shownRatio.Clear();
         }
 
         // 도착한 알림들을 처리한다: 남은 비율을 다 채우지 않는 것은 일부 타격, 채우는 것은 마지막 타격.

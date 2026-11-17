@@ -206,6 +206,7 @@ UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
   - 지속피해는 예외: 이어진 지속피해끼리는 같은 유닛이어도 한 박자로 묶고, `PlayDotBurst`가 짧은 간격으로 숫자를 흩뿌린다. 색은 `DamageTakenInfo.DamageOverTimeSource`(상태효과)의 `DamagePopupColor`
   - 버프는 예외: 이어서 들어온 같은 유닛의 버프는 새 박자 대신 같은 글자에 이름을 줄바꿈으로 붙인다 (한 스킬의 여러 버프를 한 번에)
 - `BattleManager`는 턴이 끝날 때마다 재생이 끝나기를 기다린 뒤 다음 턴·웨이브 전환으로 넘어간다
+  - 재생 코루틴(`PlayBeats`)은 마무리 대기(`endHold`) 중에 들어온 박자도 이어서 재생한 뒤 끝난다 (웨이브 시작 연출·끌어온 턴 직후처럼 재생이 끝나기 전에 새 행동이 들어와도 멈추지 않게). 전용 연출 알림은 박자마다 자기 대상 것만 꺼내고, 연출이 끝났는데 알림이 없는 대상은 남은 피해로 마무리한다
 - 타격감 (기획서 3-11)
   - `BattleEvents.ActionStarted`(`SkillExecutor.ExecuteEffects`가 스킬·추가 공격 시작 때 알림, 3스 여부는 칸 번호)로 행동 박자를 따로 만들어 컷인(`SkillCutInView`) → 돌진(`UnitView.PlayLunge`) 또는 시전(`UnitView.PlayCast`)을 기다린 뒤 타격·버프 박자를 재생
     - 패시브 효과는 기본으로 알리지 않고, `PassiveRunner`가 따로 보이는 행동(턴 종료 단계 효과, `IsStandaloneAction`: 공격 안 한 턴 종료·자가 부활·등장·처치·자기 턴 시작)만 `announcePassive`로 알린다
@@ -221,6 +222,8 @@ UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
     - 행동 유닛이 숨겨져 있으면 `BattleCameraDirector.ShowActionBy`가 그 유닛이 보이는 장면으로 페이드 전환한 뒤 모션을 재생한다
   - 캡슐 모션은 `UnitView`가 "기준 자리(무대가 `SetAnchor`로 정함) + 어긋남"으로 그린다 → 모션 중에 무대가 다시 세워져도 튀지 않음. 피격 번쩍임·밀림(`PlayHitReaction`), 처치 날아감(`PlayKnockdown`)
   - 타격 박자마다 가장 센 타격 하나로 화면 흔들림(`BattleCameraDirector.Shake`, 지난 흔들림을 빼고 이동한 뒤 다시 더함)과 히트스톱·슬로모션(`BattleTimeFx`, `Time.timeScale`을 실제 시간으로 잼)
+  - 자동 전투: `BattleManager.IsAutoBattle`(`SetAutoBattle`)이 켜져 있으면 `WaitForPlayerAction`이 `AllyAutoPilot.Decide`(순수 C#, 스킬 칸·대상만 정함)의 결과를 고른 상태로 보여 준 뒤 `ConfirmAction`으로 확정한다 (플레이어 입력과 같은 경로). 버튼은 `BattleAutoButton`, 켜짐 여부는 PlayerPrefs `Battle.Auto`
+  - 배속: `BattleTimeFx`가 배속(`speedSteps`, 기본 1·2·3)을 들고 평소 timeScale = 배속, 슬로모션 = 슬로 배율 × 배속, 히트스톱·슬로 시간은 ÷ 배속. 버튼은 `BattleSpeedButton`(`CycleSpeed`, `SpeedChanged`로 글자 갱신), 고른 단계는 PlayerPrefs `Battle.SpeedIndex`
   - 일시정지(`BattlePauseView`)도 `BattleTimeFx.SetPaused`로 같은 timeScale을 쓴다 (timeScale을 바꾸는 곳을 한 곳으로 모아 서로 덮어쓰지 않게, 정지가 가장 우선). 실제 시간으로 움직이는 연출(컷인·행동 순서 바·피해 합계)은 정지 중에도 마저 움직임
   - 처치 판정은 `DamageTakenInfo.IsLethal`(이번 피해로 HP가 0이 됨). 피해 합계는 `DamageTotalView`, 재생 한 번(= 한 턴)마다 0부터
   - 보호막 깨짐: 피해 전 보호막 > 0이고 후 = 0이면 `FxShieldBreak` 프리팹 + "보호막 파괴"
@@ -412,7 +415,7 @@ Assets/_Project/
 > 기획서 1장 개발 순서 기준. 분류 안에서 위에 있을수록 먼저 할 것. (2026-11-17 정리)
 
 ### 전투 (핵심 재미 검증에 필요)
-- 자동 전투, 배속 (기획서 3-9·3-11)
+- 자동 전투 규칙 고도화 (지금은 높은 칸 우선의 임시 규칙, 배속·자동 버튼은 구현)
 - A 회복 힐러: 안젤리카(Ally_Support)를 회복 직군으로 바꿔 테스트 중, 스킬 구성 미정
 - 무기 반영 후 밸런스: 전투에 무기 스탯이 들어가 아군이 강해짐 → 적 데이터 에셋을 StatTable 적 스탯(3성 무기 0.8 기준)에 맞춰 다시 조정
 - 타격감 보강 남은 후보: 치명·3스 카메라 줌 펀치, 스쿼시&스트레치, 방향 있는 히트 스파크, 돌진 잔상, 처치 폭발 (다단 히트·보호막 깨짐·HP바 흔들림은 구현, 화면 가장자리 번쩍임은 넣어 봤다가 뺌)

@@ -37,6 +37,9 @@ namespace Game.Battle
         [Tooltip("적 AI가 행동하기 전 대기 시간(초). 적의 행동을 눈으로 따라가기 위한 값")]
         [SerializeField, Min(0f)] private float enemyActionDelay = 0.6f;
 
+        [Tooltip("자동 전투 때 아군 차례가 오고 스킬을 쓰기까지 기다리는 시간(초). 고른 스킬 구도를 잠깐 보여준다")]
+        [SerializeField, Min(0f)] private float autoActionDelay = 0.4f;
+
         private readonly List<BattleUnit> allies = new List<BattleUnit>();
         private readonly List<BattleUnit> enemies = new List<BattleUnit>();
         private TurnScheduler scheduler;
@@ -88,6 +91,9 @@ namespace Game.Battle
         public BattleUnit CurrentActor { get; private set; }
         public bool IsWaitingForPlayer { get; private set; }
         public bool IsBattleOver { get; private set; }
+
+        // 자동 전투가 켜져 있는지. 켜져 있으면 아군 차례에 AllyAutoPilot이 스킬·대상을 정한다.
+        public bool IsAutoBattle { get; private set; }
 
         // 전투가 끝났을 때 승리했는지 (결과 화면용). 전투 중에는 false.
         public bool IsVictory { get; private set; }
@@ -157,6 +163,13 @@ namespace Game.Battle
         }
 
         // ---------- 화면(HUD, 클릭)에서 호출하는 함수 ----------
+
+        // 자동 전투를 켜고 끈다. 아군 차례를 기다리는 중에 켜면 그 차례부터 자동으로 행동한다.
+        public void SetAutoBattle(bool enabled)
+        {
+            IsAutoBattle = enabled;
+            StateChanged?.Invoke();
+        }
 
         // 스킬 버튼을 눌렀을 때 호출한다.
         // 다른 스킬이면 선택을 바꾸고, 이미 선택된 광역·자신 스킬을 다시 누르면 실행을 확정한다.
@@ -686,12 +699,42 @@ namespace Game.Battle
             IsWaitingForPlayer = true;
             StateChanged?.Invoke();
 
-            // WaitUntil: 괄호 안 조건이 true가 될 때까지 매 프레임 확인하며 기다린다.
-            // () => hasPendingAction 은 "행동이 확정되었는가"를 돌려주는 람다식이다.
-            yield return new WaitUntil(() => hasPendingAction);
+            // 행동이 확정될 때까지 매 프레임 기다린다. 그사이 자동 전투가 켜져 있으면 자동으로 행동을 정한다.
+            while (!hasPendingAction)
+            {
+                if (IsAutoBattle)
+                {
+                    yield return PerformAutoAction();
+                }
+                else
+                {
+                    yield return null;
+                }
+            }
 
             IsWaitingForPlayer = false;
             SelectedSkillSlot = NoSkillSelected;
+        }
+
+        // 자동 전투 한 차례: AllyAutoPilot이 정한 스킬을 먼저 고른 상태로 보여 주고(카메라가 그 스킬 구도로),
+        // 잠깐 뒤 그 대상으로 확정한다. 기다리는 사이 자동이 꺼졌거나 플레이어가 먼저 확정했으면 아무것도 하지 않는다.
+        private IEnumerator PerformAutoAction()
+        {
+            // 튜플 분해: Decide가 돌려준 (칸, 대상)을 두 변수에 나눠 담는다.
+            (int slot, BattleUnit target) = AllyAutoPilot.Decide(CurrentActor, allies, enemies);
+            if (slot == NoSkillSelected)
+            {
+                slot = FindFirstUsableSkill(CurrentActor);
+            }
+
+            SelectedSkillSlot = slot;
+            StateChanged?.Invoke();
+            yield return new WaitForSeconds(autoActionDelay);
+
+            if (IsAutoBattle && !hasPendingAction && slot != NoSkillSelected)
+            {
+                ConfirmAction(slot, target);
+            }
         }
 
         // 플레이어 행동을 확정한다. 대기 중인 코루틴이 다음 프레임에 hasPendingAction을 보고 실행으로 넘어간다.
