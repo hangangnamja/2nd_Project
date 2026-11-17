@@ -142,7 +142,7 @@ CharacterData (SO 에셋 1개)
 | 상태효과 | 버프 전부 소모 (`ConsumeAllBuffsEffect`) | 시전자 버프 전부 삭제 | 강탈 딜러 3스, 축적 해방 |
 | 턴·행동 | 행동 당기기 (`ActionAdvanceEffect`) | 행동 게이지를 비율만큼 당김. 시전자 자신 옵션 | 니콜 패시브(자신) |
 | 턴·행동 | 추가 턴 (`GrantExtraTurnEffect`) | 이번 턴이 끝난 뒤 한 번 더 행동 (같은 턴 중복은 1회) | - |
-| 턴·행동 | 추가 공격 예약 (`QueueFollowUpEffect`) | 블록 안 효과 목록을 시전자의 추가 공격(임시 턴)으로 예약 | 반격 태세의 반격, 패시브 추가 공격 |
+| 턴·행동 | 추가 공격 예약 (`QueueFollowUpEffect`) | 블록 안 효과 목록을 시전자의 추가 공격(임시 턴)으로 예약. 전용 연출 프리팹을 넣을 수 있음 | 반격 태세의 반격, 패시브 추가 공격 |
 | 턴·행동 | 상대 턴 끌어오기 (`ForceOpponentsAttackEffect`) | 상대 전원의 다음 정규 턴을 지금 턴 직후로 끌어옴 (AI가 스킬 선택, 단일·확산은 시전자를 노림) | 반격 태세 |
 | 턴·행동 | 쿨타임 감소 (`ReduceCooldownEffect`) | 지정 스킬의 남은 쿨타임 감소. 대상 또는 시전자 자신 | 하이퍼캐리 2스, 아스트라 2스, 곰인형 패시브 |
 | 턴·행동 | 다른 스킬 사용 (`UseSkillEffect`) | 시전자의 다른 스킬(1~3스)을 그 자리에서 함께 사용. 그 스킬의 대상 규칙·효과 그대로, 쿨타임은 안 걸림. 연동 안의 연동은 무시 | 니콜 3스 → 2스 |
@@ -211,6 +211,9 @@ UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
     - 패시브 효과는 기본으로 알리지 않고, `PassiveRunner`가 따로 보이는 행동(턴 종료 단계 효과, `IsStandaloneAction`: 공격 안 한 턴 종료·자가 부활·등장·처치·자기 턴 시작)만 `announcePassive`로 알린다
     - 스킬 전용 연출: `SkillData.PresentationPrefab`에 `SkillFx`(전략 패턴, 예: `MeteorShowerFx`)가 있으면 `ActionStartInfo.Skill`로 찾아 돌진 대신 재생. 연출이 대상에 닿을 때 부르는 콜백 `onImpact(대상, 비율)`로 `BattleFxView`가 그 대상 피해의 그 비율만큼만 보여준다(`impactQueue`·`shownRatio`, `PlayHitsOnImpact` → `PlayPortion`). 비율 합이 1이 되는 마지막 타격에 남은 피해·처치·보호막 깨짐(연출 타수가 2 이상이면 남은 피해를 다시 나눔). 연출이 끝나면 남은 대상은 비율 1로 마무리. 예: 잔챙이 메테오가 대상마다 합쳐 30%, 거대 메테오가 나머지. 메테오·폭발 모양은 프리팹 파티클(`Prefabs/Fx/FxMeteor*`), 코드는 위치·순서·시간·카메라 컷만
     - 종결기처럼 추가 공격으로 나가는 스킬도 `FollowUpAttack.Skill`에 스킬 데이터를 담아 넘기므로 같은 방식으로 전용 연출을 쓴다 (`StatusApplier.QueueFinisher`). 하이퍼캐리 종결기 = `BoundaryCollapseFx`(영역 벽 구체·큐브 파편 파티클 `Prefabs/Fx/FxBoundaryCollapse`, 그림·재질 `Art/Battle/Domain`)
+    - 격발 딜러 2스 = `WebBurstFx`(`Prefabs/Fx/FxWebBurst`), 3스 = `BindingBurstFx`(`Prefabs/Fx/FxBindingBurst`, 실 새장 + 번개는 `GlowLines.SetZigzag`). 선 모양은 프리팹 안 꺼 둔 견본 `LineRenderer`(재질 `Art/Battle/Web/FxLine`, 색·굵기)를 `GlowLines`가 복제해 쓰고, 코드는 점 위치·밝기(MaterialPropertyBlock)·투명도만 바꾼다. 불꽃·폭발은 `FxWebSpark`·`FxBindBurst`(타격·메테오 폭발 파티클을 보라·분홍으로 바꾼 것)
+    - 하이퍼캐리 2스 = `GoldenSlashFx`(`Prefabs/Fx/FxGoldenSlash`, 굵기 곡선을 준 견본 선 + 겹마다 색 그라데이션으로 초승달 검기, 캐리를 중심으로 커지는 호, 어깨 시점 컷). 연출이 `CasterView.PlayLunge`로 직접 돌진시킨다
+    - 추가 공격에도 전용 연출: `QueueFollowUpEffect`의 "전용 연출" 칸 → `FollowUpAttack.PresentationPrefab` → `ActionStartInfo.PresentationPrefab`(따로 준 프리팹, 없으면 스킬 데이터의 프리팹). `BattleFxView.FindSkillFx`는 이 값만 본다. 반격 태세의 반격 = `GroundSplitFx`(`Prefabs/Fx/FxGroundSplit`, 위 시점 컷 + 바닥에 눕힌 견본 선 + 균열 칸마다 솟는 바위 조각·튀는 파편(견본 큐브, `Art/Battle/Web/SplitRock` 재질) + 메테오 폭발 파티클)
     - 하이퍼캐리 변신기 = `TransformCocoonFx`(`Prefabs/Fx/FxTransformCocoon`, 그림·재질 `Art/Battle/Sun`). 상대 타격이 없는 연출은 `BattleFxView`가 끝날 때까지 기다린 뒤 다음 박자로
     - 변신 모습(헤일로·날개): `TransformationData.AppearancePrefab`을 `UnitView.ApplyAppearance`가 변신 중(`IsTransformed`)에 몸의 자식으로 붙인다. 움직임은 `TransformAppearance`
       - 로직은 변신을 즉시 바꾸므로, 모습을 바꾸는 연출(`SkillFx.ChangesAppearance`: 변신기·종결기)이면 `BattleFxView`가 행동 시작 사건 때 `FreezeAppearance`로 지금 모습을 고정하고, 연출이 바뀌는 순간 `RevealAppearance`(→ `ReleaseAppearance`)로 실제 상태를 반영한다. 모습을 바꾸는 연출이 끝나거나 못 보여주면 그때 풀림 (다른 연출은 풀지 않음: 마지막 엑스트라 턴의 스킬 연출이 끝날 때 종결기가 걸어 둔 고정을 먼저 풀어 날개가 일찍 사라지던 문제 방지)
@@ -394,7 +397,7 @@ Assets/_Project/
 - 전투 HUD: 보스 HP바(상단), 웨이브·사이클, 원형 스킬 버튼(`SkillButtonView`)·쿨타임 덮개·스킬 이름판, 대상 선택, 행동 순서 목록(원형 초상화·지금 차례 확대·움직이는 순서), 상태효과 아이콘·툴팁 (전투 로그는 화면에서 숨김, 콘솔에만)
 - 전투 임시 연출: 타격·치명·지속피해·회복·버프 이펙트 + 피해 숫자, 행동 단위로 순서대로 재생 (3장 "연출 재생")
   - 타격감: 돌진·시전 모션(추가 공격·패시브 행동 포함), 피격 번쩍임·밀림, 히트스톱·슬로모션, 화면 흔들림, 3스 컷인, 피해 합계, HP를 타격 순간에 맞춰 줄임, 보호막 깨짐, HP바 흔들림, 연출 다단 히트
-  - 스킬 전용 연출(`SkillFx`) + 연출 컷 카메라: 선브링어 변신 3스 메테오 (임시)
+  - 스킬 전용 연출(`SkillFx`) + 연출 컷 카메라: 선브링어 변신 3스 메테오, 하이퍼캐리 변신기·종결기, 격발 딜러 2스 거미줄·3스 실 새장, 하이퍼캐리 2스 황금 검기·반격 땅 가르기 (임시)
 - 상세 창(카드 꾹 누르기): 스탯 / 버프·디버프 / 스킬 탭
 - 로비: 메인 화면(출격·모집·인벤토리·전투원 연결), 스테이지 선택(지도·보스 탭·상세 패널), 편성(4칸·보유 목록·팀 4개·팀 이름·저장, 메인 화면에서 열면 편성 관리만)
 - 전투원: 보유 목록, 상세(스탯·무기 +n)/스킬 탭, 육성 창(레벨업·일괄 추가·진급), 무기 칸 → 장착 창(직군 제한·장착·해제·강화)
@@ -414,7 +417,7 @@ Assets/_Project/
 - 무기 반영 후 밸런스: 전투에 무기 스탯이 들어가 아군이 강해짐 → 적 데이터 에셋을 StatTable 적 스탯(3성 무기 0.8 기준)에 맞춰 다시 조정
 - 타격감 보강 남은 후보: 치명·3스 카메라 줌 펀치, 스쿼시&스트레치, 방향 있는 히트 스파크, 돌진 잔상, 처치 폭발 (다단 히트·보호막 깨짐·HP바 흔들림은 구현, 화면 가장자리 번쩍임은 넣어 봤다가 뺌)
 - 효과음 (타격·치명·처치·돌진·시전·컷인, 임시 소리 파일 필요)
-- 스킬 전용 연출: 지금은 선브링어 변신 3스(메테오)와 하이퍼캐리 변신기(황금 구체)·종결기(영역 붕괴)만. 다른 캐릭터 3스는 `SkillFx`로 추가
+- 스킬 전용 연출: 지금은 선브링어 변신 3스(메테오), 하이퍼캐리 변신기(황금 구체)·종결기(영역 붕괴), 격발 딜러 2스(거미줄)·3스(실 새장), 하이퍼캐리 2스(황금 검기)·반격(땅 가르기)만. 다른 캐릭터 3스는 `SkillFx`로 추가
 - 전투 UI 정식 배치: 현재 행동 캐릭터 패널, 아군 스킬 이름 알림 (보스 스킬 이름 띠·보스 HP바·아군 카드·상세 창·행동 순서 초상화·원형 스킬 버튼은 구현)
 - 방어력 관통 (기획서 10장 미정)
 

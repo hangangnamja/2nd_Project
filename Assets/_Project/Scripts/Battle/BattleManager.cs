@@ -493,7 +493,8 @@ namespace Game.Battle
                     services,
                     ActionSource.FollowUpAttack,
                     skillName: followUp.Name,
-                    skill: followUp.Skill);
+                    skill: followUp.Skill,
+                    presentationPrefab: followUp.PresentationPrefab);
 
                 // 추가 공격도 하나의 공격이므로, 끝날 때 HP 0인 유닛의 사망을 확정한다.
                 ConfirmDeaths();

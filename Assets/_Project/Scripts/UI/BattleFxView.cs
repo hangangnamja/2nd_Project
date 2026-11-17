@@ -448,11 +448,10 @@ namespace Game.UI
             yield return new WaitForSeconds(casterView.CastRiseSeconds);
         }
 
-        // 쓴 스킬의 전용 연출 프리팹에서 SkillFx를 찾는다. 스킬 행동이 아니거나 프리팹이 없으면 null.
-        // ?.: Skill이 null이면 PresentationPrefab을 읽지 않고 null.
+        // 행동의 전용 연출 프리팹(스킬 데이터 또는 추가 공격 블록)에서 SkillFx를 찾는다. 프리팹이 없으면 null.
         private static SkillFx FindSkillFx(ActionStartInfo action)
         {
-            GameObject prefab = action.Skill?.PresentationPrefab;
+            GameObject prefab = action.PresentationPrefab;
             return prefab != null ? prefab.GetComponent<SkillFx>() : null;
         }
 
