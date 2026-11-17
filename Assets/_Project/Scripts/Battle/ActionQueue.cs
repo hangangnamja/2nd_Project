@@ -231,6 +231,9 @@ namespace Game.Battle
         // 이 추가 공격이 스킬 데이터에서 왔으면 그 스킬 (변신 종결기). 연출이 스킬의 전용 연출 프리팹을 찾을 때 쓴다. 아니면 null.
         public SkillData Skill { get; }
 
+        // 추가 공격 블록에 따로 넣은 전용 연출 프리팹 (반격 태세의 반격 등). 없으면 null → 스킬의 전용 연출이나 기본 돌진.
+        public UnityEngine.GameObject PresentationPrefab { get; }
+
         // 다타 추가 공격의 남은 타수 (돌파 반응). 패시브가 타수를 쌓고, BattleManager가 한 타씩 꺼내 쓴다. 다타가 아니면 null.
         public HitCounter HitCounter { get; }
 
@@ -255,10 +258,12 @@ namespace Game.Battle
             SkillTargetType targetType,
             BattleUnit preferredTarget,
             bool endsTransformation = false,
-            SkillData skill = null)
+            SkillData skill = null,
+            UnityEngine.GameObject presentationPrefab = null)
         {
             Owner = owner;
             Skill = skill;
+            PresentationPrefab = presentationPrefab;
             Name = name;
             Effects = effects;
             TargetType = targetType;

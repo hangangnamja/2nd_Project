@@ -203,9 +203,15 @@ namespace Game.Battle
         // 쓴 스킬 데이터 (스킬로 쓴 행동만, 추가 공격·패시브는 null). 연출이 스킬 전용 연출 프리팹을 찾는 데 쓴다.
         public SkillData Skill { get; }
 
-        public ActionStartInfo(BattleUnit caster, IReadOnlyList<BattleUnit> targets, BattleUnit primaryTarget, ActionSource source, int skillSlot, string skillName, SkillData skill = null)
+        // 이 행동의 전용 연출 프리팹 (스킬 데이터의 전용 연출, 또는 추가 공격 블록에 넣은 전용 연출). 없으면 null → 기본 돌진·시전.
+        public UnityEngine.GameObject PresentationPrefab { get; }
+
+        // presentationPrefab을 따로 주지 않으면 스킬 데이터의 전용 연출을 쓴다.
+        // 조건 ? A : B와 ?.: 따로 준 프리팹이 있으면 그것, 없으면 skill이 있을 때만 그 스킬의 프리팹(skill이 null이면 null).
+        public ActionStartInfo(BattleUnit caster, IReadOnlyList<BattleUnit> targets, BattleUnit primaryTarget, ActionSource source, int skillSlot, string skillName, SkillData skill = null, UnityEngine.GameObject presentationPrefab = null)
         {
             Skill = skill;
+            PresentationPrefab = presentationPrefab != null ? presentationPrefab : skill?.PresentationPrefab;
             Caster = caster;
             Targets = targets;
             PrimaryTarget = primaryTarget;

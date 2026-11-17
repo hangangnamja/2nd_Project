@@ -37,7 +37,7 @@ MonoBehaviour:
     targetType: 1
     cooldown: 3
     startCooldown: 0
-    presentationPrefab: {fileID: 0}
+    presentationPrefab: {fileID: 6951145401628856495, guid: 6a27862615cfb094fb254e02c0511062, type: 3}
     presentationHits: 1
     effects:
     - rid: 7605779465967763912
@@ -47,7 +47,7 @@ MonoBehaviour:
     targetType: 0
     cooldown: 4
     startCooldown: 0
-    presentationPrefab: {fileID: 0}
+    presentationPrefab: {fileID: 8656205954120017065, guid: 9ecba9a5e878c404abf14fb57d022c91, type: 3}
     presentationHits: 1
     effects:
     - rid: 7605779465967763914
@@ -68,6 +68,10 @@ MonoBehaviour:
     requiredStatus: {fileID: 0}
     tauntDisplay: {fileID: 0}
     auraModifiers: []
+    countedCategory: 0
+    countComparison: 1
+    countThreshold: 1
+    countCap: 0
     effects:
     - rid: 7605779465967763817
   - passiveName: "\uC544\uB77C\uD06C\uB178\uD3EC\uBE44\uC544"
@@ -85,6 +89,10 @@ MonoBehaviour:
     requiredStatus: {fileID: 0}
     tauntDisplay: {fileID: 0}
     auraModifiers: []
+    countedCategory: 0
+    countComparison: 1
+    countThreshold: 1
+    countCap: 0
     effects:
     - rid: 7605779465967763934
     - rid: 7605779598317453581

@@ -43,7 +43,8 @@ namespace Game.Battle
             int skillSlot = -1,
             string skillName = null,
             bool announcePassive = false,
-            SkillData skill = null)
+            SkillData skill = null,
+            UnityEngine.GameObject presentationPrefab = null)
         {
             var context = new SkillContext(caster, targets, primaryTarget, services, source);
 
@@ -52,7 +53,7 @@ namespace Game.Battle
             // announcePassive = true로 알린다. skillSlot·skillName: 기본값(-1, null)이면 칸 번호가 없는 행동(추가 공격 등)으로 본다.
             if (source != ActionSource.PassiveEffect || announcePassive)
             {
-                services.Events.RaiseActionStarted(new ActionStartInfo(caster, targets, primaryTarget, source, skillSlot, skillName, skill));
+                services.Events.RaiseActionStarted(new ActionStartInfo(caster, targets, primaryTarget, source, skillSlot, skillName, skill, presentationPrefab));
             }
 
             foreach (SkillEffect effect in effects)

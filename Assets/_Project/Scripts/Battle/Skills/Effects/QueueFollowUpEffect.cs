@@ -19,6 +19,10 @@ namespace Game.Battle.Effects
         [Label("대상")]
         [SerializeField] private SkillTargetType targetType = SkillTargetType.EnemyAll;
 
+        // 추가 공격이 나갈 때 기본 돌진 대신 재생할 전용 연출 (SkillFx가 붙은 프리팹, 비우면 기본 돌진).
+        [Label("전용 연출")]
+        [SerializeField] private GameObject presentationPrefab;
+
         // 블록 안에 효과 목록을 한 번 더 담는다. 스킬 효과 목록과 같은 방식으로 종류를 골라 넣는다.
         [SerializeReference, SubclassSelector]
         private List<SkillEffect> effects = new List<SkillEffect>();
@@ -31,7 +35,8 @@ namespace Game.Battle.Effects
                 followUpName,
                 effects,
                 targetType,
-                preferredTarget: null));
+                preferredTarget: null,
+                presentationPrefab: presentationPrefab));
 
             context.Log($"  {context.Caster.Name}: {followUpName} 예약");
         }

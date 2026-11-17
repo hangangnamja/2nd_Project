@@ -359,6 +359,9 @@ namespace Game.UI
             ApplyShake(cameraTransform);
         }
 
+        // 이 연출가가 움직이는 카메라 (연출이 카메라 쪽을 바라보게 놓을 때 쓴다).
+        public Camera Camera => targetCamera;
+
         // 연출 컷 시작: 카메라를 position으로 바로 옮기고(컷) lookTarget을 계속 바라보게 한다. fieldOfView: 화각.
         // 무대 배치(유닛 자리)는 그대로라, 지금 장면의 유닛들을 다른 각도에서 보여주는 것이다.
         public void BeginCinematic(Vector3 position, Transform lookTarget, float fieldOfView)
