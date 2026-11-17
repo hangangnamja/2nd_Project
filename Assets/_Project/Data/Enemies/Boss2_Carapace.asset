@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Boss2_Carapace
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.EnemyCharacterData
   id: Boss2_Carapace
-  displayName: "갑각의 거체"
+  displayName: "\uAC11\uAC01\uC758 \uAC70\uCCB4"
   role: 2
   grade: 0
   illustration: {fileID: 0}
@@ -24,39 +24,46 @@ MonoBehaviour:
   critRate: 0.05
   critDamage: 0.5
   skill1:
-    skillName: "짓누르기"
+    skillName: "\uC9D3\uB204\uB974\uAE30"
     targetType: 0
     cooldown: 0
     startCooldown: 0
+    presentationPrefab: {fileID: 0}
+    presentationHits: 1
     effects:
     - rid: 1000
   skill2:
-    skillName: "포식의 진동"
+    skillName: "\uD3EC\uC2DD\uC758 \uC9C4\uB3D9"
     targetType: 1
     cooldown: 0
     startCooldown: 0
+    presentationPrefab: {fileID: 0}
+    presentationHits: 1
     effects:
     - rid: 1003
   skill3:
-    skillName: "갑각 파쇄"
+    skillName: "\uAC11\uAC01 \uD30C\uC1C4"
     targetType: 1
     cooldown: 3
     startCooldown: 2
+    presentationPrefab: {fileID: 0}
+    presentationHits: 1
     effects:
     - rid: 1001
   passives: []
   patterns:
-  - patternName: "디버프가 없음 → 최대 HP 40% 광역"
+  - patternName: "\uB514\uBC84\uD504\uAC00 \uC5C6\uC74C \u2192 \uCD5C\uB300 HP 40%
+      \uAD11\uC5ED"
     condition: 4
     threshold: 1
     skillNumber: 2
     target: 0
-  - patternName: "광역 준비 → 갑각 파쇄"
+  - patternName: "\uAD11\uC5ED \uC900\uBE44 \u2192 \uAC11\uAC01 \uD30C\uC1C4"
     condition: 0
     threshold: 0
     skillNumber: 3
     target: 0
-  - patternName: "평소 단일 공격"
+  - patternName: "\uD3C9\uC18C \uB2E8\uC77C \uACF5\uACA9"
     condition: 0
     threshold: 0
     skillNumber: 1
@@ -80,4 +87,5 @@ MonoBehaviour:
     - rid: 1003
       type: {class: MaxHpDamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
+        attackMultiplier: 0.5
         maxHpRatio: 0.4

@@ -258,8 +258,8 @@ namespace Game.Battle
         // ---------- 전투 흐름 ----------
 
         // 승패가 정해질 때까지 턴을 반복하는 전투 루프. 턴 하나의 처리 순서 (Architecture.md 3장):
-        // 행동자 결정(추가 턴이면 같은 유닛) → 스킬·대상 선택 → 스킬 실행 → 턴 종료 → 추가 공격(임시 턴) 실행 → 추가 턴 확인
-        // → 웨이브를 정리했고 다음 웨이브가 있으면 다음 웨이브 시작
+        // 행동자 결정(추가 턴이면 같은 유닛) → 스킬·대상 선택 → 스킬 실행 → 턴 종료 → 끌어온 턴(반격 태세) → 추가 공격(임시 턴) 실행
+        // → 추가 턴 확인 → 웨이브를 정리했고 다음 웨이브가 있으면 다음 웨이브 시작
         private IEnumerator RunBattle()
         {
             Log($"전투 시작: {stageRunner.Stage.StageName} (적 Lv{stageRunner.Stage.EnemyLevel})");
@@ -271,29 +271,15 @@ namespace Game.Battle
             {
                 BeginTurn(extraTurnUnit);
 
-                // 기절·공연 중이면 행동(스킬 선택·사용)을 건너뛰고 바로 턴을 마친다.
-                // 턴 종료 처리는 그대로라 기절·공연의 남은 턴이 줄고, "공격하지 않은 턴" 패시브도 발동한다.
-                if (CurrentActor.IsStunned || CurrentActor.IsPerforming)
-                {
-                    string reason = CurrentActor.IsStunned ? "기절로 행동 불가" : $"{CurrentActor.ActiveAura.Name} 중 (행동 스킵)";
-                    Log($"  {CurrentActor.Name}: {reason}");
-                    yield return new WaitForSeconds(enemyActionDelay);
-                }
                 // yield return 다른 코루틴: 그 코루틴이 끝날 때까지 여기서 기다린다.
-                else if (CurrentActor.IsAlly)
-                {
-                    yield return WaitForPlayerAction();
-                    UseSkill(CurrentActor, pendingSkillSlot, pendingTarget);
-                }
-                else
-                {
-                    yield return new WaitForSeconds(enemyActionDelay);
-                    DecideEnemyAction(CurrentActor);
-                    UseSkill(CurrentActor, pendingSkillSlot, pendingTarget);
-                }
+                yield return PerformCurrentAction(preferredOpponent: null);
+                EndTurn(CurrentActor);
+
+                // 이번 턴에 상대의 턴을 끌어왔으면(반격 태세) 그 턴들을 먼저 진행한다.
+                // 그동안 이번 턴에 예약된 추가 공격(반격·종결기)은 맡아 두었다가 끌어온 턴이 모두 끝난 뒤 실행된다.
+                yield return RunPulledTurns();
 
                 // 추가 공격은 행동자의 턴이 완전히 끝난 뒤, 각자의 임시 턴으로 실행한다 (기획서 3-4).
-                EndTurn(CurrentActor);
                 ProcessFollowUpAttacks();
 
                 // 이번 턴에 추가 턴을 얻었으면, 다음 반복에서 스케줄러를 거치지 않고 같은 유닛이 바로 행동한다.
@@ -331,14 +317,102 @@ namespace Game.Battle
             yield return new WaitUntil(() => !presentation.IsPlaying);
         }
 
+        // 지금 행동자의 행동을 진행한다: 기절·공연이면 건너뛰고, 아군이면 플레이어 입력, 적이면 AI가 스킬을 골라 실행한다.
+        // preferredOpponent: 적 AI가 단일·확산 공격을 고르고 대상을 정하지 않았을 때 노릴 유닛 (끌어온 턴의 시전자). null이면 무작위.
+        private IEnumerator PerformCurrentAction(BattleUnit preferredOpponent)
+        {
+            // 기절·공연 중이면 행동(스킬 선택·사용)을 건너뛰고 바로 턴을 마친다.
+            // 턴 종료 처리는 그대로라 기절·공연의 남은 턴이 줄고, "공격하지 않은 턴" 패시브도 발동한다.
+            if (CurrentActor.IsStunned || CurrentActor.IsPerforming)
+            {
+                string reason = CurrentActor.IsStunned ? "기절로 행동 불가" : $"{CurrentActor.ActiveAura.Name} 중 (행동 스킵)";
+                Log($"  {CurrentActor.Name}: {reason}");
+                yield return new WaitForSeconds(enemyActionDelay);
+            }
+            else if (CurrentActor.IsAlly)
+            {
+                yield return WaitForPlayerAction();
+                UseSkill(CurrentActor, pendingSkillSlot, pendingTarget);
+            }
+            else
+            {
+                yield return new WaitForSeconds(enemyActionDelay);
+                DecideEnemyAction(CurrentActor);
+                AimAtPreferredOpponent(preferredOpponent);
+                UseSkill(CurrentActor, pendingSkillSlot, pendingTarget);
+            }
+        }
+
+        // 적 AI가 고른 스킬이 상대 단일·확산 공격이고 대상을 정하지 않았으면, preferredOpponent를 노리게 한다.
+        // 광역은 대상 지정이 필요 없고, 아군·자신 스킬에 상대를 넣으면 대상이 잘못되므로 건드리지 않는다.
+        // 시선집중 중인 유닛이 있으면 그쪽이 먼저다 (ResolveTargets → PickSingleOpponent).
+        private void AimAtPreferredOpponent(BattleUnit preferredOpponent)
+        {
+            if (preferredOpponent == null || !preferredOpponent.IsOnField || pendingTarget != null)
+            {
+                return;
+            }
+
+            SkillTargetType targetType = CurrentActor.GetSkill(pendingSkillSlot).TargetType;
+            if (targetType == SkillTargetType.EnemySingle || targetType == SkillTargetType.EnemyBlast)
+            {
+                pendingTarget = preferredOpponent;
+            }
+        }
+
+        // 끌어온 턴(반격 태세, 기획서 4-3)을 예약된 순서대로 진행한다.
+        // 끌어온 턴은 그 유닛의 실제 정규 턴이다: 스케줄러로 시간을 흘리지 않고 지금 바로 행동하며, 턴 종료 처리(게이지 리셋 포함)를 한다.
+        // 끌어오기 전에 예약된 추가 공격(반격·종결기)은 맡아 두었다가 모든 끌어온 턴이 끝난 뒤 대기열에 되돌린다
+        //   → "상대의 공격이 모두 끝난 뒤 반격 → 종결기" 순서가 지켜진다.
+        // 끌어온 턴 안에서 생긴 추가 공격은 그 턴이 끝날 때 바로 실행한다 (일반 턴과 같음).
+        private IEnumerator RunPulledTurns()
+        {
+            if (!actionQueue.HasPulledTurns)
+            {
+                yield break;
+            }
+
+            List<FollowUpAttack> heldFollowUps = actionQueue.TakeAllFollowUps();
+
+            while (!IsBattleDecided() && actionQueue.TryDequeuePulledTurn(out PulledTurn pulled))
+            {
+                // 끌어온 유닛이 그사이 쓰러졌거나 퇴장했으면 건너뛴다.
+                if (!pulled.Unit.IsOnField)
+                {
+                    continue;
+                }
+
+                // 앞 턴의 연출을 다 보여준 뒤 다음 끌어온 턴을 시작한다.
+                yield return WaitForPresentation();
+
+                StartTurnOf(pulled.Unit, hasExtraTurn: false);
+                Log($"[끌어온 턴] {pulled.Unit.Name}");
+                yield return PerformCurrentAction(preferredOpponent: pulled.Target);
+                EndTurn(CurrentActor);
+                ProcessFollowUpAttacks();
+            }
+
+            // 승패가 정해져 남은 끌어온 턴이 있으면 버린다 (다음 전투·웨이브로 넘어가지 않게).
+            while (actionQueue.TryDequeuePulledTurn(out _))
+            {
+            }
+
+            actionQueue.RestoreFollowUps(heldFollowUps);
+        }
+
         // 턴을 시작한다. 추가 턴이면 같은 유닛이 다시 행동하고, 아니면 스케줄러가 다음 행동자를 정한다.
-        // 새 턴마다 패시브의 "턴당 발동 횟수"를 초기화한다 (추가 턴도 새 턴이다).
         private void BeginTurn(BattleUnit extraTurnUnit)
         {
             bool hasExtraTurn = extraTurnUnit != null && !extraTurnUnit.IsDead;
+            StartTurnOf(hasExtraTurn ? extraTurnUnit : scheduler.AdvanceToNextActor(), hasExtraTurn);
+        }
 
+        // actor의 턴을 시작한다 (정규 턴·추가 턴·끌어온 턴 공통).
+        // 새 턴마다 패시브의 "턴당 발동 횟수"를 초기화한다 (추가 턴·끌어온 턴도 새 턴이다).
+        private void StartTurnOf(BattleUnit actor, bool hasExtraTurn)
+        {
             IsExtraTurn = hasExtraTurn;
-            CurrentActor = hasExtraTurn ? extraTurnUnit : scheduler.AdvanceToNextActor();
+            CurrentActor = actor;
             hasPendingAction = false;
             passiveRunner.ResetTurnCounters(CurrentActor);
 
