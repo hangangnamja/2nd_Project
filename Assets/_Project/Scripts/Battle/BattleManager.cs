@@ -98,6 +98,15 @@ namespace Game.Battle
         // 전투가 끝났을 때 승리했는지 (결과 화면용). 전투 중에는 false.
         public bool IsVictory { get; private set; }
 
+        // 이번 전투의 스테이지 (결과 화면용). 전투 시작 전에는 null.
+        public StageData Stage => stageRunner?.Stage;
+
+        // 이번 전투에서 행동한 횟수 (결과 화면용).
+        public int ActionCount => actionCount;
+
+        // 이번 전투로 받은 보상 (결과 화면용). 지거나 테스트 전투(씬 직접 실행)면 빈 목록.
+        public IReadOnlyList<(MaterialData Material, int Amount)> Rewards { get; private set; } = Array.Empty<(MaterialData, int)>();
+
         // 지금 행동이 추가 턴인지 (HUD 표시용).
         public bool IsExtraTurn { get; private set; }
 
@@ -938,9 +947,10 @@ namespace Game.Battle
             string result = IsVictory ? "승리" : "패배";
             Log($"전투 종료: {result} (총 {actionCount}회 행동, {CurrentCycle}사이클)");
 
+            // 로비에서 시작한 전투를 이겼으면 보상을 주고 클리어를 저장한다 (씬을 바로 실행한 테스트 전투는 기록하지 않음).
             if (IsVictory && isLaunchedFromLobby)
             {
-                Game.Core.PlayerProfile.RecordStageClear(stageRunner.Stage);
+                Rewards = Game.Core.PlayerProfile.CompleteStage(stageRunner.Stage);
             }
             StateChanged?.Invoke();
         }

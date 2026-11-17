@@ -6,8 +6,9 @@ using UnityEngine.UI;
 namespace Game.UI
 {
     // 스테이지 선택 화면 (출격).
-    //  - 하단 탭: 스테이지(기본 스테이지 지도) / 보스전(보스 카드 3장)
-    //  - 노드·카드를 누르면 우측 상세 패널에 번호·이름·추천 레벨·웨이브 수와 전투 준비 버튼
+    //  - 하단 탭: 스테이지(기본 스테이지 지도) / 토벌(보스 카드 3장) / 탐색(재화 던전 장소 지도)
+    //  - 노드·카드를 누르면 우측 상세 패널에 번호·이름·추천 레벨·웨이브 수·보상과 전투 준비 버튼
+    //  - 탐색 장소는 상세 패널의 난이도 버튼으로 난이도(스테이지)를 고른다
     //  - 전투 준비: 고른 스테이지로 편성 화면을 연다 (전투 시작은 편성 화면에서)
     // 노드·카드의 모양과 위치는 씬에서 만들고, 이 컴포넌트는 스테이지 목록(StageCatalog)의 내용을 채우고 클릭을 연결한다.
     public class StageSelectView : MonoBehaviour
@@ -21,14 +22,19 @@ namespace Game.UI
         [Header("탭")]
         [SerializeField] private Button normalTab;
         [SerializeField] private Button bossTab;
+        [SerializeField] private Button exploreTab;
         [SerializeField] private GameObject normalMap;
         [SerializeField] private GameObject bossCards;
+        [SerializeField] private GameObject exploreMap;
 
         [Tooltip("기본 스테이지 노드 (1-1부터 순서대로)")]
         [SerializeField] private List<Button> normalNodes = new List<Button>();
 
         [Tooltip("보스 카드 (보스 1부터 순서대로)")]
         [SerializeField] private List<Button> bossNodes = new List<Button>();
+
+        [Tooltip("탐색 장소 노드 (StageCatalog의 탐색 장소 순서대로)")]
+        [SerializeField] private List<Button> siteNodes = new List<Button>();
 
         [Header("상세 패널")]
         [SerializeField] private GameObject detailPanel;
@@ -37,30 +43,50 @@ namespace Game.UI
         [SerializeField] private Text detailInfo;
         [SerializeField] private Button startButton;
 
+        [Tooltip("탐색 장소일 때만 보이는 난이도 버튼 줄")]
+        [SerializeField] private GameObject difficultyRow;
+
+        [Tooltip("난이도 버튼 (쉬운 것부터). 장소의 난이도 수보다 많은 버튼은 숨긴다")]
+        [SerializeField] private List<Button> difficultyButtons = new List<Button>();
+
         [Header("탭 색")]
         [SerializeField] private Color selectedTabColor = new Color(0.1f, 0.6f, 0.9f, 0.95f);
         [SerializeField] private Color normalTabColor = new Color(0f, 0f, 0f, 0.55f);
 
+        // 하단 탭 종류.
+        private enum Tab
+        {
+            Normal,
+            Boss,
+            Explore,
+        }
+
         // 지금 상세 패널에 띄운 스테이지. 작전개시를 누르면 이 스테이지로 전투한다.
         private StageData selectedStage;
+
+        // 지금 상세 패널에 띄운 탐색 장소 (탐색 탭이 아니면 null).
+        private ExplorationSite selectedSite;
 
         // 목록 내용을 노드·카드에 채우고 클릭을 연결한다. 처음에는 스테이지 탭, 상세 패널 닫힘.
         private void Awake()
         {
             BindNodes(normalNodes, catalog.NormalStages, index => $"1-{index + 1}", codeSize: 38);
             BindNodes(bossNodes, catalog.BossStages, index => $"BOSS {index + 1}", codeSize: 46);
+            BindSites();
+            BindDifficultyButtons();
 
-            normalTab.onClick.AddListener(() => ShowTab(isBoss: false));
-            bossTab.onClick.AddListener(() => ShowTab(isBoss: true));
+            normalTab.onClick.AddListener(() => ShowTab(Tab.Normal));
+            bossTab.onClick.AddListener(() => ShowTab(Tab.Boss));
+            exploreTab.onClick.AddListener(() => ShowTab(Tab.Explore));
             startButton.onClick.AddListener(OpenFormation);
-            ShowTab(isBoss: false);
+            ShowTab(Tab.Normal);
         }
 
         // 메인 화면에서 출격으로 들어올 때: 스테이지 탭부터, 상세 패널은 닫고 시작한다.
         // 편성 화면에서 뒤로 돌아올 때는 부르지 않아, 고르던 탭과 스테이지가 그대로 남는다.
         public void ResetView()
         {
-            ShowTab(isBoss: false);
+            ShowTab(Tab.Normal);
         }
 
         // 노드 i에 목록의 i번째 스테이지를 연결한다. 스테이지가 없으면 "준비 중"으로 표시하고 누를 수 없게 한다.
@@ -85,29 +111,131 @@ namespace Game.UI
             }
         }
 
-        // 탭 전환: 기본 스테이지 지도와 보스 카드 중 하나만 보이고, 고른 탭 버튼을 강조한다. 상세 패널은 닫는다.
-        private void ShowTab(bool isBoss)
+        // 탐색 장소 노드 i에 i번째 장소를 연결한다: 장소 이름(크게) + 주는 재화(작게). 장소가 없으면 "준비 중"으로 막는다.
+        // 노드 안의 첫 Text가 이름 칸이다 (아이콘은 씬에서 정한 그림).
+        private void BindSites()
         {
-            normalMap.SetActive(!isBoss);
-            bossCards.SetActive(isBoss);
-            normalTab.image.color = isBoss ? normalTabColor : selectedTabColor;
-            bossTab.image.color = isBoss ? selectedTabColor : normalTabColor;
+            IReadOnlyList<ExplorationSite> sites = catalog.ExplorationSites;
+            for (int i = 0; i < siteNodes.Count; i++)
+            {
+                ExplorationSite site = i < sites.Count ? sites[i] : null;
+                Text label = siteNodes[i].GetComponentInChildren<Text>(true);
+                label.text = site != null
+                    ? $"<size=34><b>{site.SiteName}</b></size>\n{site.RewardLabel}"
+                    : "<size=34><b>준비 중</b></size>";
+
+                siteNodes[i].interactable = site != null && site.Difficulties.Count > 0;
+                siteNodes[i].onClick.AddListener(() => ShowSite(site));
+            }
+        }
+
+        // 난이도 버튼 i를 누르면 지금 장소의 i번째 난이도를 고른다.
+        // 람다 안에서 쓰는 index는 반복마다 새 변수라 버튼마다 자기 번호를 기억한다 (for의 i를 그대로 쓰면 마지막 값이 잡힘).
+        private void BindDifficultyButtons()
+        {
+            for (int i = 0; i < difficultyButtons.Count; i++)
+            {
+                int index = i;
+                difficultyButtons[i].onClick.AddListener(() => SelectDifficulty(index));
+            }
+        }
+
+        // 탭 전환: 지도·카드 중 고른 탭 것만 보이고, 고른 탭 버튼을 강조한다. 상세 패널은 닫는다.
+        private void ShowTab(Tab tab)
+        {
+            normalMap.SetActive(tab == Tab.Normal);
+            bossCards.SetActive(tab == Tab.Boss);
+            exploreMap.SetActive(tab == Tab.Explore);
+            normalTab.image.color = tab == Tab.Normal ? selectedTabColor : normalTabColor;
+            bossTab.image.color = tab == Tab.Boss ? selectedTabColor : normalTabColor;
+            exploreTab.image.color = tab == Tab.Explore ? selectedTabColor : normalTabColor;
 
             selectedStage = null;
+            selectedSite = null;
             detailPanel.SetActive(false);
         }
 
-        // 고른 스테이지의 상세 정보를 띄운다.
+        // 고른 스테이지의 상세 정보를 띄운다 (기본 스테이지·토벌). 난이도 버튼 줄은 숨긴다.
         private void ShowDetail(StageData stage, string code)
+        {
+            selectedSite = null;
+            difficultyRow.SetActive(false);
+            FillDetail(stage, code, stage.StageName);
+        }
+
+        // 탐색 장소를 고르면 상세 패널에 난이도 버튼을 장소의 난이도 수만큼 켜고, 첫 난이도를 고른 상태로 연다.
+        private void ShowSite(ExplorationSite site)
+        {
+            selectedSite = site;
+            difficultyRow.SetActive(true);
+            for (int i = 0; i < difficultyButtons.Count; i++)
+            {
+                bool exists = i < site.Difficulties.Count;
+                difficultyButtons[i].gameObject.SetActive(exists);
+                if (exists)
+                {
+                    difficultyButtons[i].GetComponentInChildren<Text>(true).text = $"LV.{site.Difficulties[i].EnemyLevel}";
+                }
+            }
+
+            SelectDifficulty(0);
+        }
+
+        // 지금 장소의 index번째 난이도를 고른다: 그 스테이지로 상세 내용을 바꾸고, 고른 버튼을 강조한다.
+        private void SelectDifficulty(int index)
+        {
+            if (selectedSite == null || index >= selectedSite.Difficulties.Count)
+            {
+                return;
+            }
+
+            for (int i = 0; i < difficultyButtons.Count; i++)
+            {
+                difficultyButtons[i].image.color = i == index ? selectedTabColor : normalTabColor;
+            }
+
+            StageData stage = selectedSite.Difficulties[index];
+            FillDetail(stage, selectedSite.SiteName, stage.StageName);
+        }
+
+        // 상세 패널 내용: 번호(장소 이름)·이름·추천 레벨·웨이브 수·보상·설명.
+        private void FillDetail(StageData stage, string code, string stageName)
         {
             selectedStage = stage;
             detailPanel.SetActive(true);
 
             detailCode.text = code;
-            detailName.text = stage.StageName;
+            detailName.text = stageName;
 
             string description = string.IsNullOrEmpty(stage.Description) ? string.Empty : $"\n\n{stage.Description}";
-            detailInfo.text = $"추천 레벨 LV.{stage.EnemyLevel}\n웨이브 {stage.Waves.Count}{description}";
+            detailInfo.text = $"추천 레벨 LV.{stage.EnemyLevel}\n웨이브 {stage.Waves.Count}{BuildRewardLines(stage)}{description}";
+        }
+
+        // 보상 줄: "획득 보상 골드 ×12,000" + 첫 클리어 보상(아직 안 깬 스테이지만). 보상이 없으면 빈 글자.
+        // {amount:N0}: 천 단위 쉼표를 넣은 정수 표기.
+        private static string BuildRewardLines(StageData stage)
+        {
+            var lines = new List<string>();
+            foreach (StageReward reward in stage.ClearRewards)
+            {
+                if (reward.Material != null)
+                {
+                    lines.Add($"{reward.Material.DisplayName} ×{reward.Amount:N0}");
+                }
+            }
+
+            if (!Game.Core.PlayerProfile.IsStageCleared(stage))
+            {
+                foreach (StageReward reward in stage.FirstClearRewards)
+                {
+                    if (reward.Material != null)
+                    {
+                        lines.Add($"{reward.Material.DisplayName} ×{reward.Amount:N0} <size=20>(첫 클리어)</size>");
+                    }
+                }
+            }
+
+            return lines.Count == 0 ? string.Empty : "\n\n<color=#FFCC4D>획득 보상</color>\n" + string.Join("\n", lines);
         }
 
         // 고른 스테이지로 편성 화면을 연다.

@@ -74,11 +74,18 @@ namespace Game.Core
 
         // ---------- 재화 ----------
 
-        // 보유 보석 (가챠 화면 표시용)
+        // 보유 보석 (가챠 화면·로비 재화 표시용)
         public static int GetGems()
         {
             EnsureLoaded();
             return data.currency.gems;
+        }
+
+        // 보유 골드 (로비 재화 표시용)
+        public static int GetGold()
+        {
+            EnsureLoaded();
+            return data.currency.gold;
         }
 
         // ---------- 가챠 ----------
@@ -293,14 +300,24 @@ namespace Game.Core
             return record != null && record.cleared;
         }
 
-        // 스테이지 클리어를 기록하고 저장한다. 이미 클리어한 스테이지면 저장하지 않는다.
-        public static void RecordStageClear(StageData stage)
+        // 스테이지를 이겼을 때: 보상을 주고 클리어를 기록한 뒤 한 번에 저장한다.
+        // 보상 = 매번 받는 보상 + (처음 이긴 경우만) 첫 클리어 보상. 같은 재료는 한 줄로 합쳐 돌려준다 (결과 화면 표시용).
+        public static List<(MaterialData Material, int Amount)> CompleteStage(StageData stage)
         {
             EnsureLoaded();
             StageRecordSave record = FindStageRecord(stage.Id);
-            if (record != null && record.cleared)
+            bool isFirstClear = record == null || !record.cleared;
+
+            var rewards = new List<(MaterialData Material, int Amount)>();
+            AddRewards(rewards, stage.ClearRewards);
+            if (isFirstClear)
             {
-                return;
+                AddRewards(rewards, stage.FirstClearRewards);
+            }
+
+            foreach ((MaterialData material, int amount) in rewards)
+            {
+                AddMaterialAmount(material, amount);
             }
 
             if (record == null)
@@ -311,6 +328,32 @@ namespace Game.Core
 
             record.cleared = true;
             Save();
+
+            // 재료 개수가 바뀌었으니 인벤토리를 보는 화면에 알린다 (구독자가 있을 때만).
+            InventoryChanged?.Invoke();
+            return rewards;
+        }
+
+        // 보상 목록을 rewards에 더한다. 이미 있는 재료면 개수만 더한다 (FindIndex: 같은 재료가 있는 칸 번호, 없으면 -1).
+        private static void AddRewards(List<(MaterialData Material, int Amount)> rewards, IReadOnlyList<StageReward> source)
+        {
+            foreach (StageReward reward in source)
+            {
+                if (reward.Material == null)
+                {
+                    continue;
+                }
+
+                int index = rewards.FindIndex(entry => entry.Material == reward.Material);
+                if (index >= 0)
+                {
+                    rewards[index] = (reward.Material, rewards[index].Amount + reward.Amount);
+                }
+                else
+                {
+                    rewards.Add((reward.Material, reward.Amount));
+                }
+            }
         }
 
         // ---------- 불러오기·저장 ----------
