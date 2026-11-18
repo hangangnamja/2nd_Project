@@ -73,6 +73,7 @@ MonoBehaviour:
     countComparison: 1
     countThreshold: 1
     countCap: 0
+    presentationPrefab: {fileID: 0}
     effects:
     - rid: 7605779530016096425
   transformation:
@@ -85,7 +86,7 @@ MonoBehaviour:
       targetType: 5
       cooldown: 0
       startCooldown: 0
-      presentationPrefab: {fileID: 0}
+      presentationPrefab: {fileID: 8827903539877663010, guid: 8a00b2660bd0f7b479a4fb911d38f88d, type: 3}
       presentationHits: 1
       effects:
       - rid: 7605779530016096426
@@ -95,7 +96,7 @@ MonoBehaviour:
       targetType: 2
       cooldown: 3
       startCooldown: 0
-      presentationPrefab: {fileID: 0}
+      presentationPrefab: {fileID: 3592876736584035590, guid: d285e3e0d6a5ae0469b20a34abb595ab, type: 3}
       presentationHits: 1
       effects:
       - rid: 7605779530016096428
