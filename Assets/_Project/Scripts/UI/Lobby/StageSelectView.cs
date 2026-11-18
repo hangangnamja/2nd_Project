@@ -43,6 +43,15 @@ namespace Game.UI
         [SerializeField] private Text detailInfo;
         [SerializeField] private Button startButton;
 
+        [Tooltip("스테이지 설명 글 (보상 줄 아래)")]
+        [SerializeField] private Text detailDescription;
+
+        [Tooltip("\"획득 보상\" 제목 (보상이 없으면 숨김)")]
+        [SerializeField] private GameObject rewardHeader;
+
+        [Tooltip("보상 칸 원본 (꺼 둔 첫 칸, 같은 부모 아래에 복사해 줄로 늘어놓는다)")]
+        [SerializeField] private StageRewardSlot rewardSlotTemplate;
+
         [Tooltip("탐색 장소일 때만 보이는 난이도 버튼 줄")]
         [SerializeField] private GameObject difficultyRow;
 
@@ -67,9 +76,15 @@ namespace Game.UI
         // 지금 상세 패널에 띄운 탐색 장소 (탐색 탭이 아니면 null).
         private ExplorationSite selectedSite;
 
+        // 만들어 둔 보상 칸 (다시 열 때 재사용, 모자라면 원본을 복사해 늘린다).
+        private readonly List<StageRewardSlot> rewardSlots = new List<StageRewardSlot>();
+
         // 목록 내용을 노드·카드에 채우고 클릭을 연결한다. 처음에는 스테이지 탭, 상세 패널 닫힘.
         private void Awake()
         {
+            // 보상 칸 원본은 복사용이라 숨겨 둔다.
+            rewardSlotTemplate.gameObject.SetActive(false);
+
             BindNodes(normalNodes, catalog.NormalStages, index => $"1-{index + 1}", codeSize: 38);
             BindNodes(bossNodes, catalog.BossStages, index => $"BOSS {index + 1}", codeSize: 46);
             BindSites();
@@ -198,7 +213,7 @@ namespace Game.UI
             FillDetail(stage, selectedSite.SiteName, stage.StageName);
         }
 
-        // 상세 패널 내용: 번호(장소 이름)·이름·추천 레벨·웨이브 수·보상·설명.
+        // 상세 패널 내용: 번호(장소 이름)·이름·추천 레벨·웨이브 수 + 보상 칸 + 설명.
         private void FillDetail(StageData stage, string code, string stageName)
         {
             selectedStage = stage;
@@ -206,36 +221,54 @@ namespace Game.UI
 
             detailCode.text = code;
             detailName.text = stageName;
-
-            string description = string.IsNullOrEmpty(stage.Description) ? string.Empty : $"\n\n{stage.Description}";
-            detailInfo.text = $"추천 레벨 LV.{stage.EnemyLevel}\n웨이브 {stage.Waves.Count}{BuildRewardLines(stage)}{description}";
+            detailInfo.text = $"추천 레벨 LV.{stage.EnemyLevel}\n웨이브 {stage.Waves.Count}";
+            detailDescription.text = stage.Description ?? string.Empty;
+            ShowRewards(stage);
         }
 
-        // 보상 줄: "획득 보상 골드 ×12,000" + 첫 클리어 보상(아직 안 깬 스테이지만). 보상이 없으면 빈 글자.
-        // {amount:N0}: 천 단위 쉼표를 넣은 정수 표기.
-        private static string BuildRewardLines(StageData stage)
+        // 보상 칸: 매번 받는 보상 → 첫 클리어 보상 순으로 아이콘 칸을 늘어놓는다.
+        // 첫 클리어 보상은 "첫 클리어" 꼬리표, 이미 깬 스테이지면 어둡게 덮고 "획득 완료". 보상이 하나도 없으면 제목까지 숨긴다.
+        private void ShowRewards(StageData stage)
         {
-            var lines = new List<string>();
+            bool cleared = Game.Core.PlayerProfile.IsStageCleared(stage);
+            int used = 0;
             foreach (StageReward reward in stage.ClearRewards)
             {
-                if (reward.Material != null)
-                {
-                    lines.Add($"{reward.Material.DisplayName} ×{reward.Amount:N0}");
-                }
+                BindSlot(ref used, reward, isFirstClear: false, claimed: false);
             }
 
-            if (!Game.Core.PlayerProfile.IsStageCleared(stage))
+            foreach (StageReward reward in stage.FirstClearRewards)
             {
-                foreach (StageReward reward in stage.FirstClearRewards)
-                {
-                    if (reward.Material != null)
-                    {
-                        lines.Add($"{reward.Material.DisplayName} ×{reward.Amount:N0} <size=20>(첫 클리어)</size>");
-                    }
-                }
+                BindSlot(ref used, reward, isFirstClear: true, claimed: cleared);
             }
 
-            return lines.Count == 0 ? string.Empty : "\n\n<color=#FFCC4D>획득 보상</color>\n" + string.Join("\n", lines);
+            // 이번에 쓰지 않은 칸은 숨긴다.
+            for (int i = used; i < rewardSlots.Count; i++)
+            {
+                rewardSlots[i].gameObject.SetActive(false);
+            }
+
+            rewardHeader.SetActive(used > 0);
+        }
+
+        // 보상 하나를 used번째 칸에 채운다. 칸이 모자라면 원본을 복사해 하나 더 만든다.
+        // ref used: 함수 안에서 늘린 칸 번호가 부른 쪽 변수에도 그대로 반영된다.
+        private void BindSlot(ref int used, StageReward reward, bool isFirstClear, bool claimed)
+        {
+            if (reward.Material == null)
+            {
+                return;
+            }
+
+            if (used >= rewardSlots.Count)
+            {
+                rewardSlots.Add(Instantiate(rewardSlotTemplate, rewardSlotTemplate.transform.parent));
+            }
+
+            StageRewardSlot slot = rewardSlots[used];
+            slot.gameObject.SetActive(true);
+            slot.Bind(reward.Material, reward.Amount, isFirstClear, claimed);
+            used++;
         }
 
         // 고른 스테이지로 편성 화면을 연다.

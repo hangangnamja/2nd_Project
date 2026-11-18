@@ -73,6 +73,7 @@ MonoBehaviour:
     countComparison: 1
     countThreshold: 1
     countCap: 0
+    presentationPrefab: {fileID: 0}
     effects: []
   references:
     version: 2
