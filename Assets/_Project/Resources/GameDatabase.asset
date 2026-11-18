@@ -52,6 +52,7 @@ MonoBehaviour:
   growthRules: {fileID: 11400000, guid: 392688cb264b467419a9f4ebb0a17ca7, type: 2}
   weaponGrowthRules: {fileID: 11400000, guid: 0af70a94610bc4d47a7ce7bf34601721, type: 2}
   battleRules: {fileID: 11400000, guid: 578a03459990c304aae4e2558428a676, type: 2}
+  achievementCatalog: {fileID: 11400000, guid: 2d79a10a821111649852551f96ad7e85, type: 2}
   startingCharacters:
   - character: {fileID: 11400000, guid: 8545e9f7091b4be4ab5466072e394403, type: 2}
     level: 1

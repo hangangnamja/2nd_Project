@@ -107,6 +107,9 @@ namespace Game.Battle
         // 이번 전투로 받은 보상 (결과 화면용). 지거나 테스트 전투(씬 직접 실행)면 빈 목록.
         public IReadOnlyList<(MaterialData Material, int Amount)> Rewards { get; private set; } = Array.Empty<(MaterialData, int)>();
 
+        // 업적용 전투 기록 (처치·치명타·스킬 사용). 전투가 끝나면 세이브의 누적 기록에 더한다.
+        private BattleRecord battleRecord;
+
         // 지금 행동이 추가 턴인지 (HUD 표시용).
         public bool IsExtraTurn { get; private set; }
 
@@ -147,6 +150,7 @@ namespace Game.Battle
             }
 
             CreateServices();
+            battleRecord = new BattleRecord(services.Events);
             stageRunner = new StageRunner(setup.Stage);
             CreateAllies();
             SpawnCurrentWave();
@@ -951,6 +955,12 @@ namespace Game.Battle
             if (IsVictory && isLaunchedFromLobby)
             {
                 Rewards = Game.Core.PlayerProfile.CompleteStage(stageRunner.Stage);
+            }
+
+            // 업적 누적 기록: 로비에서 시작한 전투면 이겼든 졌든 이번 전투의 처치·치명타·스킬 사용 수를 더한다.
+            if (isLaunchedFromLobby)
+            {
+                Game.Core.PlayerProfile.RecordBattle(battleRecord.Kills, battleRecord.CriticalHits, battleRecord.SkillsUsed);
             }
             StateChanged?.Invoke();
         }

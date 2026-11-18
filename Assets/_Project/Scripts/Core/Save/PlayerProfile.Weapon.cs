@@ -92,6 +92,9 @@ namespace Game.Core
 
             saved.level = result.Level;
             saved.exp = result.Exp;
+
+            // 업적: 누적 무기 강화 횟수 (레벨업 버튼 1번 = 1회). 레벨업과 함께 저장된다.
+            AddCounter(AchievementCondition.WeaponEnhances, 1);
             SaveWeapons();
             return true;
         }

@@ -79,6 +79,9 @@ namespace Game.Core
             }
 
             saved.promotion++;
+
+            // 업적: 누적 진급 횟수. 진급과 함께 저장된다.
+            AddCounter(AchievementCondition.CharacterPromotions, 1);
             SaveGrowth(materialsChanged: !rules.InfiniteMaterials);
             return true;
         }

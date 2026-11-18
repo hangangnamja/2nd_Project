@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21301f6c8002e2e4aad0dcb711a31696, type: 3}
+  m_Name: Ach_pulls_1
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.AchievementData
+  id: pulls_1
+  category: 3
+  tier: 0
+  title: "\uC790\uC9C4 \uC785\uB300\uB97C \uD658\uC601\uD55C\uB2E4 \uC544\uC384\uC774"
+  condition: 11
+  stage: {fileID: 0}
+  target: 10
+  rewardMaterial: {fileID: 11400000, guid: c5ca6006d3535544c8b35b60cf3e5251, type: 2}
+  rewardAmount: 20

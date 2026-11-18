@@ -14,7 +14,8 @@ namespace Game.Core
         // 3: 캐릭터 경험치(exp) 추가, 진급 횟수를 레벨에 맞게 보정
         // 4: 무기 경험치(WeaponSave.exp) 추가
         // 5: 편성을 팀 4개(teams, 팀 이름 포함)로 바꿈. 예전 편성(party)은 1팀으로 옮긴다
-        public const int CurrentVersion = 5;
+        // 6: 업적 (누적 기록 counters, 보상 받은 업적 claimedAchievements) 추가
+        public const int CurrentVersion = 6;
 
         public int version = CurrentVersion;
         public CurrencySave currency = new CurrencySave();
@@ -39,6 +40,20 @@ namespace Game.Core
 
         // 재료 인벤토리: 종류마다 개수 하나 (칸 제한 없음)
         public List<MaterialSave> materials = new List<MaterialSave>();
+
+        // 업적용 누적 기록 (적 처치 수, 모집 횟수 등). 기록 이름(AchievementCondition 이름)마다 숫자 하나
+        public List<CounterSave> counters = new List<CounterSave>();
+
+        // 보상을 받은 업적 ID. 달성 여부는 기록·클리어 상태로 매번 계산하고, "받았는지"만 저장한다
+        public List<string> claimedAchievements = new List<string>();
+    }
+
+    // 누적 기록 하나: 기록 이름 + 지금까지 쌓인 수.
+    [Serializable]
+    public class CounterSave
+    {
+        public string id;
+        public int count;
     }
 
     // 보유 무기 개체 하나. uid로 개체를 구분하고, id로 무기 종류(WeaponData)를 찾는다.

@@ -16,6 +16,7 @@ namespace Game.UI
         [SerializeField] private GameObject gachaScreen;
         [SerializeField] private GameObject inventoryScreen;
         [SerializeField] private GameObject operatorScreen;
+        [SerializeField] private GameObject achievementScreen;
 
         [Header("버튼")]
         [Tooltip("메인 화면의 출격 버튼")]
@@ -29,6 +30,9 @@ namespace Game.UI
 
         [Tooltip("메인 화면의 전투원(OPERATOR) 버튼")]
         [SerializeField] private Button operatorButton;
+
+        [Tooltip("메인 화면의 업적(MISSION) 버튼")]
+        [SerializeField] private Button achievementButton;
 
         [Tooltip("메인 화면의 편성(SQUAD) 버튼 → 출격 없이 팀 편성만")]
         [SerializeField] private Button formationButton;
@@ -48,6 +52,7 @@ namespace Game.UI
             screens.Add(gachaScreen);
             screens.Add(inventoryScreen);
             screens.Add(operatorScreen);
+            screens.Add(achievementScreen);
 
             // 람다식 () => ...: 버튼을 누르면 실행할 동작. 메인 → 출격은 스테이지 탭부터 새로 보여준다.
             stageButton.onClick.AddListener(() =>
@@ -59,6 +64,7 @@ namespace Game.UI
             gachaButton.onClick.AddListener(() => Show(gachaScreen));
             inventoryButton.onClick.AddListener(() => Show(inventoryScreen));
             operatorButton.onClick.AddListener(() => Show(operatorScreen));
+            achievementButton.onClick.AddListener(() => Show(achievementScreen));
 
             // 편성 화면은 열 때 모드(편성 관리)를 정해야 하므로 FormationView를 거쳐 연다.
             formationButton.onClick.AddListener(() => formationScreen.GetComponent<FormationView>().OpenForManage());

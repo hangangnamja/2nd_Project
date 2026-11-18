@@ -38,6 +38,9 @@ namespace Game.Data
         [Tooltip("레벨 성장 곡선 (무기 스탯 계산에 쓴다)")]
         [SerializeField] private BattleRulesData battleRules;
 
+        [Tooltip("업적 전체 목록 (업적 화면·달성 판정)")]
+        [SerializeField] private AchievementCatalog achievementCatalog;
+
         [Header("새 게임")]
         [Tooltip("처음 시작할 때 보유하는 캐릭터. 앞에서부터 최대 4명이 첫 편성이 된다")]
         [SerializeField] private List<StartingCharacter> startingCharacters = new List<StartingCharacter>();
@@ -49,6 +52,7 @@ namespace Game.Data
         public GachaRulesData GachaRules => gachaRules;
         public InventoryRulesData InventoryRules => inventoryRules;
         public IReadOnlyList<MaterialData> Materials => materials;
+        public AchievementCatalog AchievementCatalog => achievementCatalog;
 
         // 그 등급의 무기 목록 (가챠에서 3성 무기가 나올 때 이 중에서 고른다).
         public List<WeaponData> GetWeaponsOfGrade(WeaponGrade grade)
@@ -107,6 +111,44 @@ namespace Game.Data
                 ?? FindExplorationStage(id);
         }
 
+        // 스테이지가 기본·토벌·탐색 중 어디에 속하는지 (업적의 종류별 누적 클리어 횟수용). 목록에 없으면 Unknown.
+        // Contains: 그 목록에 같은 에셋이 들어 있는지 (에셋 참조로 비교).
+        public StageKind GetStageKind(StageData stage)
+        {
+            if (Contains(stageCatalog.NormalStages, stage))
+            {
+                return StageKind.Normal;
+            }
+
+            if (Contains(stageCatalog.BossStages, stage))
+            {
+                return StageKind.Raid;
+            }
+
+            foreach (ExplorationSite site in stageCatalog.ExplorationSites)
+            {
+                if (Contains(site.Difficulties, stage))
+                {
+                    return StageKind.Explore;
+                }
+            }
+
+            return StageKind.Unknown;
+        }
+
+        private static bool Contains(IReadOnlyList<StageData> stages, StageData stage)
+        {
+            foreach (StageData candidate in stages)
+            {
+                if (candidate == stage)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         // 탐색 장소마다 난이도별 스테이지에서 찾는다.
         private StageData FindExplorationStage(string id)
         {
@@ -134,6 +176,15 @@ namespace Game.Data
 
             return null;
         }
+    }
+
+    // 스테이지 종류: 스테이지 선택 화면의 탭(스테이지 / 토벌 / 탐색)과 같다.
+    public enum StageKind
+    {
+        Unknown,
+        Normal,
+        Raid,
+        Explore,
     }
 
     // 새 게임에서 지급하는 캐릭터 한 명과 그 레벨.
