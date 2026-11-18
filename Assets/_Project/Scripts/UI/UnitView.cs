@@ -444,6 +444,32 @@ namespace Game.UI
             }
         }
 
+        // 무대가 정한 기준 자리 (스킬 전용 연출이 캡슐을 움직일 때 출발·복귀 지점으로 쓴다).
+        public Vector3 AnchorPosition => anchorPosition;
+
+        // 스킬 전용 연출이 캡슐을 직접 움직인다 (대시·걷기·도약 등): 진행 중인 모션을 멈추고 이 위치·방향에 놓는다.
+        // 기준 자리는 그대로 두고 "어긋남"으로 저장하므로, 연출이 끝나 ClearScriptedPose를 부르면 기준 자리로 돌아간다.
+        // Quaternion.Inverse(기준 방향) * 원하는 방향: 기준 방향에서 원하는 방향까지 더 돌려야 하는 회전.
+        public void SetScriptedPose(Vector3 worldPosition, Quaternion worldRotation)
+        {
+            if (motion != null)
+            {
+                StopCoroutine(motion);
+                motion = null;
+            }
+
+            motionOffset = worldPosition - anchorPosition;
+            motionRotation = Quaternion.Inverse(anchorRotation) * worldRotation;
+            ApplyMotion();
+        }
+
+        // 스킬 전용 연출이 끝나면 기준 자리·방향으로 되돌린다.
+        public void ClearScriptedPose()
+        {
+            StopMotion();
+            ApplyMotion();
+        }
+
         // 진행 중인 모션을 멈추고 어긋남을 0으로 되돌린다.
         private void StopMotion()
         {

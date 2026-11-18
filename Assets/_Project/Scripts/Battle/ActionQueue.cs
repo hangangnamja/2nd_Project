@@ -239,13 +239,13 @@ namespace Game.Battle
 
         // 패시브로 나가는 추가 공격 (격발 딜러 패시브 2 등). 패시브의 효과를 단일 대상에게 쓴다.
         public FollowUpAttack(BattleUnit owner, PassiveData passive, BattleUnit preferredTarget)
-            : this(owner, passive.PassiveName, passive.Effects, SkillTargetType.EnemySingle, preferredTarget)
+            : this(owner, passive.PassiveName, passive.Effects, SkillTargetType.EnemySingle, preferredTarget, presentationPrefab: passive.PresentationPrefab)
         {
         }
 
         // 쌓인 타수만큼 반복하는 광역 추가 공격 (돌파 반응 패시브). 1타마다 패시브 효과를 적 전체에게 쓴다.
         public FollowUpAttack(BattleUnit owner, PassiveData passive, HitCounter hitCounter)
-            : this(owner, passive.PassiveName, passive.Effects, SkillTargetType.EnemyAll, preferredTarget: null)
+            : this(owner, passive.PassiveName, passive.Effects, SkillTargetType.EnemyAll, preferredTarget: null, presentationPrefab: passive.PresentationPrefab)
         {
             HitCounter = hitCounter;
         }

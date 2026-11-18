@@ -48,6 +48,16 @@ namespace Game.Battle.Effects
             Source = source;
         }
 
+        // 이번 행동의 피해 블록들이 가한 피해 합계 (HP에 들어간 양 + 보호막이 흡수한 양, 무적으로 막힌 피해는 0).
+        // 피흡처럼 "가한 피해 비례" 효과가 읽는다 → 그 효과는 효과 목록에서 피해 블록 뒤에 있어야 한다.
+        public int DamageDealt { get; private set; }
+
+        // 피해 블록이 대상 하나에게 피해를 줄 때마다 부른다.
+        public void RecordDamage(int amount)
+        {
+            DamageDealt += amount;
+        }
+
         // 피해를 받은 대상을 기록한다. 같은 대상을 여러 번 때려도 한 번만 기록한다.
         public void RecordHit(BattleUnit target)
         {

@@ -5,9 +5,9 @@ using Game.Data;
 
 namespace Game.Battle.Effects
 {
-    // 대상 전원의 HP를 회복한다. 회복량 기준 스탯(공격력 / 최대 HP)은 캐릭터마다 다르므로 선택할 수 있다.
+    // 대상 전원의 HP를 회복한다. 회복량 기준(공격력 / 최대 HP / 이 행동에서 가한 피해)은 캐릭터마다 다르므로 선택할 수 있다.
     // 효과 블록 드롭다운에 보여줄 분류/이름과 설명 (SubclassMenuAttribute).
-    [SubclassMenu("회복·보호/회복", "대상 HP 회복. 기준 스탯(공격력·최대 HP·시전자 최대 HP)과 비율을 고르고, 시전자 자신·아군 전체 옵션이 있다", 200)]
+    [SubclassMenu("회복·보호/회복", "대상 HP 회복. 기준(공격력·최대 HP·시전자 최대 HP·가한 피해)과 비율을 고르고, 시전자 자신·아군 전체 옵션이 있다. 가한 피해 기준(피흡)은 피해 블록 뒤에 둔다", 200)]
     [Serializable]
     public class HealEffect : SkillEffect
     {
@@ -19,6 +19,9 @@ namespace Game.Battle.Effects
 
             // 시전자의 최대 HP 기준 (아스트라 패시브: 시전자 최대 HP의 15%를 아군 전체에)
             [InspectorName("시전자 최대 HP")] CasterMaxHp,
+
+            // 이 행동에서 앞선 피해 블록들이 가한 피해 합계 기준 = 피흡 (강탈 딜러 3스). 효과 목록에서 피해 블록 뒤에 둬야 한다.
+            [InspectorName("가한 피해 (피흡)")] DamageDealt,
         }
 
         [Label("기준 스탯")]
@@ -51,7 +54,7 @@ namespace Game.Battle.Effects
                     continue;
                 }
 
-                int healed = target.Heal(CalculateAmount(context.Caster, target));
+                int healed = target.Heal(CalculateAmount(context, target));
                 context.Log($"  {target.Name} {healed} 회복 (HP {target.CurrentHp}/{target.MaxHp})");
                 context.Events?.RaiseHealed(target, healed);
             }
@@ -78,15 +81,18 @@ namespace Game.Battle.Effects
             return healCaster ? new[] { context.Caster } : context.Targets;
         }
 
-        // 기준 스탯 × 비율로 회복량을 구한다. 시전자 공격력·시전자 최대 HP 기준이면 시전자, 대상 최대 HP 기준이면 대상의 값을 쓴다.
-        // switch 식: 기준 스탯마다 쓸 값을 고른다.
-        private int CalculateAmount(BattleUnit caster, BattleUnit target)
+        // 기준 × 비율로 회복량을 구한다. 시전자 공격력·시전자 최대 HP 기준이면 시전자, 대상 최대 HP 기준이면 대상의 값,
+        // 가한 피해 기준이면 이 행동에서 지금까지 피해 블록들이 가한 피해 합계(context.DamageDealt)를 쓴다.
+        // switch 식: 기준마다 쓸 값을 고른다.
+        private int CalculateAmount(SkillContext context, BattleUnit target)
         {
             // caster.Attack·caster.MaxHp: 버프·경계가 반영된 시전자의 최종 스탯
+            BattleUnit caster = context.Caster;
             float baseValue = scaleStat switch
             {
                 ScaleStat.CasterAttack => caster.Attack,
                 ScaleStat.CasterMaxHp => caster.MaxHp,
+                ScaleStat.DamageDealt => context.DamageDealt,
                 _ => target.MaxHp,
             };
 
@@ -99,6 +105,13 @@ namespace Game.Battle.Effects
         {
             // 대상 최대 HP 기준은 회복받는 유닛 각자의 최대 HP라 "최대 HP"로만 적는다 (자신·아군 전체 회복일 때 "대상"이 헷갈리지 않게).
             string scale = scaleStat == ScaleStat.TargetMaxHp ? "최대 HP" : EffectText.EnumName(scaleStat);
+
+            // 피흡은 "가한 피해의 n% 회복"으로 읽히게 따로 적는다.
+            if (scaleStat == ScaleStat.DamageDealt)
+            {
+                return $"{(healAllAllies ? "아군 전체 " : healCaster ? "자신 " : string.Empty)}가한 피해의 {EffectText.Percent(ratio)}만큼 HP 회복 (피흡)";
+            }
+
             return $"{(healAllAllies ? "아군 전체 " : healCaster ? "자신 " : string.Empty)}HP 회복 ({scale} {EffectText.Percent(ratio)})";
         }
     }
