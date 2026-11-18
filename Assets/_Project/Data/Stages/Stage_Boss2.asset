@@ -33,3 +33,7 @@ MonoBehaviour:
   - enemies:
     - character: {fileID: 11400000, guid: 32878f0e38554fc5a0ee05449c31226b, type: 2}
       invulnerable: 0
+  clearRewards: []
+  firstClearRewards:
+  - material: {fileID: 11400000, guid: c5ca6006d3535544c8b35b60cf3e5251, type: 2}
+    amount: 100

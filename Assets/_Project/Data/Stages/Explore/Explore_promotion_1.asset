@@ -37,4 +37,6 @@ MonoBehaviour:
     amount: 1
   - material: {fileID: 11400000, guid: 1cd5f3715242602458ee3672338682a8, type: 2}
     amount: 1
-  firstClearRewards: []
+  firstClearRewards:
+  - material: {fileID: 11400000, guid: c5ca6006d3535544c8b35b60cf3e5251, type: 2}
+    amount: 100

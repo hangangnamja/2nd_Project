@@ -32,3 +32,7 @@ MonoBehaviour:
       invulnerable: 0
     - character: {fileID: 11400000, guid: 81d6e306125c13b4b83d00623fe05ecd, type: 2}
       invulnerable: 0
+  clearRewards: []
+  firstClearRewards:
+  - material: {fileID: 11400000, guid: c5ca6006d3535544c8b35b60cf3e5251, type: 2}
+    amount: 100

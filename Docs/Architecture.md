@@ -18,7 +18,7 @@
 - 편성 화면 `FormationView`는 두 경로로 열림: 메인 화면 편성 버튼(`OpenForManage`, 출격 없음) / 스테이지 선택의 전투 준비(`Open(stage)`). 팀 4개는 세이브의 `teams`·`currentTeam`, `PlayerProfile.GetParty/SetParty`는 지금 고른 팀을 다룸 (`SelectTeam`·`GetTeamName`·`SetTeamName`)
 - 로비 → 전투: 스테이지 선택(`StageSelectView`) → 편성(`FormationView`) → `BattleSetup.Create`(편성 + 레벨 + 고른 스테이지)를 `BattleLaunch`(static)에 맡기고 Battle 씬을 불러옴 → `BattleManager`가 시작할 때 꺼내 씀. 맡긴 값이 없으면(씬 직접 실행) Inspector의 테스트 설정 사용
 - 보유 캐릭터·편성은 세이브(`PlayerProfile`)에서 읽음. 로비에서 시작한 전투는 캐릭터별 보유 레벨로 싸우고, 이기면 `PlayerProfile.CompleteStage`가 보상 지급 + 클리어 기록을 한 번에 저장하고 받은 보상을 돌려줌 → `BattleManager.Rewards` → `BattleResultView`가 표시 (결과 색·파티 카드 `ResultPartyCard`·보상 칸 `ResultRewardSlot`, 칸은 씬의 꺼 둔 원본을 복사)
-- 스테이지 선택 `StageSelectView`: 탭 스테이지 / 토벌 / 탐색. 탐색 장소를 고르면 상세 패널의 난이도 버튼으로 스테이지를 고름. `GameDatabase.FindStage`는 탐색 스테이지까지 찾음
+- 스테이지 선택 `StageSelectView`: 탭 스테이지 / 토벌 / 탐색. 탐색 장소를 고르면 상세 패널의 난이도 버튼으로 스테이지를 고름. 보상은 `StageRewardSlot`(씬의 꺼 둔 원본 칸을 복사·재사용)으로 아이콘 표시, 첫 클리어 보상은 클리어 기록에 따라 "첫 클리어"/"획득 완료". `GameDatabase.FindStage`는 탐색 스테이지까지 찾음
 - Build Settings: Lobby(0) → Battle(1)
 - **직접 실행 경로**: Battle 씬을 에디터에서 바로 실행해도 동작해야 한다
   - 공용 매니저가 없으면 자동 생성
