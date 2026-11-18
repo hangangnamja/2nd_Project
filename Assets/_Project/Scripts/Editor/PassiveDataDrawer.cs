@@ -161,6 +161,7 @@ namespace Game.EditorTools
             if (!isAlwaysOn)
             {
                 AddField(rows, property, "effects", "효과 목록");
+                AddField(rows, property, "presentationPrefab");
             }
 
             return rows;

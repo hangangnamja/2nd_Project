@@ -323,10 +323,19 @@ namespace Game.UI
             // 마무리 대기(endHold) 중에 새 박자가 들어오면 이 코루틴이 이어서 재생한다.
             // 대기 중에는 isRunning이 true라 Enqueue가 새 재생을 시작하지 않으므로, 여기서 다시 확인하지 않으면
             // 박자가 남은 채 재생이 끝나 IsPlaying이 영원히 true → 전투가 다음 턴으로 못 넘어가 멈춘다.
+            // 전용 연출이 타격 뒤에도 이어지면(베고 나서 걸어 돌아오기 등) 연출이 끝날 때까지 기다린다
+            // → 그 전에 다음 턴으로 넘어가 무대가 다시 세워지면 캡슐이 제자리로 순간 이동해 보이기 때문.
             do
             {
                 yield return PlayQueuedBeats();
                 yield return new WaitForSeconds(endHold);
+                // 안전장치: 연출이 비정상으로 끝나지 않아도 15초(실제 시간) 뒤에는 넘어간다.
+                float waited = 0f;
+                while (isSkillFxRunning && waited < 15f)
+                {
+                    waited += Time.unscaledDeltaTime;
+                    yield return null;
+                }
             }
             while (beats.Count > 0);
 

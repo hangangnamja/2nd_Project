@@ -72,6 +72,7 @@ MonoBehaviour:
     countComparison: 1
     countThreshold: 1
     countCap: 0
+    presentationPrefab: {fileID: 0}
     effects:
     - rid: 7605779465967763817
   - passiveName: "\uC544\uB77C\uD06C\uB178\uD3EC\uBE44\uC544"
@@ -93,6 +94,7 @@ MonoBehaviour:
     countComparison: 1
     countThreshold: 1
     countCap: 0
+    presentationPrefab: {fileID: 8727076840586876909, guid: 7d08b1a27cccb104cbb6990b65fbe819, type: 3}
     effects:
     - rid: 7605779465967763934
     - rid: 7605779598317453581

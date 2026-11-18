@@ -64,6 +64,9 @@ namespace Game.Battle.Effects
                 // 보호막이 있으면 먼저 흡수하고, 남은 피해만 HP에 들어간다.
                 // out absorbed: 함수가 피해와 별도로 "보호막이 흡수한 양"을 하나 더 돌려준다 (로그용).
                 int dealt = StatusApplier.DealDamage(target, result.Amount, context.Caster, context.Services, out int absorbed, result.IsCritical);
+
+                // 가한 피해 = HP에 들어간 양 + 보호막이 흡수한 양 (피흡 등 "가한 피해 비례" 효과가 읽음).
+                context.RecordDamage(dealt + absorbed);
                 string critText = result.IsCritical ? " (치명!)" : string.Empty;
                 string shieldText = absorbed > 0 ? $" (보호막 {absorbed} 흡수)"
                     : target.IsDamageImmune ? " (무적)"

@@ -28,6 +28,8 @@ MonoBehaviour:
     targetType: 0
     cooldown: 0
     startCooldown: 0
+    presentationPrefab: {fileID: 0}
+    presentationHits: 1
     effects:
     - rid: 7605779530016096339
   skill2:
@@ -35,20 +37,25 @@ MonoBehaviour:
     targetType: 0
     cooldown: 2
     startCooldown: 0
+    presentationPrefab: {fileID: 1707339284534629946, guid: 985e57e6fb67f264bbd4fbb2c9db1a5f, type: 3}
+    presentationHits: 1
     effects:
     - rid: 7605779530016096340
     - rid: 7605779530016096341
   skill3:
-    skillName: "\uC77C\uACA9"
+    skillName: "\uD761\uC218\uC758 \uC77C\uACA9"
     targetType: 0
     cooldown: 3
     startCooldown: 1
+    presentationPrefab: {fileID: 2545385679640436749, guid: cc1b2a92db20b404d875b4c48d504920, type: 3}
+    presentationHits: 1
     effects:
     - rid: 7605779530016096342
     - rid: 7605779530016096343
     - rid: 7605779598317453519
+    - rid: 7605779734094413985
   passives:
-  - passiveName: "\uBC84\uD504 \uAC00\uC18D"
+  - passiveName: "\uD589\uB3D9 \uAC00\uC18D"
     trigger: 3
     execution: 0
     maxTriggersPerTurn: 0
@@ -63,6 +70,10 @@ MonoBehaviour:
     requiredStatus: {fileID: 0}
     tauntDisplay: {fileID: 0}
     auraModifiers: []
+    countedCategory: 0
+    countComparison: 1
+    countThreshold: 1
+    countCap: 0
     effects:
     - rid: 7605779530016096344
   - passiveName: "\uCD94\uACA9"
@@ -80,6 +91,10 @@ MonoBehaviour:
     requiredStatus: {fileID: 0}
     tauntDisplay: {fileID: 0}
     auraModifiers: []
+    countedCategory: 0
+    countComparison: 1
+    countThreshold: 1
+    countCap: 0
     effects:
     - rid: 7605779530016096345
   references:
@@ -120,3 +135,10 @@ MonoBehaviour:
     - rid: 7605779598317453519
       type: {class: StealBuffsEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data: 
+    - rid: 7605779734094413985
+      type: {class: HealEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        scaleStat: 3
+        ratio: 0.5
+        healCaster: 1
+        healAllAllies: 0

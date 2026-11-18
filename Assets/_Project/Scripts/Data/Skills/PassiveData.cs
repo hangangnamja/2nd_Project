@@ -193,6 +193,11 @@ namespace Game.Data
         [Label("최대 개수", Min = 0f)]
         [SerializeField] private int countCap;
 
+        // 이 패시브가 추가 공격으로 나갈 때 기본 돌진 대신 재생할 전용 연출 (SkillFx가 붙은 프리팹, 비우면 기본 돌진).
+        [Tooltip("추가 공격으로 나갈 때 재생할 전용 연출 (SkillFx가 붙은 프리팹). 비우면 기본 돌진")]
+        [Label("전용 연출")]
+        [SerializeField] private GameObject presentationPrefab;
+
         // [SerializeReference] + [SubclassSelector]: 스킬 효과 목록과 같은 방식으로 효과 종류를 골라 넣는다.
         [SerializeReference, SubclassSelector]
         private List<SkillEffect> effects = new List<SkillEffect>();
@@ -253,5 +258,6 @@ namespace Game.Data
             return 0;
         }
         public IReadOnlyList<SkillEffect> Effects => effects;
+        public GameObject PresentationPrefab => presentationPrefab;
     }
 }

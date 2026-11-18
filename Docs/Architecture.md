@@ -133,7 +133,7 @@ CharacterData (SO 에셋 1개)
 | 공격 | 패시브 스택 비례 피해 (`PassiveStackDamageEffect`) | 기본 배율 + 스택 1개당 배율 × 시전자 패시브 스택, 피해 뒤 스택 전부 소모 | 니콜 2스 (이자 정산) |
 | 공격 | 받은 피해 비례 반격 (`RecordedDamageCounterEffect`) | 기본 배율 + 피해 기록에 쌓인 받은 피해(최대 HP 대비) × 계수를 공격력 배율로 반격, 기록 삭제 | 하이퍼캐리 반격 태세 |
 | 공격 | 격발 (`DetonateEffect`) | 대상의 지속피해를 즉시 1회씩 발동 (지속피해는 유지) | 격발 딜러 3스·패시브 |
-| 회복·보호 | 회복 (`HealEffect`) | 기준 스탯(공격력·최대 HP·시전자 최대 HP) × 비율 회복. 시전자 자신·아군 전체 옵션 | 아스트라 패시브, 변신 스킬 자가 회복 |
+| 회복·보호 | 회복 (`HealEffect`) | 기준(공격력·최대 HP·시전자 최대 HP·가한 피해) × 비율 회복. 시전자 자신·아군 전체 옵션. 가한 피해 = 이 행동에서 앞선 피해 블록들이 가한 피해 합계(`SkillContext.DamageDealt`, HP + 보호막 흡수) → 피흡, 피해 블록 뒤에 둠 | 아스트라 패시브, 변신 스킬 자가 회복, 강탈 딜러 3스 피흡 |
 | 회복·보호 | 보호막 (`ShieldEffect`) | 기준 스탯 × 비율만큼 보호막. 이미 있으면 양을 더함 (`StatusApplier.GrantShield`) | 곰인형 버퍼 2스, 하이퍼캐리 불굴, 도발 탱커 2·3스 |
 | 회복·보호 | 피격 무효 충전 (`HitBlockEffect`) | 시전자의 피격 무효를 횟수만큼 채움 (`BattleUnit.ChargeHitBlock`, 쌓이지 않음). 피해만 0, 효과는 들어감 | (지금 쓰는 캐릭터 없음) |
 | 회복·보호 | 부활 (`ReviveEffect`) | 쓰러진 대상을 최대 HP × 비율로 부활 (`BattleUnit.Revive`). 살아 있는 대상은 건너뜀 | 부활 힐러 3스·패시브 |
@@ -215,7 +215,11 @@ UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
     - 종결기처럼 추가 공격으로 나가는 스킬도 `FollowUpAttack.Skill`에 스킬 데이터를 담아 넘기므로 같은 방식으로 전용 연출을 쓴다 (`StatusApplier.QueueFinisher`). 하이퍼캐리 종결기 = `BoundaryCollapseFx`(영역 벽 구체·큐브 파편 파티클 `Prefabs/Fx/FxBoundaryCollapse`, 그림·재질 `Art/Battle/Domain`)
     - 격발 딜러 2스 = `WebBurstFx`(`Prefabs/Fx/FxWebBurst`), 3스 = `BindingBurstFx`(`Prefabs/Fx/FxBindingBurst`, 실 새장 + 번개는 `GlowLines.SetZigzag`). 선 모양은 프리팹 안 꺼 둔 견본 `LineRenderer`(재질 `Art/Battle/Web/FxLine`, 색·굵기)를 `GlowLines`가 복제해 쓰고, 코드는 점 위치·밝기(MaterialPropertyBlock)·투명도만 바꾼다. 불꽃·폭발은 `FxWebSpark`·`FxBindBurst`(타격·메테오 폭발 파티클을 보라·분홍으로 바꾼 것)
     - 하이퍼캐리 2스 = `GoldenSlashFx`(`Prefabs/Fx/FxGoldenSlash`, 굵기 곡선을 준 견본 선 + 겹마다 색 그라데이션으로 초승달 검기, 캐리를 중심으로 커지는 호, 어깨 시점 컷). 연출이 `CasterView.PlayLunge`로 직접 돌진시킨다
+    - 패시브 추가 공격의 전용 연출: `PassiveData`의 "전용 연출" 칸 → `FollowUpAttack(owner, passive, …)`가 `PresentationPrefab`으로 넘김. 격발 딜러 패시브 추가 공격 = `ThreadBindFx`(`Prefabs/Fx/FxThreadBind`, 베지어 곡선으로 쏜 실 → 대상 둘레 나선 → 반지름을 줄여 조이기)
     - 추가 공격에도 전용 연출: `QueueFollowUpEffect`의 "전용 연출" 칸 → `FollowUpAttack.PresentationPrefab` → `ActionStartInfo.PresentationPrefab`(따로 준 프리팹, 없으면 스킬 데이터의 프리팹). `BattleFxView.FindSkillFx`는 이 값만 본다. 반격 태세의 반격 = `GroundSplitFx`(`Prefabs/Fx/FxGroundSplit`, 위 시점 컷 + 바닥에 눕힌 견본 선 + 균열 칸마다 솟는 바위 조각·튀는 파편(견본 큐브, `Art/Battle/Web/SplitRock` 재질) + 메테오 폭발 파티클)
+    - 강탈 딜러 2스 = `StealSlashFx`(`Prefabs/Fx/FxStealSlash`, 대시·X자 검흔 + 대상 → 딜러로 길을 찾아 날아가는 기운 파티클: `Emit`으로 내보내고 `GetParticles`/`SetParticles`로 매 프레임 방향을 틈), 3스 = `MoonStrikeFx`(`Prefabs/Fx/FxMoonStrike`, 밤·안개(`RenderSettings.ambientProbe`·안개 색·안개 시작/끝 거리·배경색·방향광을 섞었다가 되돌림) + 안개 뭉치 `FxFogPuff`(알파 블렌딩 재질)로 사라짐 → 적 시점 컷 + 하늘의 달 판(안개를 받지 않는 `Sprites/Default` 재질, `Art/Battle/Moon`) → 내리꽂히다 위 시점 컷 → 폭발 `FxMoonImpact` + 바닥에 눕힌 견본 선으로 충격파 고리·균열)
+      - 타격 뒤에도 이어지는 연출(걸어 돌아오기 등)이 있어서, `BattleFxView.PlayBeats`는 전용 연출이 끝날 때까지(최대 15초) 기다린 뒤 재생을 마친다 → 그 전에 다음 턴의 무대 재배치로 캡슐이 순간 이동하지 않게
+      - 캡슐을 연출이 직접 움직일 때는 `UnitView.SetScriptedPose`(월드 위치·방향 → 기준 자리 대비 어긋남으로 저장)와 `ClearScriptedPose`(기준 자리로 복귀, 연출이 사라지면 `OnDestroy`에서도 부름)
     - 하이퍼캐리 변신기 = `TransformCocoonFx`(`Prefabs/Fx/FxTransformCocoon`, 그림·재질 `Art/Battle/Sun`). 상대 타격이 없는 연출은 `BattleFxView`가 끝날 때까지 기다린 뒤 다음 박자로
     - 변신 모습(헤일로·날개): `TransformationData.AppearancePrefab`을 `UnitView.ApplyAppearance`가 변신 중(`IsTransformed`)에 몸의 자식으로 붙인다. 움직임은 `TransformAppearance`
       - 로직은 변신을 즉시 바꾸므로, 모습을 바꾸는 연출(`SkillFx.ChangesAppearance`: 변신기·종결기)이면 `BattleFxView`가 행동 시작 사건 때 `FreezeAppearance`로 지금 모습을 고정하고, 연출이 바뀌는 순간 `RevealAppearance`(→ `ReleaseAppearance`)로 실제 상태를 반영한다. 모습을 바꾸는 연출이 끝나거나 못 보여주면 그때 풀림 (다른 연출은 풀지 않음: 마지막 엑스트라 턴의 스킬 연출이 끝날 때 종결기가 걸어 둔 고정을 먼저 풀어 날개가 일찍 사라지던 문제 방지)
@@ -401,7 +405,7 @@ Assets/_Project/
 - 전투 HUD: 보스 HP바(상단), 웨이브·사이클, 원형 스킬 버튼(`SkillButtonView`)·쿨타임 덮개·스킬 이름판, 대상 선택, 행동 순서 목록(원형 초상화·지금 차례 확대·움직이는 순서), 상태효과 아이콘·툴팁 (전투 로그는 화면에서 숨김, 콘솔에만)
 - 전투 임시 연출: 타격·치명·지속피해·회복·버프 이펙트 + 피해 숫자, 행동 단위로 순서대로 재생 (3장 "연출 재생")
   - 타격감: 돌진·시전 모션(추가 공격·패시브 행동 포함), 피격 번쩍임·밀림, 히트스톱·슬로모션, 화면 흔들림, 3스 컷인, 피해 합계, HP를 타격 순간에 맞춰 줄임, 보호막 깨짐, HP바 흔들림, 연출 다단 히트
-  - 스킬 전용 연출(`SkillFx`) + 연출 컷 카메라: 선브링어 변신 3스 메테오, 하이퍼캐리 변신기·종결기, 격발 딜러 2스 거미줄·3스 실 새장, 하이퍼캐리 2스 황금 검기·반격 땅 가르기 (임시)
+  - 스킬 전용 연출(`SkillFx`) + 연출 컷 카메라: 선브링어 변신 3스 메테오, 하이퍼캐리 변신기·종결기, 격발 딜러 2스 거미줄·3스 실 새장, 하이퍼캐리 2스 황금 검기·반격 땅 가르기, 강탈 딜러 2스 강탈·3스 달빛 일격 (임시)
 - 상세 창(카드 꾹 누르기): 스탯 / 버프·디버프 / 스킬 탭
 - 로비: 메인 화면(출격·모집·인벤토리·전투원 연결), 스테이지 선택(지도·보스 탭·상세 패널), 편성(4칸·보유 목록·팀 4개·팀 이름·저장, 메인 화면에서 열면 편성 관리만)
 - 전투원: 보유 목록, 상세(스탯·무기 +n)/스킬 탭, 육성 창(레벨업·일괄 추가·진급), 무기 칸 → 장착 창(직군 제한·장착·해제·강화)
@@ -421,7 +425,7 @@ Assets/_Project/
 - 무기 반영 후 밸런스: 전투에 무기 스탯이 들어가 아군이 강해짐 → 적 데이터 에셋을 StatTable 적 스탯(3성 무기 0.8 기준)에 맞춰 다시 조정
 - 타격감 보강 남은 후보: 치명·3스 카메라 줌 펀치, 스쿼시&스트레치, 방향 있는 히트 스파크, 돌진 잔상, 처치 폭발 (다단 히트·보호막 깨짐·HP바 흔들림은 구현, 화면 가장자리 번쩍임은 넣어 봤다가 뺌)
 - 효과음 (타격·치명·처치·돌진·시전·컷인, 임시 소리 파일 필요)
-- 스킬 전용 연출: 지금은 선브링어 변신 3스(메테오), 하이퍼캐리 변신기(황금 구체)·종결기(영역 붕괴), 격발 딜러 2스(거미줄)·3스(실 새장), 하이퍼캐리 2스(황금 검기)·반격(땅 가르기)만. 다른 캐릭터 3스는 `SkillFx`로 추가
+- 스킬 전용 연출: 지금은 선브링어 변신 3스(메테오), 하이퍼캐리 변신기(황금 구체)·종결기(영역 붕괴), 격발 딜러 2스(거미줄)·3스(실 새장), 하이퍼캐리 2스(황금 검기)·반격(땅 가르기), 강탈 딜러 2스(강탈)·3스(달빛 일격)만. 다른 캐릭터 3스는 `SkillFx`로 추가
 - 전투 UI 정식 배치: 현재 행동 캐릭터 패널, 아군 스킬 이름 알림 (보스 스킬 이름 띠·보스 HP바·아군 카드·상세 창·행동 순서 초상화·원형 스킬 버튼은 구현)
 - 방어력 관통 (기획서 10장 미정)
 
