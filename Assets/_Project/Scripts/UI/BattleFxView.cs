@@ -493,6 +493,7 @@ namespace Game.UI
         {
             Vector3 casterPosition = casterView.transform.position;
             var targets = new List<(BattleUnit Unit, Vector3 Position)>();
+            var allyTargets = new List<(BattleUnit Unit, Vector3 Position)>();
             ClearImpactWaiting();
             isSkillFxRunning = true;
             foreach (BattleUnit target in action.Targets)
@@ -503,10 +504,16 @@ namespace Game.UI
                     targets.Add((target, view.transform.position));
                     awaitingImpact.Add(target);
                 }
+                else if (target.IsAlly == action.Caster.IsAlly && view != null && view.gameObject.activeInHierarchy)
+                {
+                    // 같은 편 대상(버프·회복)은 타격을 기다리지 않고 위치만 넘긴다 → 연출이 끝난 뒤 버프 박자가 재생된다.
+                    allyTargets.Add((target, view.transform.position));
+                }
             }
 
             SkillFx fx = Instantiate(prefab, casterPosition, Quaternion.identity);
             fx.CasterView = casterView;
+            fx.AllyTargets = allyTargets;
 
             // 람다 (unit, share) => ...: 연출이 대상에 닿을 때마다 "그 대상 피해의 share만큼 보여줘"를 쌓는다.
             return StartCoroutine(RunSkillFx(fx.Play(casterPosition, targets, (unit, share) => impactQueue.Add((unit, share)), cameraDirector), casterView, fx.ChangesAppearance));

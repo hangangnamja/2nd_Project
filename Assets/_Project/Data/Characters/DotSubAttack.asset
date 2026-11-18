@@ -48,7 +48,7 @@ MonoBehaviour:
     targetType: 1
     cooldown: 4
     startCooldown: 0
-    presentationPrefab: {fileID: 0}
+    presentationPrefab: {fileID: 8791676501732408690, guid: 695f64704fd83024a8cfbcac45e0ba7d, type: 3}
     presentationHits: 1
     effects:
     - rid: 7605779465967763970
@@ -72,6 +72,11 @@ MonoBehaviour:
     - stat: 8
       percent: 0.3
       flat: 0
+    countedCategory: 0
+    countComparison: 1
+    countThreshold: 1
+    countCap: 0
+    presentationPrefab: {fileID: 0}
     effects: []
   references:
     version: 2
