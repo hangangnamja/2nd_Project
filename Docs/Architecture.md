@@ -227,7 +227,11 @@ UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
     - 패시브 추가 공격의 전용 연출: `PassiveData`의 "전용 연출" 칸 → `FollowUpAttack(owner, passive, …)`가 `PresentationPrefab`으로 넘김. 격발 딜러 패시브 추가 공격 = `ThreadBindFx`(`Prefabs/Fx/FxThreadBind`, 베지어 곡선으로 쏜 실 → 대상 둘레 나선 → 반지름을 줄여 조이기)
     - 추가 공격에도 전용 연출: `QueueFollowUpEffect`의 "전용 연출" 칸 → `FollowUpAttack.PresentationPrefab` → `ActionStartInfo.PresentationPrefab`(따로 준 프리팹, 없으면 스킬 데이터의 프리팹). `BattleFxView.FindSkillFx`는 이 값만 본다. 반격 태세의 반격 = `GroundSplitFx`(`Prefabs/Fx/FxGroundSplit`, 위 시점 컷 + 바닥에 눕힌 견본 선 + 균열 칸마다 솟는 바위 조각·튀는 파편(견본 큐브, `Art/Battle/Web/SplitRock` 재질) + 메테오 폭발 파티클)
     - 강탈 딜러 2스 = `StealSlashFx`(`Prefabs/Fx/FxStealSlash`, 대시·X자 검흔 + 대상 → 딜러로 길을 찾아 날아가는 기운 파티클: `Emit`으로 내보내고 `GetParticles`/`SetParticles`로 매 프레임 방향을 틈), 3스 = `MoonStrikeFx`(`Prefabs/Fx/FxMoonStrike`, 밤·안개(`RenderSettings.ambientProbe`·안개 색·안개 시작/끝 거리·배경색·방향광을 섞었다가 되돌림) + 안개 뭉치 `FxFogPuff`(알파 블렌딩 재질)로 사라짐 → 적 시점 컷 + 하늘의 달 판(안개를 받지 않는 `Sprites/Default` 재질, `Art/Battle/Moon`) → 내리꽂히다 위 시점 컷 → 폭발 `FxMoonImpact` + 바닥에 눕힌 견본 선으로 충격파 고리·균열)
+    - 하이퍼캐리 변신 1스 = `SpaceRendFx`(`Prefabs/Fx/FxSpaceRend`, 카메라 평면 위 2점 참격선(견본 선의 색 그라데이션·굵기 곡선) → 참격마다 `onImpact` 일부 비율, 마무리 참격이 비율 1. 공간 조각 `FxRiftShards` = 영역 붕괴의 검은 큐브 재질 파편)
+    - 하이퍼캐리 변신 2스(반격 태세) = `WingGuardFx`(`Prefabs/Fx/FxWingGuard`, 시전자 화면 오브젝트 아래의 `TransformAppearance.SetWrap(0~1)`로 날개를 접었다 펼침: 부모 기준 세로축으로 크게 돌리고(90도 근처는 날개 판이 옆에서 보여 얇아지므로 150도) 뿌리를 앞으로 옮겨 몸 앞에서 엇갈리게. 감싼 동안 날개 앞에 태양 문장 판 `Art/Battle/Sun/GuardSigil`(가산 발광)을 돌리며 맥동)
     - 독 서브딜러 3스 = `PoisonFlaskFx`(`Prefabs/Fx/FxPoisonFlask`, 기본 도형으로 만든 플라스크 견본(유리 투명 재질·발광 독·해골 라벨 `Art/Battle/Poison`) → 포물선 투척 → `FxFlaskShatter` → 연기 `FxPoisonSmoke`가 퍼지는 반지름이 적에게 닿는 순간 피해)
+    - 도발 탱커 2스 = `GuardSlamFx`(`Prefabs/Fx/FxGuardEmblemSlam`, 방패 문양 판(가산 발광 재질 `Art/Battle/Guard/GuardEmblem`)을 MaterialPropertyBlock으로 밝기 조절, 충격파 `FxGuardSlam`·흡수 빛 `FxGuardAbsorb`, 탱커가 바라보는 방향(`CasterView.transform.forward`) 정면에서 탱커를 보는 연출 컷)
+    - 도발 탱커 3스 = `FortressGuardFx`(`Prefabs/Fx/FxFortress`, 기본 도형 성벽 견본: 원점 = 아군 줄 가운데 바닥, +z = 카메라 쪽. `Risers` 아래 조각을 +z가 큰 것부터 솟게 함, 성문 빛 `GateGlow`, 깃발 `Art/Battle/Guard/Banner`(알파 컷), 돌먼지 `FxStoneDust`, 탱커 앞에 드는 원형 마법진 방패 `Art/Battle/Guard/MagicShield`(판의 앞 방향 축으로 계속 돌림), 연출 컷 카메라)
     - 곰인형 버퍼 2스 = `TeddyHugFx`(`Prefabs/Fx/FxTeddyHug`, 기본 도형으로 만든 곰인형 견본(`Art/Battle/Teddy`), 어깨 축 `ArmPivotL/R`을 돌려 팔을 벌리고 감쌈, 하트 `FxTeddyHeart`·반짝임 `FxTeddyPop`)
     - 곰인형 버퍼 3스 = `TeddyCheerFx`(`Prefabs/Fx/FxTeddyCheer`, 포옹 곰인형 견본에 폼폼(작은 공 뭉치)을 단 견본을 여러 마리 복제해 아군 줄 앞에 세우고, 박자 위치로 뛰기·흔들기·팔 들기를 계산)
       - 아군 대상 연출은 `SkillFx.AllyTargets`(BattleFxView가 같은 편 대상의 화면 위치를 넣어 줌)를 쓴다. 상대 타격이 없으므로 연출이 끝날 때까지 기다린 뒤 버프 박자를 재생
@@ -418,7 +422,7 @@ Assets/_Project/
 - 전투 HUD: 보스 HP바(상단), 웨이브·사이클, 원형 스킬 버튼(`SkillButtonView`)·쿨타임 덮개·스킬 이름판, 대상 선택, 행동 순서 목록(원형 초상화·지금 차례 확대·움직이는 순서), 상태효과 아이콘·툴팁 (전투 로그는 화면에서 숨김, 콘솔에만)
 - 전투 임시 연출: 타격·치명·지속피해·회복·버프 이펙트 + 피해 숫자, 행동 단위로 순서대로 재생 (3장 "연출 재생")
   - 타격감: 돌진·시전 모션(추가 공격·패시브 행동 포함), 피격 번쩍임·밀림, 히트스톱·슬로모션, 화면 흔들림, 3스 컷인, 피해 합계, HP를 타격 순간에 맞춰 줄임, 보호막 깨짐, HP바 흔들림, 연출 다단 히트
-  - 스킬 전용 연출(`SkillFx`) + 연출 컷 카메라: 선브링어 변신 3스 메테오, 하이퍼캐리 변신기·종결기, 격발 딜러 2스 거미줄·3스 실 새장, 하이퍼캐리 2스 황금 검기·반격 땅 가르기, 강탈 딜러 2스 강탈·3스 달빛 일격, 독 서브딜러 3스 독 플라스크, 곰인형 버퍼 2스 곰인형 포옹·3스 응원 춤 (임시)
+  - 스킬 전용 연출(`SkillFx`) + 연출 컷 카메라: 선브링어 변신 3스 메테오, 하이퍼캐리 변신기·종결기, 격발 딜러 2스 거미줄·3스 실 새장, 하이퍼캐리 2스 황금 검기·반격 땅 가르기, 강탈 딜러 2스 강탈·3스 달빛 일격, 독 서브딜러 3스 독 플라스크, 곰인형 버퍼 2스 곰인형 포옹·3스 응원 춤, 도발 탱커 2스 방패 문양·3스 마법진 방패·성벽, 하이퍼캐리 변신 1스 공간 가르기·반격 태세 날개 감싸기 (임시)
 - 상세 창(카드 꾹 누르기): 스탯 / 버프·디버프 / 스킬 탭
 - 로비: 메인 화면(출격·모집·인벤토리·전투원 연결), 스테이지 선택(지도·보스 탭·상세 패널), 편성(4칸·보유 목록·팀 4개·팀 이름·저장, 메인 화면에서 열면 편성 관리만)
 - 전투원: 보유 목록, 상세(스탯·무기 +n)/스킬 탭, 육성 창(레벨업·일괄 추가·진급), 무기 칸 → 장착 창(직군 제한·장착·해제·강화)
@@ -439,7 +443,7 @@ Assets/_Project/
 - 무기 반영 후 밸런스: 전투에 무기 스탯이 들어가 아군이 강해짐 → 적 데이터 에셋을 StatTable 적 스탯(3성 무기 0.8 기준)에 맞춰 다시 조정
 - 타격감 보강 남은 후보: 치명·3스 카메라 줌 펀치, 스쿼시&스트레치, 방향 있는 히트 스파크, 돌진 잔상, 처치 폭발 (다단 히트·보호막 깨짐·HP바 흔들림은 구현, 화면 가장자리 번쩍임은 넣어 봤다가 뺌)
 - 효과음 (타격·치명·처치·돌진·시전·컷인, 임시 소리 파일 필요)
-- 스킬 전용 연출: 지금은 선브링어 변신 3스(메테오), 하이퍼캐리 변신기(황금 구체)·종결기(영역 붕괴), 격발 딜러 2스(거미줄)·3스(실 새장), 하이퍼캐리 2스(황금 검기)·반격(땅 가르기), 강탈 딜러 2스(강탈)·3스(달빛 일격), 독 서브딜러 3스(독 플라스크), 곰인형 버퍼 2스(곰인형 포옹)·3스(응원 춤)만. 다른 캐릭터 3스는 `SkillFx`로 추가
+- 스킬 전용 연출: 지금은 선브링어 변신 3스(메테오), 하이퍼캐리 변신기(황금 구체)·종결기(영역 붕괴), 격발 딜러 2스(거미줄)·3스(실 새장), 하이퍼캐리 2스(황금 검기)·반격(땅 가르기), 강탈 딜러 2스(강탈)·3스(달빛 일격), 독 서브딜러 3스(독 플라스크), 곰인형 버퍼 2스(곰인형 포옹)·3스(응원 춤), 도발 탱커 2스(방패 문양)·3스(마법진 방패·성벽), 하이퍼캐리 변신 1스(공간 가르기)·반격 태세(날개로 감싸기)만. 다른 캐릭터 3스는 `SkillFx`로 추가
 - 전투 UI 정식 배치: 현재 행동 캐릭터 패널, 아군 스킬 이름 알림 (보스 스킬 이름 띠·보스 HP바·아군 카드·상세 창·행동 순서 초상화·원형 스킬 버튼은 구현)
 - 방어력 관통 (기획서 10장 미정)
 

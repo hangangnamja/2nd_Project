@@ -28,6 +28,8 @@ MonoBehaviour:
     targetType: 0
     cooldown: 0
     startCooldown: 0
+    presentationPrefab: {fileID: 0}
+    presentationHits: 1
     effects:
     - rid: 7605779598317453378
   skill2:
@@ -35,6 +37,8 @@ MonoBehaviour:
     targetType: 2
     cooldown: 3
     startCooldown: 0
+    presentationPrefab: {fileID: 5424677760790605131, guid: 275ca5aca682f5f4e8696c52263e0eaf, type: 3}
+    presentationHits: 1
     effects:
     - rid: 7605779598317453379
     - rid: 7605779598317453380
@@ -43,6 +47,8 @@ MonoBehaviour:
     targetType: 4
     cooldown: 5
     startCooldown: 0
+    presentationPrefab: {fileID: 2288431085281229891, guid: 20ae7459567d9284a8c470d85b18e3bb, type: 3}
+    presentationHits: 1
     effects:
     - rid: 7605779598317453381
     - rid: 7605779598317453382
@@ -62,6 +68,11 @@ MonoBehaviour:
     requiredStatus: {fileID: 0}
     tauntDisplay: {fileID: 11400000, guid: 24d613f5b0119ab4485ff48927b26738, type: 2}
     auraModifiers: []
+    countedCategory: 0
+    countComparison: 1
+    countThreshold: 1
+    countCap: 0
+    presentationPrefab: {fileID: 0}
     effects: []
   references:
     version: 2
