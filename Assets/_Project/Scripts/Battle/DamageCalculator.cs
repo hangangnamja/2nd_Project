@@ -52,9 +52,13 @@ namespace Game.Battle
             bool isCritical = random.NextDouble() < attacker.CritRate;
             double critMultiplier = isCritical ? 1d + attacker.CritDamage : 1d;
 
+            // 피해 난수: 전투 규칙에서 켜 두면 0.9 ~ 1.1 같은 무작위 배율을 곱한다 (끄면 1). 공격 행동에만 적용 (치명타와 같은 범위).
+            double variance = rules.RollDamageVariance(random);
+
             double damage = baseDamage
                 * (1d + attacker.DamageBonus)
                 * critMultiplier
+                * variance
                 * GetDefenseMultiplier(attacker.Level, target, rules)
                 * GetTargetSideMultiplier(target);
 

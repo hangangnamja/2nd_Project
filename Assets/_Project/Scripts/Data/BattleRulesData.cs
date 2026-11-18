@@ -31,7 +31,27 @@ namespace Game.Data
         [Tooltip("무기 Lv1 스탯 = 최대 스탯(Lv60·진급 5회) × 이 비율. 나머지는 캐릭터와 같은 모양(레벨당 + 진급 점프)으로 오른다 (StatTable 상위 무기 Lv1 80 / Lv60 500 = 0.16)")]
         [SerializeField, Range(0f, 1f)] private float weaponLv1Ratio = 0.16f;
 
+        [Header("피해 난수")]
+        [Tooltip("체크하면 공격 행동(스킬·추가 공격)의 피해에 아래 범위의 무작위 배율을 곱한다. 끄면 지금까지처럼 같은 조건이면 같은 피해 (치명 판정만 난수)")]
+        [SerializeField] private bool damageVarianceEnabled = true;
+
+        [Tooltip("무작위 배율의 최소 · 최대 (0.9 ~ 1.1 = 피해가 ±10% 사이에서 흔들림). 지속피해·회복에는 적용하지 않는다")]
+        [SerializeField, Range(0.5f, 1f)] private float damageVarianceMin = 0.9f;
+        [SerializeField, Range(1f, 1.5f)] private float damageVarianceMax = 1.1f;
+
         private const int MaxLevel = 60;
+
+        // 공격 피해에 곱할 무작위 배율을 하나 뽑는다. 꺼져 있으면 항상 1 (피해 그대로).
+        // random.NextDouble(): 0 이상 1 미만의 무작위 실수 → 최소 ~ 최대 사이로 늘려 쓴다 (전투 공용 난수라 시드를 고정하면 결과도 재현됨).
+        public double RollDamageVariance(System.Random random)
+        {
+            if (!damageVarianceEnabled)
+            {
+                return 1d;
+            }
+
+            return damageVarianceMin + (damageVarianceMax - damageVarianceMin) * random.NextDouble();
+        }
         private const int MaxAscension = 5;
         private const int AscensionInterval = 10;
 

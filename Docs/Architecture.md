@@ -44,7 +44,7 @@
 | `StageData`: 적 레벨 + 웨이브 목록(웨이브마다 적 편성, 자리별 무적) + 보상(`clearRewards` 매번, `firstClearRewards` 첫 클리어만, 재료 + 개수). `StageCatalog`: 기본·토벌 목록 + 탐색 장소(`ExplorationSite`: 장소 이름·재화 표기·난이도별 스테이지) | `StageRunner`: 현재 웨이브, 웨이브 클리어 판정, 다음 웨이브 유무 |
 | `BattleSetup`: 이번 전투의 아군 편성·레벨 + 스테이지 (지금은 테스트 에셋, 이후 로비가 만들어 넘김) | - |
 | `EnemyCharacterData`: `CharacterData` + 행동 패턴 목록 (패턴이 필요한 적만) | `BattleManager.DecideEnemyAction`: 패턴을 순서대로 확인해 스킬·대상 결정 |
-| `BattleRulesData`: 전투 공통 수치 (방어 상수 K 계산 파라미터, 레벨 성장 곡선) | `BattleUnit` 기본 스탯 = 데이터 스탯(Lv1) × 레벨 배율(`StatScaling`), 전투 시작 때 고정. 아군 배율은 `GetAllyScaling(레벨, 진급)` (로비 → `BattleSetup`이 진급 횟수도 넘김, 모르면 그 레벨까지 진급 완료로 계산) |
+| `BattleRulesData`: 전투 공통 수치 (방어 상수 K 계산 파라미터, 레벨 성장 곡선, 피해 난수 켜기·범위 → `RollDamageVariance`를 `DamageCalculator`가 공격 피해에 곱함, 전투 공용 난수라 시드 고정 시 재현) | `BattleUnit` 기본 스탯 = 데이터 스탯(Lv1) × 레벨 배율(`StatScaling`), 전투 시작 때 고정. 아군 배율은 `GetAllyScaling(레벨, 진급)` (로비 → `BattleSetup`이 진급 횟수도 넘김, 모르면 그 레벨까지 진급 완료로 계산) |
 | `GachaBannerData`: 배너 이름·강조 문구·종료 일시·픽업 S 1명 | `GachaView`: 보여주는 배너 순서 |
 | `GachaRulesData`: 확률·천장·반천·A 확정·비용·디버그 무료 (배너 공통) | `GachaSave`(세이브): 천장·A 확정 카운터, 픽업 확정 여부 |
 | `WeaponData`·`MaterialData`: 무기(등급 3~5성, 종류 칼·방패·마법지팡이·로자리오 = 장착 직군, 풀 육성 스탯)·재료(분류, 등급) 종류 | `WeaponSave`(개체 번호·레벨·진급·경험치·장착)·`MaterialSave`(개수) → `OwnedWeapon`·`OwnedMaterial`. 무기 스탯 = `WeaponStats.Calculate`(풀 육성 스탯 × `BattleRulesData.GetWeaponStatRatio`) |

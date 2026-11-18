@@ -16,3 +16,11 @@ MonoBehaviour:
   balancedDefenseAtLv1: 48
   balancedDefenseAtLv60: 600
   ascensionJumpLevels: 5
+  balancedHpAtLv1: 600
+  balancedHpAtLv60: 7500
+  balancedAttackAtLv1: 130
+  balancedAttackAtLv60: 800
+  weaponLv1Ratio: 0.16
+  damageVarianceEnabled: 1
+  damageVarianceMin: 0.9
+  damageVarianceMax: 1.1
