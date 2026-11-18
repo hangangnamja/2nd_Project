@@ -60,6 +60,7 @@ namespace Game.Core
             // 지난 플레이에서 해제되지 못한 구독이 남아 있지 않도록 비운다.
             OwnedCharactersChanged = null;
             InventoryChanged = null;
+            AchievementsChanged = null;
         }
 
         // ID → 데이터 에셋 목록 (가챠가 S·A 캐릭터 목록과 규칙을 꺼낼 때 사용)
@@ -103,9 +104,15 @@ namespace Game.Core
         // 뽑기 결과 반영: 새로 얻은 캐릭터를 보유 목록에 추가하고, 나온 무기를 무기 인벤에 넣고, 보석을 쓴 뒤 바로 저장한다
         // (기획서 9장: 가챠 직후 저장). 이미 보유한 캐릭터는 newCharacters에 넣지 않는다 (중복은 지금은 효과 없음).
         // 반환: weapons와 같은 순서로 "자동 분해됐는지" (무기 칸이 꽉 차 있었으면 true) → 결과 화면에 "분해됨" 표시.
-        public static List<bool> CommitGachaPull(IReadOnlyList<CharacterData> newCharacters, IReadOnlyList<WeaponData> weapons, int gemCost, int level)
+        // pullCount·pulledCharacters·pulledS: 업적 누적 기록용 (모집 횟수, 중복 포함 전투원 획득 수, 그중 S 수).
+        public static List<bool> CommitGachaPull(IReadOnlyList<CharacterData> newCharacters, IReadOnlyList<WeaponData> weapons, int gemCost, int level,
+            int pullCount, int pulledCharacters, int pulledS)
         {
             EnsureLoaded();
+            AddCounter(AchievementCondition.RecruitPulls, pullCount);
+            AddCounter(AchievementCondition.CharactersObtained, pulledCharacters);
+            AddCounter(AchievementCondition.SCharactersObtained, pulledS);
+
             foreach (CharacterData character in newCharacters)
             {
                 data.characters.Add(CreateCharacterSave(character, level));
@@ -327,6 +334,9 @@ namespace Game.Core
             }
 
             record.cleared = true;
+
+            // 업적: 스테이지 종류(기본·토벌·탐색)별 누적 클리어 횟수. 보상·클리어 기록과 한 번에 저장한다.
+            AddStageClearCounter(stage);
             Save();
 
             // 재료 개수가 바뀌었으니 인벤토리를 보는 화면에 알린다 (구독자가 있을 때만).

@@ -66,7 +66,12 @@ namespace Game.Outgame
 
             // ConvertAll(람다): 목록의 원소마다 람다 결과를 모은 새 목록 → 무기 결과에서 무기 데이터만 꺼낸다.
             List<WeaponData> weapons = weaponResults.ConvertAll(result => result.Weapon);
-            List<bool> dismantled = PlayerProfile.CommitGachaPull(obtained, weapons, GetCost(count), Rules.ObtainedLevel);
+            // 업적 기록용: 나온 전투원 수(중복 포함)와 그중 S 수. FindAll(람다): 조건이 참인 결과만 모은 새 목록 → Count로 개수.
+            int pulledCharacters = results.FindAll(result => result.Character != null).Count;
+            int pulledS = results.FindAll(result => result.Character != null && result.Character.Grade == CharacterGrade.S).Count;
+
+            List<bool> dismantled = PlayerProfile.CommitGachaPull(obtained, weapons, GetCost(count), Rules.ObtainedLevel,
+                count, pulledCharacters, pulledS);
 
             // 저장 결과(무기 칸이 꽉 차 자동 분해됐는지)를 무기 결과에 같은 순서로 표시한다.
             for (int i = 0; i < weaponResults.Count; i++)

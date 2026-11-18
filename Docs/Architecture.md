@@ -85,6 +85,15 @@
   - 실행은 `PlayerProfile.LevelUp`·`Promote`(`PlayerProfile.Growth.cs`): 저장 후 `OwnedCharactersChanged` → 육성 창·전투원 화면이 다시 그려짐
   - 진급은 캐릭터·무기 공용 `TryPayPromotion`(진급 재료 확인·소모, 재료 무한이면 소모 없음)을 거친다. 진급 화면 버튼은 `HasPromotionMaterials`로 켜고 끈다
 
+### 업적 (기획서 12장)
+- `AchievementData`(SO, `Data/Achievements/`): ID·분류·등급·제목·조건(`AchievementCondition`)·스테이지(첫 클리어용)·목표·보상. 설명은 `Describe()`가 조건·목표로 만든다
+- `AchievementCatalog`(SO): 업적 전체 목록 = 화면 순서. `GameDatabase.AchievementCatalog`로 찾는다
+- `PlayerProfile.Achievement.cs`(partial): 진행도(`GetAchievementProgress`), 달성·수령 판정, 보상 받기(`ClaimAchievement`·`ClaimAchievements`) → `AchievementsChanged`
+  - 누적 기록은 `SaveData.counters`(기록 이름 = 조건 enum 이름). 첫 클리어·보유 수·최고 레벨은 세이브 상태로 계산. 저장하는 것은 받은 업적 ID(`claimedAchievements`)뿐
+  - 기록을 더하는 곳: `CompleteStage`(스테이지 종류별 클리어, `GameDatabase.GetStageKind`), `CommitGachaPull`(모집 횟수·전투원·S 획득), `Promote`(진급), `LevelUpWeapon`(무기 강화), `RecordBattle`(전투 기록)
+- 전투 기록: `BattleRecord`가 `BattleEvents`(처치·피해·스킬 사용)를 구독해 세고, `BattleManager.FinishBattle`이 로비에서 시작한 전투면 `PlayerProfile.RecordBattle`로 더한다
+- 화면: `AchievementView`(개요 ↔ 목록, 뒤로 처리), `AchievementCategoryCard`(분류 카드), `AchievementRowView`(업적 줄, 원본 복사·재사용, 등급 색 `AchievementTierColors`), 메인 화면 버튼 알림 점 `AchievementBadge`. 그림은 `Art/UI/Achievement`(트로피·분류 심볼 5종, 흰 그림을 색으로 물들임)·`Art/UI/IconCheck`
+
 ### 세이브 (기획서 9장)
 - `SaveData`: 파일에 그대로 저장되는 내용. 필드 이름이 곧 JSON 키라, 이름·구조를 바꾸면 `version`을 올리고 `SaveStorage.Upgrade`에 변환을 추가
 - `SaveStorage`: 파일 읽기·쓰기만 (임시 파일에 쓴 뒤 원본과 교체, 깨진 파일 보관)
@@ -377,7 +386,7 @@ Assets/_Project/
 - SO 데이터: 캐릭터(등급·직군·스탯·1~3스·패시브·변신), 적(행동 패턴), 상태효과 31종, 스테이지 11개(기본 7 + 보스 3 + 테스트 `Stage_BuffEnemy`), 전투 규칙, 가챠 규칙·배너, 무기·재료(골드·보석 포함)
 - 효과 블록 26종 (목록은 2장 "효과 블록 목록" 표)
 - Inspector 도구: 효과 블록 드롭다운(`SubclassSelector`), 상태효과 종류별 칸 표시
-- 세이브: JSON 저장·불러오기, 임시 파일 교체, 깨진 파일 보관, `version` 필드(현재 5: 팀 편성 4개), 새 게임 시작 캐릭터, 에디터 메뉴(세이브 삭제·폴더 열기, 테스트 아이템, 전부 Lv1로)
+- 세이브: JSON 저장·불러오기, 임시 파일 교체, 깨진 파일 보관, `version` 필드(현재 6: 업적 기록), 새 게임 시작 캐릭터, 에디터 메뉴(세이브 삭제·폴더 열기, 테스트 아이템, 전부 Lv1로)
 - 성장 규칙: 캐릭터·무기 경험치 곡선(Lv1→60 = 900,000), 진급 5회, 경험치 재료 3종·무기 강화석 (`GrowthRulesData`)
 
 ### 전투 코어
@@ -409,6 +418,7 @@ Assets/_Project/
 - 상세 창(카드 꾹 누르기): 스탯 / 버프·디버프 / 스킬 탭
 - 로비: 메인 화면(출격·모집·인벤토리·전투원 연결), 스테이지 선택(지도·보스 탭·상세 패널), 편성(4칸·보유 목록·팀 4개·팀 이름·저장, 메인 화면에서 열면 편성 관리만)
 - 전투원: 보유 목록, 상세(스탯·무기 +n)/스킬 탭, 육성 창(레벨업·일괄 추가·진급), 무기 칸 → 장착 창(직군 제한·장착·해제·강화)
+- 업적: 개요(달성 수·트로피·분류 카드·모두 수령) → 분류 목록(제목·자동 설명·진행 막대·보상·수령), 업적 56개, 메인 화면 알림 점
 - 인벤토리: 무기·재료 탭, 정렬, 상세 패널(무기는 레벨 반영 스탯), 일괄 분해(등급 선택), 무기 칸 200·자동 분해
 - 무기: 칼·방패·마법지팡이·로자리오 × 3·4·5성 = 12종
 - 모집: 픽업 배너 7개, 1·10회 뽑기(천장·반천·A 확정, 4성 무기 10%·5성 무기 1%), 확정까지 남은 횟수, 물레 → 공개 → 결과 목록 연출(파티클 + Bloom)
@@ -449,7 +459,7 @@ Assets/_Project/
 - 시작(타이틀) 화면: 세이브 불러오기, 공용 매니저 생성
 - 메인 화면: 플레이어 레벨·이름을 세이브와 연결 (지금은 고정 글자, 재화는 `CurrencyBarView`로 연결됨), 나머지 버튼(설정·공지·우편·출석·친구·업적 등)은 틀만
 - 심사자용 디버그 모드: 재화 무한, 모든 스테이지 개방
-- 업적 (후순위)
+- 숨은 업적 추가 (사용자가 하나씩 정함), 업적 제목·목표 수치 확정
 
 ### 아트 (에셋 수급 필요)
 - 캐릭터 3D 모델 + 애니메이션(대기·공격·피격·사망): 캡슐 교체. 로직은 화면과 분리돼 있어 `UnitView`만 바꾸면 됨
