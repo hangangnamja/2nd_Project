@@ -46,7 +46,10 @@ namespace Game.Data
         [Tooltip("체크하면 보석 없이 뽑을 수 있다 (기획서 2장: 심사자용 디버그 모드 재화 무한)")]
         [SerializeField] private bool freePulls = true;
 
+        public float SRate => sRate;
         public int HardPity => hardPity;
+        public int SoftPityStart => softPityStart;
+        public float SoftPityStep => softPityStep;
         public float ARate => aRate;
         public float FiveStarWeaponRate => fiveStarWeaponRate;
         public float FourStarWeaponRate => fourStarWeaponRate;

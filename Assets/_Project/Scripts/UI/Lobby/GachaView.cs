@@ -46,6 +46,9 @@ namespace Game.UI
         [SerializeField] private Text endDateText;
         [SerializeField] private Button rateInfoButton;
 
+        [Tooltip("확률 공시 창 (지금 배너의 픽업으로 확률을 채워 엶)")]
+        [SerializeField] private GachaRatePopup rateInfoPopup;
+
         [Header("뽑기")]
         [SerializeField] private Button singlePullButton;
         [SerializeField] private Button tenPullButton;
@@ -205,10 +208,15 @@ namespace Game.UI
             presenter.Play(results, RefreshPlayerState);
         }
 
-        // 확률 공시 버튼 (임시): 공시 화면을 만들기 전이라 요청만 기록한다.
+        // 확률 공시 버튼: 지금 보고 있는 배너 기준으로 공시 창을 연다 (픽업 캐릭터 표시가 배너마다 다름).
         private void ShowRateInfo()
         {
-            Debug.Log("[Gacha] 확률 공시 화면 미구현");
+            if (banners.Count == 0)
+            {
+                return;
+            }
+
+            rateInfoPopup.Open(banners[bannerIndex]);
         }
     }
 }

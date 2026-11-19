@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: "\uB9F9\uB3C5\uC8FC\uC220\uC0AC"
   role: 1
   grade: 1
-  illustration: {fileID: 0}
+  illustration: {fileID: 21300000, guid: 88cf63d68fe3f954f92bab5211d445b5, type: 3}
   maxHp: 900
   attack: 100
   defense: 45
