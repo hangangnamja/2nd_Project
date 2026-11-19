@@ -34,6 +34,20 @@ MonoBehaviour:
     - character: {fileID: 11400000, guid: 279af6aa85853484797af4a4df37e385, type: 2}
       invulnerable: 0
   clearRewards: []
-  firstClearRewards:
-  - material: {fileID: 11400000, guid: c5ca6006d3535544c8b35b60cf3e5251, type: 2}
-    amount: 100
+  firstClearRewards: []
+  starMissions:
+  - condition: 0
+    limitSeconds: 120
+    rewards:
+    - material: {fileID: 11400000, guid: c5ca6006d3535544c8b35b60cf3e5251, type: 2}
+      amount: 20
+  - condition: 1
+    limitSeconds: 120
+    rewards:
+    - material: {fileID: 11400000, guid: c5ca6006d3535544c8b35b60cf3e5251, type: 2}
+      amount: 30
+  - condition: 2
+    limitSeconds: 120
+    rewards:
+    - material: {fileID: 11400000, guid: c5ca6006d3535544c8b35b60cf3e5251, type: 2}
+      amount: 50

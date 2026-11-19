@@ -318,13 +318,35 @@ namespace Game.Core
             return record != null && record.cleared;
         }
 
-        // 스테이지를 이겼을 때: 보상을 주고 클리어를 기록한 뒤 한 번에 저장한다.
-        // 보상 = 매번 받는 보상 + (처음 이긴 경우만) 첫 클리어 보상. 같은 재료는 한 줄로 합쳐 돌려준다 (결과 화면 표시용).
-        public static List<(MaterialData Material, int Amount)> CompleteStage(StageData stage)
+        // 그 스테이지의 index번째 별 미션(0 = ★1)을 달성한 적이 있는지.
+        public static bool IsStarAchieved(StageData stage, int index)
+        {
+            EnsureLoaded();
+            StageRecordSave record = FindStageRecord(stage.Id);
+            return record != null && record.stars.Contains(index);
+        }
+
+        // 그 스테이지에서 달성한 별 개수 (스테이지 선택 노드의 ★ 표시용).
+        public static int GetStarCount(StageData stage)
+        {
+            EnsureLoaded();
+            StageRecordSave record = FindStageRecord(stage.Id);
+            return record != null ? record.stars.Count : 0;
+        }
+
+        // 스테이지를 이겼을 때: 보상을 주고 클리어·별 미션을 기록한 뒤 한 번에 저장한다.
+        // 보상 = 매번 받는 보상 + (처음 이긴 경우만) 첫 클리어 보상 + 이번에 처음 달성한 별의 보상.
+        // 같은 재료는 한 줄로 합쳐 돌려준다 (결과 화면 표시용).
+        public static List<(MaterialData Material, int Amount)> CompleteStage(StageData stage, StarMissionResult result)
         {
             EnsureLoaded();
             StageRecordSave record = FindStageRecord(stage.Id);
             bool isFirstClear = record == null || !record.cleared;
+            if (record == null)
+            {
+                record = new StageRecordSave { id = stage.Id };
+                data.stages.Add(record);
+            }
 
             var rewards = new List<(MaterialData Material, int Amount)>();
             AddRewards(rewards, stage.ClearRewards);
@@ -333,15 +355,11 @@ namespace Game.Core
                 AddRewards(rewards, stage.FirstClearRewards);
             }
 
+            RecordStars(stage, record, result, rewards);
+
             foreach ((MaterialData material, int amount) in rewards)
             {
                 AddMaterialAmount(material, amount);
-            }
-
-            if (record == null)
-            {
-                record = new StageRecordSave { id = stage.Id };
-                data.stages.Add(record);
             }
 
             record.cleared = true;
@@ -353,6 +371,22 @@ namespace Game.Core
             // 재료 개수가 바뀌었으니 인벤토리를 보는 화면에 알린다 (구독자가 있을 때만).
             InventoryChanged?.Invoke();
             return rewards;
+        }
+
+        // 이번 결과로 달성한 별 중 처음 달성한 것만 기록하고 그 보상을 rewards에 더한다.
+        // 이미 달성한 별은 다시 보상을 주지 않는다 → 별 보상은 스테이지마다 한 번씩만 받는다.
+        private static void RecordStars(StageData stage, StageRecordSave record, StarMissionResult result, List<(MaterialData Material, int Amount)> rewards)
+        {
+            for (int i = 0; i < stage.StarMissions.Count; i++)
+            {
+                if (record.stars.Contains(i) || !stage.StarMissions[i].IsAchieved(result))
+                {
+                    continue;
+                }
+
+                record.stars.Add(i);
+                AddRewards(rewards, stage.StarMissions[i].Rewards);
+            }
         }
 
         // 보상 목록을 rewards에 더한다. 이미 있는 재료면 개수만 더한다 (FindIndex: 같은 재료가 있는 칸 번호, 없으면 -1).

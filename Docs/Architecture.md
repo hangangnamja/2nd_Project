@@ -19,6 +19,10 @@
 - 로비 → 전투: 스테이지 선택(`StageSelectView`) → 편성(`FormationView`) → `BattleSetup.Create`(편성 + 레벨 + 고른 스테이지)를 `BattleLaunch`(static)에 맡기고 Battle 씬을 불러옴 → `BattleManager`가 시작할 때 꺼내 씀. 맡긴 값이 없으면(씬 직접 실행) Inspector의 테스트 설정 사용
 - 보유 캐릭터·편성은 세이브(`PlayerProfile`)에서 읽음. 로비에서 시작한 전투는 캐릭터별 보유 레벨로 싸우고, 이기면 `PlayerProfile.CompleteStage`가 보상 지급 + 클리어 기록을 한 번에 저장하고 받은 보상을 돌려줌 → `BattleManager.Rewards` → `BattleResultView`가 표시 (결과 색·파티 카드 `ResultPartyCard`·보상 칸 `ResultRewardSlot`, 칸은 씬의 꺼 둔 원본을 복사)
 - 스테이지 선택 `StageSelectView`: 탭 스테이지 / 토벌 / 탐색. 탐색 장소를 고르면 상세 패널의 난이도 버튼으로 스테이지를 고름. 보상은 `StageRewardSlot`(씬의 꺼 둔 원본 칸을 복사·재사용)으로 아이콘 표시, 첫 클리어 보상은 클리어 기록에 따라 "첫 클리어"/"획득 완료". `GameDatabase.FindStage`는 탐색 스테이지까지 찾음
+- 별 미션 (기획서 6장): `StarMission`(Data)이 조건(`StarMissionCondition`: 클리어 / 시간 안에 클리어 / 아군이 쓰러지지 않고 클리어)·판정(`IsAchieved(StarMissionResult)`)·문장(`Describe`)을 들고, 스테이지 에셋마다 목록으로 둔다
+  - 전투: `BattleManager.Update`가 전투 시간(`BattleSeconds`, 배속을 곱한 시간이라 1배속 기준. 스킬 고르는 동안은 실제 시간, 일시정지는 0)을 재고, `BattleRecord.AlliesFallen`이 아군 처치 사건을 센다. `FinishBattle` → `JudgeStarMissions`가 이번 달성(`StarsAchieved`)·처음 달성(`StarsNewlyAchieved`)을 구하고 `CompleteStage(stage, 결과)`에 넘김
+  - 저장: `PlayerProfile.CompleteStage`가 `RecordStars`로 처음 달성한 별만 `StageRecordSave.stars`(별 번호 목록)에 넣고 그 보상을 함께 지급. 조회는 `IsStarAchieved`·`GetStarCount`
+  - 화면: `StageSelectView`(상세 패널 `detailMissions` 별·조건 줄, 보상 칸 ★n 꼬리표 = `StageRewardSlot.Bind(…, tagLabel, claimed)`, 노드 이름 아래 ★ 수), `BattleResultView.ShowStars`(별 한 줄 + NEW + 전투 시간)
 - Build Settings: Lobby(0) → Battle(1)
 - **직접 실행 경로**: Battle 씬을 에디터에서 바로 실행해도 동작해야 한다
   - 공용 매니저가 없으면 자동 생성
@@ -41,7 +45,7 @@
 |---|---|
 | `CharacterData`: 등급, 직군, 일러스트(화면 공용, 비면 실루엣), 기본 스탯, 치명, 속도, 1~3스, 패시브, 변신 스킬 세트 | `BattleUnit`: 현재 스탯·HP, 남은 거리, 남은 쿨타임, 상태효과 칸, 패시브 스택·사용 횟수 |
 | `StatusEffectData`: 화상·독·버프의 공통 정의 (지속 턴, 중첩/갱신) + **효과 종류**(스탯 보정·지속피해·지속 회복·행동 불가·지연 버프·피해 기록·디버프 면역·피해 무효 중 복수 선택). Inspector는 고른 종류의 칸만 표시 (`StatusEffectDataEditor`) | `StatusInstance`: 실제로 걸린 효과 1개 (정의 참조, 부여자, 남은 턴, 시전 당시 공격력 스냅샷) |
-| `StageData`: 적 레벨 + 웨이브 목록(웨이브마다 적 편성, 자리별 무적) + 보상(`clearRewards` 매번, `firstClearRewards` 첫 클리어만, 재료 + 개수). `StageCatalog`: 기본·토벌 목록 + 탐색 장소(`ExplorationSite`: 장소 이름·재화 표기·난이도별 스테이지) | `StageRunner`: 현재 웨이브, 웨이브 클리어 판정, 다음 웨이브 유무 |
+| `StageData`: 적 레벨 + 웨이브 목록(웨이브마다 적 편성, 자리별 무적) + 보상(`clearRewards` 매번, `firstClearRewards` 첫 클리어만, 재료 + 개수) + 별 미션(`StarMission`: 조건·기준 시간·처음 달성 보상). `StageCatalog`: 기본·토벌 목록 + 탐색 장소(`ExplorationSite`: 장소 이름·재화 표기·난이도별 스테이지) | `StageRunner`: 현재 웨이브, 웨이브 클리어 판정, 다음 웨이브 유무 |
 | `BattleSetup`: 이번 전투의 아군 편성·레벨 + 스테이지 (지금은 테스트 에셋, 이후 로비가 만들어 넘김) | - |
 | `EnemyCharacterData`: `CharacterData` + 행동 패턴 목록 (패턴이 필요한 적만) | `BattleManager.DecideEnemyAction`: 패턴을 순서대로 확인해 스킬·대상 결정 |
 | `BattleRulesData`: 전투 공통 수치 (방어 상수 K 계산 파라미터, 레벨 성장 곡선, 피해 난수 켜기·범위 → `RollDamageVariance`를 `DamageCalculator`가 공격 피해에 곱함, 전투 공용 난수라 시드 고정 시 재현) | `BattleUnit` 기본 스탯 = 데이터 스탯(Lv1) × 레벨 배율(`StatScaling`), 전투 시작 때 고정. 아군 배율은 `GetAllyScaling(레벨, 진급)` (로비 → `BattleSetup`이 진급 횟수도 넘김, 모르면 그 레벨까지 진급 완료로 계산) |
@@ -400,7 +404,7 @@ Assets/_Project/
 - SO 데이터: 캐릭터(등급·직군·스탯·1~3스·패시브·변신), 적(행동 패턴), 상태효과 31종, 스테이지 11개(기본 7 + 보스 3 + 테스트 `Stage_BuffEnemy`), 전투 규칙, 가챠 규칙·배너, 무기·재료(골드·보석 포함)
 - 효과 블록 26종 (목록은 2장 "효과 블록 목록" 표)
 - Inspector 도구: 효과 블록 드롭다운(`SubclassSelector`), 상태효과 종류별 칸 표시
-- 세이브: JSON 저장·불러오기, 임시 파일 교체, 깨진 파일 보관, `version` 필드(현재 6: 업적 기록), 새 게임 시작 캐릭터, 에디터 메뉴(세이브 삭제·폴더 열기, 테스트 아이템, 전부 Lv1로)
+- 세이브: JSON 저장·불러오기, 임시 파일 교체, 깨진 파일 보관, `version` 필드(현재 7: 별 미션 기록), 새 게임 시작 캐릭터, 에디터 메뉴(세이브 삭제·폴더 열기, 테스트 아이템, 전부 Lv1로)
 - 성장 규칙: 캐릭터·무기 경험치 곡선(Lv1→60 = 900,000), 진급 5회, 경험치 재료 3종·무기 강화석, 레벨업·진급 골드 비용 (`GrowthRulesData`)
 - 재화: 뽑기는 보석을 씀(디버그 무료 뽑기 꺼짐), 골드·경험치·진급 재료는 육성에 씀(디버그 재료 무한 꺼짐), 디버그 키 F9 = 보석·골드 +100,000
 
@@ -423,7 +427,7 @@ Assets/_Project/
 ### 스테이지·적
 - 기본 스테이지 1-1 ~ 1-7: 테스트 적(잡몹·정예·보스)으로 2웨이브 구성
 - 탐색 던전(재화 던전): 장소 4곳(골드·무기 강화석·경험치·진급 재료) × 난이도 3단계(Lv20·40·60), 이길 때마다 보상
-- 스테이지 보상: 매번 받는 보상 + 첫 클리어 보상(전 스테이지 보석 100개), 상세 패널에 보상 아이콘
+- 스테이지 보상: 매번 받는 보상 + 첫 클리어 보상(지금 비어 있음) + 별 미션 보상(★1 클리어 20 / ★2 2분 이내 30 / ★3 아군 생존 50 보석), 상세 패널에 별 조건·보상 아이콘, 결과 화면에 별 결과
 - 보스 1 축적의 수호자(지금은 `Stage_BuffEnemy` 2웨이브, `Stage_Boss1`은 테스트용): 무적 공세의 사도 2 + 보스, 공세 중첩 버프(4개 이상 광역, 10개 축적 해방 = 버프 해제 + 공격력 100% + 최대 HP 90%)
 - 보스 2 갑각의 거체(`Stage_Boss2`, 보스전 2번째 칸, 2웨이브): HP 2배, 디버프가 없는 턴에 아군 전체 최대 HP 40% 피해
 - 보스 3 군단 지휘관(`Stage_Boss3`, 보스전 3번째 칸, 2웨이브): 등장 때 부하 2마리, 부하(자폭병) 소환·최대 4, 부하가 있는 동안 피해 감소 50%, 부하는 2번째 자기 턴에 자폭(광역 + 기절)
@@ -465,7 +469,6 @@ Assets/_Project/
 ### 보스·스테이지
 - 기본 스테이지 정식 적 데이터(스테이지 보스 포함)와 수치, 3분 목표 밸런스
 - 보스 1 스테이지 정리: 지금은 `Stage_BuffEnemy` 2웨이브에 있고 `Stage_Boss1`은 테스트용
-- 별 미션 3개(사이클 제한 등)와 기록 저장
 - 기록 후보 (핵심재미가 "큰 데미지"로 정해지면): 최고 한 방·한 턴 피해 합계, 토벌 최단 사이클 → 결과 화면 "신기록", 업적 연결
 - 보스 AI를 Unity Behavior 패키지로 교체 (지금은 패턴 목록)
 

@@ -37,6 +37,20 @@ MonoBehaviour:
     amount: 10
   - material: {fileID: 11400000, guid: e67e7df0caffff5409ed63a81db6316b, type: 2}
     amount: 4
-  firstClearRewards:
-  - material: {fileID: 11400000, guid: c5ca6006d3535544c8b35b60cf3e5251, type: 2}
-    amount: 100
+  firstClearRewards: []
+  starMissions:
+  - condition: 0
+    limitSeconds: 120
+    rewards:
+    - material: {fileID: 11400000, guid: c5ca6006d3535544c8b35b60cf3e5251, type: 2}
+      amount: 20
+  - condition: 1
+    limitSeconds: 120
+    rewards:
+    - material: {fileID: 11400000, guid: c5ca6006d3535544c8b35b60cf3e5251, type: 2}
+      amount: 30
+  - condition: 2
+    limitSeconds: 120
+    rewards:
+    - material: {fileID: 11400000, guid: c5ca6006d3535544c8b35b60cf3e5251, type: 2}
+      amount: 50
