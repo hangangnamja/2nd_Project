@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Game.Data
 {
-    // 스테이지 한 개의 구성: 적 레벨 + 웨이브 목록 + 클리어 보상 (기획서 6장).
+    // 스테이지 한 개의 구성: 적 레벨 + 웨이브 목록 + 클리어 보상 + 별 미션 (기획서 6장).
     // 웨이브는 순서대로 진행되며, 한 웨이브의 쓰러뜨려야 하는 적(무적 제외)을 모두 잡으면 다음 웨이브로 넘어간다.
     // 웨이브 구성은 이 에셋의 Inspector에서 조절한다 (웨이브 추가·삭제, 적 순서, 자리별 무적).
     [CreateAssetMenu(fileName = "NewStage", menuName = "Game/Stage Data")]
@@ -31,8 +31,11 @@ namespace Game.Data
         [Tooltip("이길 때마다 받는 보상 (탐색 던전의 재료 등)")]
         [SerializeField] private List<StageReward> clearRewards = new List<StageReward>();
 
-        [Tooltip("처음 이겼을 때 한 번만 더 받는 보상 (보석 등)")]
+        [Tooltip("처음 이겼을 때 한 번만 더 받는 보상")]
         [SerializeField] private List<StageReward> firstClearRewards = new List<StageReward>();
+
+        [Tooltip("별 미션 (위에서부터 ★1 ★2 ★3). 별마다 처음 달성했을 때 보상을 한 번 받는다")]
+        [SerializeField] private List<StarMission> starMissions = new List<StarMission>();
 
         public string Id => id;
         public string StageName => stageName;
@@ -42,6 +45,7 @@ namespace Game.Data
         public IReadOnlyList<StageWave> Waves => waves;
         public IReadOnlyList<StageReward> ClearRewards => clearRewards;
         public IReadOnlyList<StageReward> FirstClearRewards => firstClearRewards;
+        public IReadOnlyList<StarMission> StarMissions => starMissions;
     }
 
     // 보상 한 줄: 재료(골드·보석도 재료 에셋) + 개수.

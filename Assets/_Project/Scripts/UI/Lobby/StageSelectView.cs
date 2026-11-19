@@ -46,6 +46,13 @@ namespace Game.UI
         [Tooltip("스테이지 설명 글 (보상 줄 아래)")]
         [SerializeField] private Text detailDescription;
 
+        [Tooltip("별 미션 목록 (★ + 조건 문장, 달성한 별은 금색)")]
+        [SerializeField] private Text detailMissions;
+
+        [Header("별 색")]
+        [SerializeField] private Color starOnColor = new Color(1f, 0.78f, 0.3f);
+        [SerializeField] private Color starOffColor = new Color(1f, 1f, 1f, 0.25f);
+
         [Tooltip("\"획득 보상\" 제목 (보상이 없으면 숨김)")]
         [SerializeField] private GameObject rewardHeader;
 
@@ -117,13 +124,30 @@ namespace Game.UI
 
                 Text label = nodes[i].GetComponentInChildren<Text>(true);
                 string stageName = stage != null ? stage.StageName : "준비 중";
-                label.text = $"<size={codeSize}><b>{code}</b></size>\n{stageName}";
+                string stars = stage != null ? $"\n{FormatNodeStars(stage)}" : string.Empty;
+                label.text = $"<size={codeSize}><b>{code}</b></size>\n{stageName}{stars}";
 
                 nodes[i].interactable = stage != null;
 
                 // 람다식 안에서 쓸 값은 반복마다 새 지역 변수(stage, code)라, 버튼마다 자기 스테이지를 기억한다.
                 nodes[i].onClick.AddListener(() => ShowDetail(stage, code));
             }
+        }
+
+        // 노드 아래 줄의 별: 달성한 별 수만큼 금색 ★, 나머지는 흐린 ★ (별 미션이 없는 스테이지는 빈 글자).
+        // 로비 씬은 전투에서 돌아올 때마다 새로 열리므로(Awake) 전투 뒤의 별 수가 바로 반영된다.
+        // new string(문자, 개수): 같은 문자를 개수만큼 이은 글자.
+        private string FormatNodeStars(StageData stage)
+        {
+            int total = stage.StarMissions.Count;
+            if (total == 0)
+            {
+                return string.Empty;
+            }
+
+            int got = Mathf.Min(Game.Core.PlayerProfile.GetStarCount(stage), total);
+            return $"<color=#{ColorUtility.ToHtmlStringRGBA(starOnColor)}>{new string('★', got)}</color>" +
+                   $"<color=#{ColorUtility.ToHtmlStringRGBA(starOffColor)}>{new string('★', total - got)}</color>";
         }
 
         // 탐색 장소 노드 i에 i번째 장소를 연결한다: 장소 이름(크게) + 주는 재화(작게). 장소가 없으면 "준비 중"으로 막는다.
@@ -223,23 +247,52 @@ namespace Game.UI
             detailName.text = stageName;
             detailInfo.text = $"추천 레벨 LV.{stage.EnemyLevel}\n웨이브 {stage.Waves.Count}";
             detailDescription.text = stage.Description ?? string.Empty;
+            ShowMissions(stage);
             ShowRewards(stage);
         }
 
-        // 보상 칸: 매번 받는 보상 → 첫 클리어 보상 순으로 아이콘 칸을 늘어놓는다.
-        // 첫 클리어 보상은 "첫 클리어" 꼬리표, 이미 깬 스테이지면 어둡게 덮고 "획득 완료". 보상이 하나도 없으면 제목까지 숨긴다.
+        // 별 미션 목록: 줄마다 ★ + 조건 문장. 달성한 별은 ★과 글자를 금색, 아직이면 흐리게.
+        private void ShowMissions(StageData stage)
+        {
+            IReadOnlyList<StarMission> missions = stage.StarMissions;
+            detailMissions.gameObject.SetActive(missions.Count > 0);
+
+            var lines = new List<string>();
+            for (int i = 0; i < missions.Count; i++)
+            {
+                bool achieved = Game.Core.PlayerProfile.IsStarAchieved(stage, i);
+                string color = ColorUtility.ToHtmlStringRGBA(achieved ? starOnColor : starOffColor);
+                string textColor = achieved ? color : "FFFFFFB3";
+                lines.Add($"<color=#{color}>★</color>  <color=#{textColor}>{missions[i].Describe()}</color>");
+            }
+
+            // string.Join("\n", 목록): 목록의 글자들을 줄바꿈으로 이어 한 글자로 만든다.
+            detailMissions.text = string.Join("\n", lines);
+        }
+
+        // 보상 칸: 매번 받는 보상 → 첫 클리어 보상 → 별 미션 보상(★1 ★2 ★3) 순으로 아이콘 칸을 늘어놓는다.
+        // 한 번만 받는 보상은 꼬리표를 달고, 이미 받았으면 어둡게 덮고 "획득 완료". 보상이 하나도 없으면 제목까지 숨긴다.
         private void ShowRewards(StageData stage)
         {
             bool cleared = Game.Core.PlayerProfile.IsStageCleared(stage);
             int used = 0;
             foreach (StageReward reward in stage.ClearRewards)
             {
-                BindSlot(ref used, reward, isFirstClear: false, claimed: false);
+                BindSlot(ref used, reward, tagLabel: null, claimed: false);
             }
 
             foreach (StageReward reward in stage.FirstClearRewards)
             {
-                BindSlot(ref used, reward, isFirstClear: true, claimed: cleared);
+                BindSlot(ref used, reward, tagLabel: "첫 클리어", claimed: cleared);
+            }
+
+            for (int i = 0; i < stage.StarMissions.Count; i++)
+            {
+                bool achieved = Game.Core.PlayerProfile.IsStarAchieved(stage, i);
+                foreach (StageReward reward in stage.StarMissions[i].Rewards)
+                {
+                    BindSlot(ref used, reward, tagLabel: $"★{i + 1}", claimed: achieved);
+                }
             }
 
             // 이번에 쓰지 않은 칸은 숨긴다.
@@ -253,7 +306,7 @@ namespace Game.UI
 
         // 보상 하나를 used번째 칸에 채운다. 칸이 모자라면 원본을 복사해 하나 더 만든다.
         // ref used: 함수 안에서 늘린 칸 번호가 부른 쪽 변수에도 그대로 반영된다.
-        private void BindSlot(ref int used, StageReward reward, bool isFirstClear, bool claimed)
+        private void BindSlot(ref int used, StageReward reward, string tagLabel, bool claimed)
         {
             if (reward.Material == null)
             {
@@ -267,7 +320,7 @@ namespace Game.UI
 
             StageRewardSlot slot = rewardSlots[used];
             slot.gameObject.SetActive(true);
-            slot.Bind(reward.Material, reward.Amount, isFirstClear, claimed);
+            slot.Bind(reward.Material, reward.Amount, tagLabel, claimed);
             used++;
         }
 

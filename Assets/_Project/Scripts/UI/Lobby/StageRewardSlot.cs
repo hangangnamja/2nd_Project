@@ -4,8 +4,8 @@ using UnityEngine.UI;
 
 namespace Game.UI
 {
-    // 스테이지 상세 패널의 보상 칸 하나: 등급 색 테두리 + 재료 아이콘 + 개수, 첫 클리어 보상이면 위에 작은 꼬리표.
-    // 이미 받은 첫 클리어 보상은 어둡게 덮고 꼬리표를 "획득 완료"로 바꾼다.
+    // 스테이지 상세 패널의 보상 칸 하나: 등급 색 테두리 + 재료 아이콘 + 개수, 한 번만 받는 보상(첫 클리어·별 미션)이면 위에 작은 꼬리표.
+    // 이미 받은 보상은 어둡게 덮고 꼬리표를 "획득 완료"로 바꾼다.
     public class StageRewardSlot : MonoBehaviour
     {
         [SerializeField] private Image frame;
@@ -24,9 +24,10 @@ namespace Game.UI
         [SerializeField] private Color firstClearColor = new Color(1f, 0.78f, 0.3f);
         [SerializeField] private Color claimedColor = new Color(0.35f, 0.38f, 0.45f);
 
-        // 재료·개수를 채운다. isFirstClear: 첫 클리어 보상인지, claimed: 그 첫 클리어 보상을 이미 받았는지.
+        // 재료·개수를 채운다. tagLabel: 한 번만 받는 보상의 꼬리표 글자("첫 클리어", "★1" 등), 매번 받는 보상이면 null.
+        // claimed: 그 한 번만 받는 보상을 이미 받았는지 → 어둡게 덮고 꼬리표를 "획득 완료"로.
         // 아이콘은 흰 그림을 재료의 아이콘 색으로 물들인다 (골드 황금색, 보석 하늘색 — 인벤토리와 같음). {N0}: 천 단위 쉼표.
-        public void Bind(MaterialData material, int amount, bool isFirstClear, bool claimed)
+        public void Bind(MaterialData material, int amount, string tagLabel, bool claimed)
         {
             frame.color = RarityColors.Get(material.Grade);
             icon.sprite = material.Icon;
@@ -34,14 +35,15 @@ namespace Game.UI
             icon.enabled = material.Icon != null;
             countText.text = $"×{amount:N0}";
 
-            tag.SetActive(isFirstClear);
-            if (isFirstClear)
+            bool isOneTime = !string.IsNullOrEmpty(tagLabel);
+            tag.SetActive(isOneTime);
+            if (isOneTime)
             {
-                tagText.text = claimed ? "획득 완료" : "첫 클리어";
+                tagText.text = claimed ? "획득 완료" : tagLabel;
                 tagBackground.color = claimed ? claimedColor : firstClearColor;
             }
 
-            claimedCover.SetActive(isFirstClear && claimed);
+            claimedCover.SetActive(isOneTime && claimed);
         }
     }
 }

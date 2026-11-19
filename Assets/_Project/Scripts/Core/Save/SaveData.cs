@@ -15,7 +15,8 @@ namespace Game.Core
         // 4: 무기 경험치(WeaponSave.exp) 추가
         // 5: 편성을 팀 4개(teams, 팀 이름 포함)로 바꿈. 예전 편성(party)은 1팀으로 옮긴다
         // 6: 업적 (누적 기록 counters, 보상 받은 업적 claimedAchievements) 추가
-        public const int CurrentVersion = 6;
+        // 7: 스테이지 별 미션 기록(StageRecordSave.stars) 추가. 이미 깬 스테이지는 ★1(클리어)을 달성한 것으로 옮긴다
+        public const int CurrentVersion = 7;
 
         public int version = CurrentVersion;
         public CurrencySave currency = new CurrencySave();
@@ -121,11 +122,14 @@ namespace Game.Core
         public int aGuaranteeCount;
     }
 
-    // 스테이지 하나의 기록. 별 미션은 조건이 정해지면 칸을 추가한다.
+    // 스테이지 하나의 기록: 클리어 여부 + 달성한 별 미션 번호.
     [Serializable]
     public class StageRecordSave
     {
         public string id;
         public bool cleared;
+
+        // 달성한 별 미션 번호 (0 = ★1, 1 = ★2, 2 = ★3). 한 번 달성한 별은 계속 남고, 보상은 처음 달성할 때만 받는다
+        public List<int> stars = new List<int>();
     }
 }

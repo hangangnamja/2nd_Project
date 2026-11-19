@@ -101,6 +101,20 @@ namespace Game.Core
                 data.claimedAchievements ??= new List<string>();
             }
 
+            // 버전 6 → 7: 별 미션 기록이 새로 생겼다. 이미 깬 스테이지는 ★1(0번, 클리어)을 달성한 것으로 옮긴다.
+            // 예전 첫 클리어 보석(100개)을 이미 받았으므로 ★1 보상은 다시 주지 않고, ★2·★3은 새로 달성하면 받는다.
+            if (data.version < 7)
+            {
+                foreach (StageRecordSave record in data.stages)
+                {
+                    record.stars ??= new List<int>();
+                    if (record.cleared && !record.stars.Contains(0))
+                    {
+                        record.stars.Add(0);
+                    }
+                }
+            }
+
             // 레벨에 맞지 않는 진급 횟수는 데이터베이스(성장 규칙)가 필요해 PlayerProfile이 불러온 뒤 고친다 (FixPromotionsForLevel).
 
             if (data.version < SaveData.CurrentVersion)

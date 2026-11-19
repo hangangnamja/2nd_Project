@@ -11,6 +11,7 @@ namespace Game.UI
     // 전투 결과 화면: 전투가 끝나면 화면 전체를 덮고 결과를 보여준다.
     //  - 승리: 금빛 배경·VICTORY, 패배: 붉은 배경·DEFEAT (배경·제목·강조선 색을 결과에 맞춰 바꿈)
     //  - 스테이지 이름 · 걸린 사이클 · 행동 횟수
+    //  - 별 미션 결과 (이번 전투에서 달성한 ★, 처음 달성하면 NEW, 전투 시간)
     //  - 이번 전투에 쓴 파티 (쓰러진 아군은 어둡게)
     //  - 획득 보상 (아이콘·등급 색·개수), 없으면 안내 글
     //  - 로비 버튼
@@ -39,6 +40,15 @@ namespace Game.UI
         [SerializeField] private Text titleText;
         [SerializeField] private Text titleEnText;
         [SerializeField] private Text infoText;
+
+        [Header("별 미션")]
+        [Tooltip("별 미션 결과 묶음 (별 미션이 없는 스테이지면 숨김)")]
+        [SerializeField] private GameObject starGroup;
+
+        [Tooltip("별 미션 줄 (★ + 조건 문장 + 처음 달성하면 NEW)")]
+        [SerializeField] private Text starText;
+
+        [SerializeField] private Color starOffColor = new Color(1f, 1f, 1f, 0.25f);
 
         [Header("파티")]
         [Tooltip("파티 카드 원본 (꺼 둔 첫 칸, 같은 부모 아래에 복사된다)")]
@@ -95,6 +105,7 @@ namespace Game.UI
 
             bool isVictory = battleManager.IsVictory;
             ShowHeader(isVictory);
+            ShowStars();
             ShowParty(battleManager.Allies);
             List<ResultRewardSlot> slots = ShowRewards(battleManager.Rewards);
 
@@ -127,6 +138,39 @@ namespace Game.UI
             // ?.: 스테이지가 없으면(설정 오류) 이름 대신 빈 글자.
             string stageName = battleManager.Stage?.StageName ?? string.Empty;
             infoText.text = $"{stageName}   <color=#8FB4D9>사이클 {battleManager.CurrentCycle} · 행동 {battleManager.ActionCount}회</color>";
+        }
+
+        // 별 미션 결과: 첫 줄에 미션들을 가로로 나란히 (이번 전투에서 달성했으면 금색 ★, 못 했으면 흐리게, 처음 달성한 별엔 NEW),
+        // 둘째 줄에 전투 시간을 붙여 "n분 이내" 별이 왜 됐는지/안 됐는지 바로 보이게 한다.
+        private void ShowStars()
+        {
+            StageData stage = battleManager.Stage;
+            int count = stage != null ? stage.StarMissions.Count : 0;
+            starGroup.SetActive(count > 0);
+            if (count == 0)
+            {
+                return;
+            }
+
+            string onColor = ColorUtility.ToHtmlStringRGB(victoryColor);
+            string offColor = ColorUtility.ToHtmlStringRGBA(starOffColor);
+            var missions = new List<string>();
+            for (int i = 0; i < count; i++)
+            {
+                bool achieved = i < battleManager.StarsAchieved.Count && battleManager.StarsAchieved[i];
+                bool isNew = i < battleManager.StarsNewlyAchieved.Count && battleManager.StarsNewlyAchieved[i];
+                string star = $"<color=#{(achieved ? onColor : offColor)}>★</color>";
+                string label = achieved ? stage.StarMissions[i].Describe() : $"<color=#{offColor}>{stage.StarMissions[i].Describe()}</color>";
+                string newTag = isNew ? $" <color=#{onColor}><size=15><b>NEW</b></size></color>" : string.Empty;
+                missions.Add($"{star} {label}{newTag}");
+            }
+
+            // 초 / 60 = 분(정수 나눗셈), % 60 = 남은 초. D2: 두 자리로 맞춤 (5 → 05).
+            int seconds = Mathf.FloorToInt(battleManager.BattleSeconds);
+            string time = $"<size=18><color=#8FB4D9>전투 시간 {seconds / 60}:{seconds % 60:D2}</color></size>";
+
+            // string.Join(구분 글자, 목록): 미션들을 넓은 간격으로 이어 한 줄로 만든다.
+            starText.text = $"{string.Join("        ", missions)}\n{time}";
         }
 
         // 파티 카드를 아군 수만큼 채운다 (편성 순서대로). 원본은 꺼 둔 채 복사본만 쓴다.

@@ -107,8 +107,17 @@ namespace Game.Battle
         // 이번 전투로 받은 보상 (결과 화면용). 지거나 테스트 전투(씬 직접 실행)면 빈 목록.
         public IReadOnlyList<(MaterialData Material, int Amount)> Rewards { get; private set; } = Array.Empty<(MaterialData, int)>();
 
-        // 업적용 전투 기록 (처치·치명타·스킬 사용). 전투가 끝나면 세이브의 누적 기록에 더한다.
+        // 업적·별 미션용 전투 기록 (처치·치명타·스킬 사용·쓰러진 아군). 전투가 끝나면 세이브의 누적 기록에 더한다.
         private BattleRecord battleRecord;
+
+        // 전투에 걸린 시간(초, 별 미션 "시간 안에 클리어" 판정용). Update가 전투 중에만 더한다.
+        public float BattleSeconds { get; private set; }
+
+        // 이번 전투에서 별 미션을 달성했는지 (스테이지의 별 미션 순서대로, 결과 화면용). 지면 모두 false.
+        public IReadOnlyList<bool> StarsAchieved { get; private set; } = Array.Empty<bool>();
+
+        // 이번 전투로 처음 달성한 별인지 (결과 화면 NEW 표시용). 테스트 전투(씬 직접 실행)는 기록하지 않으므로 모두 false.
+        public IReadOnlyList<bool> StarsNewlyAchieved { get; private set; } = Array.Empty<bool>();
 
         // 지금 행동이 추가 턴인지 (HUD 표시용).
         public bool IsExtraTurn { get; private set; }
@@ -167,6 +176,19 @@ namespace Game.Battle
             // StartCoroutine: RunBattle을 여러 프레임에 걸쳐 실행한다.
             // 코루틴 안의 yield return 지점에서 잠시 멈췄다가 다음 프레임(또는 조건 충족 시)에 이어서 실행된다.
             StartCoroutine(RunBattle());
+        }
+
+        // 전투 시간 재기. Time.deltaTime은 배속(timeScale)이 곱해진 시간이라, 3배속이면 실제 1초에 3초가 쌓인다
+        // → "1배속으로 봤을 때의 전투 시간"이 되어 배속을 올려도 별 미션이 쉬워지지 않는다. 일시정지(timeScale 0)는 0초.
+        // 단, 플레이어가 스킬을 고르는 동안은 실제 시간(unscaledDeltaTime)으로 잰다 → 3배속에서 생각하는 시간이 3배로 불어나지 않게.
+        private void Update()
+        {
+            if (scheduler == null || IsBattleOver || Time.timeScale <= 0f)
+            {
+                return;
+            }
+
+            BattleSeconds += IsWaitingForPlayer ? Time.unscaledDeltaTime : Time.deltaTime;
         }
 
         // 오브젝트가 파괴될 때(씬 종료, 플레이 중지) 패시브 처리기의 사건 구독을 해제한다.
@@ -951,10 +973,12 @@ namespace Game.Battle
             string result = IsVictory ? "승리" : "패배";
             Log($"전투 종료: {result} (총 {actionCount}회 행동, {CurrentCycle}사이클)");
 
-            // 로비에서 시작한 전투를 이겼으면 보상을 주고 클리어를 저장한다 (씬을 바로 실행한 테스트 전투는 기록하지 않음).
+            JudgeStarMissions(out StarMissionResult starResult);
+
+            // 로비에서 시작한 전투를 이겼으면 보상(별 보상 포함)을 주고 클리어·별을 저장한다 (씬을 바로 실행한 테스트 전투는 기록하지 않음).
             if (IsVictory && isLaunchedFromLobby)
             {
-                Rewards = Game.Core.PlayerProfile.CompleteStage(stageRunner.Stage);
+                Rewards = Game.Core.PlayerProfile.CompleteStage(stageRunner.Stage, starResult);
             }
 
             // 업적 누적 기록: 로비에서 시작한 전투면 이겼든 졌든 이번 전투의 처치·치명타·스킬 사용 수를 더한다.
@@ -963,6 +987,26 @@ namespace Game.Battle
                 Game.Core.PlayerProfile.RecordBattle(battleRecord.Kills, battleRecord.CriticalHits, battleRecord.SkillsUsed);
             }
             StateChanged?.Invoke();
+        }
+
+        // 별 미션 판정: 이번 전투에서 달성한 별과, 그중 처음 달성한 별을 구한다 (결과 화면용).
+        // 처음인지는 저장하기 전(CompleteStage 전)에 세이브 기록을 보고 판단한다. out: 판정에 쓴 결과 값을 저장에도 쓰도록 돌려준다.
+        private void JudgeStarMissions(out StarMissionResult result)
+        {
+            result = new StarMissionResult(IsVictory, BattleSeconds, battleRecord.AlliesFallen);
+            IReadOnlyList<StarMission> missions = stageRunner.Stage.StarMissions;
+            var achieved = new bool[missions.Count];
+            var newly = new bool[missions.Count];
+
+            for (int i = 0; i < missions.Count; i++)
+            {
+                achieved[i] = missions[i].IsAchieved(result);
+                newly[i] = achieved[i] && isLaunchedFromLobby && !Game.Core.PlayerProfile.IsStarAchieved(stageRunner.Stage, i);
+            }
+
+            StarsAchieved = achieved;
+            StarsNewlyAchieved = newly;
+            Log($"별 미션: 전투 시간 {BattleSeconds:F1}초, 쓰러진 아군 {battleRecord.AlliesFallen}명");
         }
 
         // ---------- 대상 결정 ----------
