@@ -63,6 +63,16 @@ namespace Game.Core
             AchievementsChanged = null;
         }
 
+        // 세이브를 지금 불러온다 (없으면 새 게임을 만들어 저장). 타이틀 화면이 로비로 넘어가기 전에 부른다.
+        // 다른 함수도 처음 쓰일 때 알아서 불러오지만, 시작 화면에서 미리 불러 두면 로비 첫 화면이 세이브를 읽느라 멈칫하지 않는다.
+        public static void Load()
+        {
+            EnsureLoaded();
+        }
+
+        // 세이브 파일이 있는지 (타이틀 화면의 "이어하기 / 새 게임" 표시용). 불러오지는 않는다.
+        public static bool HasSaveFile => System.IO.File.Exists(SaveStorage.FilePath);
+
         // ID → 데이터 에셋 목록 (가챠가 S·A 캐릭터 목록과 규칙을 꺼낼 때 사용)
         public static GameDatabase Database
         {
