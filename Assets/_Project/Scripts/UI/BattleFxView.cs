@@ -165,6 +165,9 @@ namespace Game.UI
         // HashSet: 같은 값을 한 번만 담는 집합. Contains로 들어 있는지 빠르게 확인한다.
         private readonly HashSet<BattleUnit> awaitingImpact = new HashSet<BattleUnit>();
 
+        // 지금 전용 연출이 기본 타격 이펙트를 빼라고 한 대상 (SkillFx.HidesDefaultHitEffect). 다음 전용 연출이 시작될 때 비운다.
+        private readonly HashSet<BattleUnit> hitEffectHidden = new HashSet<BattleUnit>();
+
         // 연출이 보낸 "이 대상에게 피해의 이만큼을 보여줘" 알림 (대상, 비율). 타격 박자가 꺼내 쓴다.
         private readonly List<(BattleUnit Unit, float Share)> impactQueue = new List<(BattleUnit, float)>();
 
@@ -454,7 +457,17 @@ namespace Game.UI
             SkillFx skillFx = FindSkillFx(action);
             if (skillFx != null)
             {
-                casterView.PlayCast();
+                // 상대를 보여주며 시작하는 연출이면, 대상 위치를 읽기(StartSkillFx) 전에 상대 줄 장면으로 컷한다.
+                if (skillFx.CutsToOpponents && cameraDirector != null && cameraDirector.CutToOpponentsOf(caster))
+                {
+                    yield return new WaitForSeconds(skillFx.OpponentRevealSeconds);
+                }
+
+                if (skillFx.CasterCasts)
+                {
+                    casterView.PlayCast();
+                }
+
                 Coroutine running = StartSkillFx(skillFx, action, casterView);
 
                 // 기다릴 상대 타격이 없는 연출(변신기 등 자기 강화)은 연출이 끝날 때까지 기다린다
@@ -514,6 +527,12 @@ namespace Game.UI
             SkillFx fx = Instantiate(prefab, casterPosition, Quaternion.identity);
             fx.CasterView = casterView;
             fx.AllyTargets = allyTargets;
+
+            // 연출이 타격감을 직접 그리면(화면 베기 등) 이 대상들의 피해에는 기본 타격 이펙트를 띄우지 않는다.
+            if (fx.HidesDefaultHitEffect)
+            {
+                hitEffectHidden.UnionWith(awaitingImpact);
+            }
 
             // 람다 (unit, share) => ...: 연출이 대상에 닿을 때마다 "그 대상 피해의 share만큼 보여줘"를 쌓는다.
             return StartCoroutine(RunSkillFx(fx.Play(casterPosition, targets, (unit, share) => impactQueue.Add((unit, share)), cameraDirector), casterView, fx.ChangesAppearance));
@@ -606,6 +625,7 @@ namespace Game.UI
             awaitingImpact.Clear();
             impactQueue.Clear();
             shownRatio.Clear();
+            hitEffectHidden.Clear();
         }
 
         // 도착한 알림들을 처리한다: 남은 비율을 다 채우지 않는 것은 일부 타격, 채우는 것은 마지막 타격.
@@ -840,7 +860,7 @@ namespace Game.UI
             var part = new DamageTakenInfo(entry.Unit, amount, absorbed, damage.IsCritical, damage.IsDamageOverTime, damage.IsBlocked,
                 damage.BlockedLabel, isLethal: isFinal && damage.IsLethal, hpBefore: damage.HpBefore, damageOverTimeSource: damage.DamageOverTimeSource);
 
-            PlayHit(part, view.transform.position);
+            PlayHit(part, view.transform.position, showEffect: !hitEffectHidden.Contains(entry.Unit));
             PlayHitMotion(view, part);
             AddToTotal(part);
             RequestHpShake(damage, amount);
@@ -996,11 +1016,12 @@ namespace Game.UI
         // 피해 종류에 맞는 이펙트와 숫자를 고른다.
         //  - 무적: 회색 "무적" / 지속피해: 주황 작은 숫자 / 치명: 노란 큰 숫자 + "!" + 큰 이펙트 / 그 외: 흰 숫자
         //  - 보호막이 흡수한 양이 있으면 숫자 아래 줄에 함께 적는다
-        private void PlayHit(DamageTakenInfo damage, Vector3 basePosition)
+        //  - showEffect가 false면 파티클 이펙트는 빼고 숫자만 (전용 연출이 타격감을 직접 그릴 때)
+        private void PlayHit(DamageTakenInfo damage, Vector3 basePosition, bool showEffect = true)
         {
             if (damage.IsBlocked)
             {
-                SpawnEffect(hitFx, basePosition);
+                SpawnEffect(showEffect ? hitFx : null, basePosition);
                 SpawnPopup(basePosition, damage.BlockedLabel, blockedColor, 0.8f);
                 return;
             }
@@ -1017,12 +1038,12 @@ namespace Game.UI
             }
             else if (damage.IsCritical)
             {
-                SpawnEffect(criticalHitFx, basePosition);
+                SpawnEffect(showEffect ? criticalHitFx : null, basePosition);
                 SpawnPopup(basePosition, $"{damage.Amount}!{shieldText}", criticalColor, 1.4f);
             }
             else
             {
-                SpawnEffect(hitFx, basePosition);
+                SpawnEffect(showEffect ? hitFx : null, basePosition);
                 SpawnPopup(basePosition, $"{damage.Amount}{shieldText}", damageColor, 1f);
             }
         }

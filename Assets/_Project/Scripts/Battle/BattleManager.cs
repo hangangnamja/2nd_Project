@@ -470,6 +470,9 @@ namespace Game.Battle
             // "자기 턴 시작 시" 패시브 (보스 2 피격 무효 충전). 턴당 횟수 초기화 뒤라 매 턴 발동할 수 있다.
             passiveRunner.HandleOwnTurnStart(CurrentActor);
 
+            // 역류 재생이 이번 턴 시작에 "지난 자기 턴 이후 받은 피해"를 읽었으므로, 여기서부터 다시 센다.
+            CurrentActor.ResetDamageTakenSinceOwnTurn();
+
             // 변신 중인 유닛이 속도로 차례를 얻으면, 그 턴은 정규 턴이 아니라 엑스트라 턴이다 (기획서 4-3).
             // 엑스트라 턴을 1 세고, 턴 종료 때 버프·디버프 남은 턴을 줄이지 않는다.
             // 변신 3스를 쓴 턴은 변신 전에 시작했으므로 세지 않는다 → 변신 후 엑스트라 턴을 제한 횟수만큼 온전히 쓴다.
@@ -504,6 +507,8 @@ namespace Game.Battle
                         followUp.HitCounter.IsQueued = false;
                     }
 
+                    // ?.Invoke: 끝났을 때 부를 함수가 있을 때만 부른다 (건너뛴 경우도 "끝남"으로 알림).
+                    followUp.Completed?.Invoke();
                     continue;
                 }
 
@@ -526,6 +531,7 @@ namespace Game.Battle
                         EndTransformation(followUp.Owner);
                     }
 
+                    followUp.Completed?.Invoke();
                     continue;
                 }
 
@@ -546,6 +552,9 @@ namespace Game.Battle
 
                 // 추가 공격도 하나의 공격이므로, 끝날 때 HP 0인 유닛의 사망을 확정한다.
                 ConfirmDeaths();
+
+                // 이 추가 공격이 끝났음을 알린다 (영역의 마지막 공격: 공격·사망 확정 뒤에 영역이 끝남).
+                followUp.Completed?.Invoke();
 
                 // 변신 종결기였으면 변신을 해제하고 퇴장한 아군을 복귀시킨다.
                 if (followUp.EndsTransformation)
@@ -897,6 +906,13 @@ namespace Game.Battle
             if (endedAura != null)
             {
                 Log($"  {actor.Name}: {endedAura.Name} 종료");
+            }
+
+            // 주인의 턴마다 일하는 경계(영역: 적 전체 참 예약 + 남은 턴 감소). 남은 턴이 0이 되면 여기서 끝난다.
+            // 예약한 참은 추가 공격이라, 이 턴의 정규 종료 처리가 다 끝난 뒤 ProcessFollowUpAttacks에서 나간다 (기획서 3-4).
+            if (!actor.IsDead)
+            {
+                services.Boundaries.HandleTurnEnd(actor, services);
             }
 
             actor.TickCooldowns();

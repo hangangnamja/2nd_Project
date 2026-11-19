@@ -234,6 +234,10 @@ namespace Game.Battle
         // 추가 공격 블록에 따로 넣은 전용 연출 프리팹 (반격 태세의 반격 등). 없으면 null → 스킬의 전용 연출이나 기본 돌진.
         public UnityEngine.GameObject PresentationPrefab { get; }
 
+        // 이 추가 공격이 끝났을 때(사망 확정 뒤) 부를 함수. 대상이 없거나 주인이 전장에 없어 건너뛴 경우에도 부른다. 없으면 null.
+        // 영역의 마지막 공격처럼 "이 공격이 나간 뒤에 끝나야 하는" 상태가 쓴다 (Action = 값 없이 실행만 하는 델리게이트).
+        public System.Action Completed { get; set; }
+
         // 다타 추가 공격의 남은 타수 (돌파 반응). 패시브가 타수를 쌓고, BattleManager가 한 타씩 꺼내 쓴다. 다타가 아니면 null.
         public HitCounter HitCounter { get; }
 

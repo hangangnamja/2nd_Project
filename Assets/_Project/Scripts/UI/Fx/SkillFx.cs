@@ -24,6 +24,18 @@ namespace Game.UI
         // BattleFxView가 행동 시작 사건 때 바로 모습을 고정해 두고(로직이 먼저 변신을 바꿔도 화면은 그대로), 연출이 RevealAppearance로 바꾼다.
         public virtual bool ChangesAppearance => false;
 
+        // true면 이 연출이 대상에 닿을 때 공통 타격 이펙트(펑 터지는 파티클)를 띄우지 않는다. 피해 숫자·맞는 모션은 그대로.
+        // 연출이 직접 타격감을 그리는 경우(흉신 마라 2스: 화면 베기 + 혈흔)에 기본 이펙트가 겹쳐 어색해지지 않게 한다.
+        public virtual bool HidesDefaultHitEffect => false;
+
+        // true면 연출을 시작하기 전에 시전자 어깨 뒤 + 상대 줄 장면으로 컷하고 OpponentRevealSeconds만큼 상대를 보여준다 (아군 시전자만).
+        // BattleFxView가 대상 위치를 읽기 전에 컷하므로, 상대가 안 보이던 장면(자기 정면)이나 다른 장면으로 넘어가던 중이어도 상대 자리가 맞는다.
+        public virtual bool CutsToOpponents => false;
+
+        // false면 연출이 시작될 때 시전자가 떠오르는 기본 시전 모션(PlayCast)을 하지 않는다 (흉신 마라 영역 공격·해제: 제자리에서).
+        public virtual bool CasterCasts => true;
+        public virtual float OpponentRevealSeconds => 0f;
+
         // 변신 모습을 실제 상태로 바꾼다 (변신기: 구체가 터지며 나타남, 종결기: 영역이 깨지며 사라짐).
         protected void RevealAppearance()
         {

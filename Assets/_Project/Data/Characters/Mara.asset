@@ -1,0 +1,165 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0cf10047d4cbc1d4a9d1cde009aa4d18, type: 3}
+  m_Name: Mara
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.CharacterData
+  id: Mara
+  displayName: "\uD749\uC2E0 \uB9C8\uB77C"
+  role: 1
+  grade: 0
+  illustration: {fileID: 0}
+  maxHp: 3000
+  attack: 400
+  defense: 50
+  baseSpeed: 110
+  critRate: 0.801
+  critDamage: 0.5
+  skill1:
+    skillName: "\uD0C0\uACA9"
+    targetType: 0
+    cooldown: 0
+    startCooldown: 0
+    presentationPrefab: {fileID: 0}
+    presentationHits: 1
+    effects:
+    - rid: 7605779756694372543
+  skill2:
+    skillName: "\uD314"
+    targetType: 5
+    cooldown: 2
+    startCooldown: 0
+    presentationPrefab: {fileID: 1018689922963652709, guid: 82bd76de9bb86ec4c94f7288416515a8, type: 3}
+    presentationHits: 1
+    effects:
+    - rid: 7605779756694372544
+    - rid: 7605779756694372545
+  skill3:
+    skillName: "\uC601\uC5ED: \uD608\uD574\uC2E0\uC804"
+    targetType: 2
+    cooldown: 5
+    startCooldown: 2
+    presentationPrefab: {fileID: 7885678847545980547, guid: 5f77d54a3bcf24b45aece8fb39f00afb, type: 3}
+    presentationHits: 1
+    effects:
+    - rid: 7605779756694372546
+    - rid: 7605779760170664038
+  passives:
+  - passiveName: "\uC5ED\uB958 \uC7AC\uC0DD"
+    trigger: 17
+    execution: 0
+    maxTriggersPerTurn: 0
+    turnLimitScope: 0
+    maxTriggersPerBattle: 0
+    inactiveWhileTransformed: 0
+    maxStacks: 0
+    stacksPerOwnAction: 0
+    stackCostPerTrigger: 0
+    stacksGainedPerTrigger: 0
+    hpThreshold: 0
+    requiredStatus: {fileID: 0}
+    tauntDisplay: {fileID: 0}
+    auraModifiers: []
+    countedCategory: 0
+    countComparison: 0
+    countThreshold: 0
+    countCap: 0
+    presentationPrefab: {fileID: 0}
+    effects:
+    - rid: 7605779756694372549
+  references:
+    version: 2
+    RefIds:
+    - rid: 7605779756694372543
+      type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        multiplier: 1
+        secondaryMultiplier: 1
+    - rid: 7605779756694372544
+      type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        multiplier: 3
+        secondaryMultiplier: 2
+    - rid: 7605779756694372545
+      type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        status: {fileID: 11400000, guid: c0db41666d6825c40bcf5865e88b875b, type: 2}
+        count: 2
+        applyToAllAllies: 0
+    - rid: 7605779756694372546
+      type: {class: DomainBoundaryEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        boundaryName: "\uD608\uD574\uC2E0\uC804"
+        durationTurns: 3
+        strikeName: "\uD574"
+        strikeOnDeploy: 1
+        strikeEffects:
+        - rid: 7605779756694372568
+        - rid: 7605779756694372569
+        strikePresentationPrefab: {fileID: 4017283691168316125, guid: 2bc7825b9cbc1644892f04430ec88c27, type: 3}
+        sceneryPrefab: {fileID: 1817736763542577290, guid: 4b36340b9cbf3d440a8e9dcf37c3cecc, type: 3}
+        closePresentationPrefab: {fileID: 6122451973948619156, guid: 0038a364ed8ddfa4c87b49bac33ee3ab, type: 3}
+        overrideSkillNumber: 3
+        overrideSkill:
+          skillName: "\uD478\uAC00"
+          targetType: 1
+          cooldown: 0
+          startCooldown: 0
+          presentationPrefab: {fileID: 2702323557806137714, guid: 54b97ea8f331abb438a0ba5f7708c313, type: 3}
+          presentationHits: 1
+          effects:
+          - rid: 7605779756694372547
+          - rid: 7605779756694372548
+        displayStatus: {fileID: 11400000, guid: f5613973fa2c13745ac3cd06a2522c24, type: 2}
+    - rid: 7605779756694372547
+      type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        multiplier: 5
+        secondaryMultiplier: 4
+    - rid: 7605779756694372548
+      type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        status: {fileID: 11400000, guid: d5f4a9fc67ebae341881825b057d391d, type: 2}
+        count: 3
+        applyToAllAllies: 0
+    - rid: 7605779756694372549
+      type: {class: HealEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        scaleStat: 4
+        ratio: 1
+        healCaster: 1
+        healAllAllies: 0
+    - rid: 7605779756694372568
+      type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        multiplier: 3
+        secondaryMultiplier: 3
+    - rid: 7605779756694372569
+      type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        status: {fileID: 11400000, guid: c0db41666d6825c40bcf5865e88b875b, type: 2}
+        count: 2
+        applyToAllAllies: 0
+    - rid: 7605779760170664038
+      type: {class: StartAuraEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        auraName: "\uC601\uC5ED \uBC84\uD504"
+        statModifiers:
+        - stat: 0
+          percent: 1
+          flat: 0
+        - stat: 9
+          percent: 1
+          flat: 0
+        durationTurns: 3
+        skipOwnerTurns: 0
+        displayStatus: {fileID: 0}
+        fieldEffectPrefab: {fileID: 0}

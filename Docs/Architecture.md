@@ -152,7 +152,7 @@ CharacterData (SO 에셋 1개)
 | 공격 | 패시브 스택 비례 피해 (`PassiveStackDamageEffect`) | 기본 배율 + 스택 1개당 배율 × 시전자 패시브 스택, 피해 뒤 스택 전부 소모 | 니콜 2스 (이자 정산) |
 | 공격 | 받은 피해 비례 반격 (`RecordedDamageCounterEffect`) | 기본 배율 + 피해 기록에 쌓인 받은 피해(최대 HP 대비) × 계수를 공격력 배율로 반격, 기록 삭제 | 하이퍼캐리 반격 태세 |
 | 공격 | 격발 (`DetonateEffect`) | 대상의 지속피해를 즉시 1회씩 발동 (지속피해는 유지) | 격발 딜러 3스·패시브 |
-| 회복·보호 | 회복 (`HealEffect`) | 기준(공격력·최대 HP·시전자 최대 HP·가한 피해) × 비율 회복. 시전자 자신·아군 전체 옵션. 가한 피해 = 이 행동에서 앞선 피해 블록들이 가한 피해 합계(`SkillContext.DamageDealt`, HP + 보호막 흡수) → 피흡, 피해 블록 뒤에 둠 | 아스트라 패시브, 변신 스킬 자가 회복, 강탈 딜러 3스 피흡 |
+| 회복·보호 | 회복 (`HealEffect`) | 기준(공격력·최대 HP·시전자 최대 HP·가한 피해·지난 자기 턴 이후 받은 피해) × 비율 회복. 시전자 자신·아군 전체 옵션. 가한 피해 = 이 행동에서 앞선 피해 블록들이 가한 피해 합계(`SkillContext.DamageDealt`, HP + 보호막 흡수) → 피흡, 피해 블록 뒤에 둠 | 아스트라 패시브, 변신 스킬 자가 회복, 강탈 딜러 3스 피흡 |
 | 회복·보호 | 보호막 (`ShieldEffect`) | 기준 스탯 × 비율만큼 보호막. 이미 있으면 양을 더함 (`StatusApplier.GrantShield`) | 곰인형 버퍼 2스, 하이퍼캐리 불굴, 도발 탱커 2·3스 |
 | 회복·보호 | 피격 무효 충전 (`HitBlockEffect`) | 시전자의 피격 무효를 횟수만큼 채움 (`BattleUnit.ChargeHitBlock`, 쌓이지 않음). 피해만 0, 효과는 들어감 | (지금 쓰는 캐릭터 없음) |
 | 회복·보호 | 부활 (`ReviveEffect`) | 쓰러진 대상을 최대 HP × 비율로 부활 (`BattleUnit.Revive`). 살아 있는 대상은 건너뜀 | 부활 힐러 3스·패시브 |
@@ -169,6 +169,7 @@ CharacterData (SO 에셋 1개)
 | 변신·전장 | 변신 (`TransformEffect`) | 시전자 변신 (스킬 교체, 턴 제한·종결기는 변신 설정) | 하이퍼캐리 3스 |
 | 변신·전장 | 아군 퇴장 (`ExitAlliesEffect`) | 시전자 외 아군 퇴장, 변신 해제·사망 때 복귀 | 하이퍼캐리 3스 |
 | 변신·전장 | 경계: 고립 (`IsolationBoundaryEffect`) | 스탯 보정 + 행동 제어 면역 경계 (경계는 한 번에 하나) | 하이퍼캐리 3스 |
+| 변신·전장 | 경계: 영역 (`DomainBoundaryEffect`) | 펼칠 때·주인 턴 종료마다 영역 공격(블록 안 효과 목록)을 적 전체에 사용, 정한 턴 동안. 영역 동안 1회 지정 칸이 다른 스킬로 바뀜 | 흉신 마라 3스 |
 | 변신·전장 | 부하 소환 (`SummonEffect`) | 시전자 편에 부하를 소환 (`BattleServices.Summon` → `BattleManager.SummonUnit`). 시전자가 소환한 부하는 최대 수까지 | 군단 지휘관 2스 |
 | 변신·전장 | 자폭 (사라짐) (`SelfDestructEffect`) | 시전자가 처치가 아닌 방식으로 사라짐 (`BattleUnit.Vanish`). 효과 목록 맨 끝에 둠 | 자폭병 2스 |
 | 변신·전장 | 기간 오라 (`StartAuraEffect`) | 정해진 턴 동안 같은 편 전원 스탯 보정 오라, 주인 턴 스킵 옵션 | 아스트라 3스 공연 |
@@ -247,6 +248,15 @@ UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
       - 아군 대상 연출은 `SkillFx.AllyTargets`(BattleFxView가 같은 편 대상의 화면 위치를 넣어 줌)를 쓴다. 상대 타격이 없으므로 연출이 끝날 때까지 기다린 뒤 버프 박자를 재생
       - 타격 뒤에도 이어지는 연출(걸어 돌아오기 등)이 있어서, `BattleFxView.PlayBeats`는 전용 연출이 끝날 때까지(최대 15초) 기다린 뒤 재생을 마친다 → 그 전에 다음 턴의 무대 재배치로 캡슐이 순간 이동하지 않게
       - 캡슐을 연출이 직접 움직일 때는 `UnitView.SetScriptedPose`(월드 위치·방향 → 기준 자리 대비 어긋남으로 저장)와 `ClearScriptedPose`(기준 자리로 복귀, 연출이 사라지면 `OnDestroy`에서도 부름)
+    - 흉신 마라 2스 = `InvertCleaveFx` 월드 참격선 모드(`useWorldSlashes`): 반전 동안 견본 선(`FxDomainSlash`와 같은 하얀 선, 점 12개)을 대상 몸에 한꺼번에 그어 두고, 반전이 끝나면 선마다 번쩍 → 혈흔·`onImpact(1/선 수)`. 체크를 끄면 아래 화면 베기 방식. `InvertCleaveFx`(`Prefabs/Fx/FxInvertCleave`): 옆 시점 컷 + 돌진·손대기(`SetScriptedPose`) → 런타임에 만든 Screen Space - Overlay 캔버스(정렬 1000)의 화면 전체 Image에 `ScreenInvert` 셰이더(블렌드 `OneMinusDstColor OneMinusSrcColor` = Lerp(화면, 1 - 화면, Image 밝기))로 반전 + 런타임 전역 `Volume`(우선순위 100, `ColorAdjustments` 채도 -100, weight = 반전 세기)으로 흑백 → 반전 중 같은 캔버스의 반전 판 뒤에 붙인 얇은 UI Image(대상 몸통을 지나는 긴 월드 직선을 `WorldToScreenPoint`로 옮김)로 화면을 가르는 선(가운데 각도 ± 폭 절반의 부채꼴)을 한꺼번에 그어 두고 → 반전이 끝나는 순간 반전·선을 끄고 `WaitForEndOfFrame` 뒤 `ScreenCapture.CaptureScreenshotAsTexture`로 화면을 찍어(리니어 색 공간에서 허옇게 보이지 않게 sRGB 그림으로 옮기고 알파를 1로 채움), 화면 사각형을 선마다 반평면으로 자른 볼록 다각형 조각(`ScreenSlicePiece`: MaskableGraphic, 꼭짓점 = 화면 픽셀, UV = 픽셀 ÷ 화면 크기. 코드로 만든 Graphic은 CanvasRenderer가 자동으로 안 붙어 같이 붙여야 그려짐)으로 검은 틈 판 위에 그린다. 조각마다 "선의 어느 쪽인지(2D 외적 부호) × 선 방향 × 거리"를 더해 어긋나게 하고, 베인 자리에 하얀 선 → 조각이 흐려지는 동안 실제 화면에서 혈흔 `FxBloodSpray`(알파 블렌딩 재질 `Art/Battle/Blood/Blood`, 늘어진 핏방울 + 피 안개, 프리팹의 +z로 뿜음)를 선에 수직(`Cross(카메라 쪽, 선 방향)`)으로 뿜고 `onImpact(1/선 수)`(숫자만 `hitInterval`씩 엇갈림), 마지막 1. `SkillFx.HidesDefaultHitEffect`를 켜 두어 `BattleFxView`가 이 대상들의 피해에 공통 타격 이펙트(`hitFx`·`criticalHitFx`)를 띄우지 않는다 (숫자·맞는 모션은 그대로)
+    - 흉신 마라 3스 = `DomainDeployFx`(`Prefabs/Fx/FxDomainDeploy`, 정면 컷 + 떠오르기, 배경 `DomainScenery.Reveal`을 재생), 영역 공격 = `DomainSlashFx`(`Prefabs/Fx/FxDomainSlash`, `SkillFx.CutsToOpponents`가 켜져 있어 `BattleFxView`가 대상 위치를 읽기 전에 `BattleCameraDirector.CutToOpponentsOf`로 어깨 뒤·적 줄 장면에 컷(진행 중인 페이드 전환은 멈춤)하고 `OpponentRevealSeconds` 기다린 뒤, 견본 선으로 대상마다 하얀 참격 n번, 참격마다 `onImpact(1/n)`, 혈흔 `FxBloodSpray`)
+      - 영역 배경: `DomainBoundaryEffect`의 "영역 배경" 칸(`FxShrineScenery`, `DomainScenery`) → `DomainBoundary.SceneryPrefab`. Battle 씬의 `DomainSceneryView`가 `StateChanged`마다 영역을 펼친 유닛(`ActiveBoundary is DomainBoundary`)을 찾아 배경을 만들고(`Place`), 영역이 끝나면 `Sink`. 펼치는 연출이 `Reveal`을 부르지 않으면 몇 초 뒤 `RevealInstant`
+      - `DomainScenery`: 사찰·하늘 판은 `DomainSceneryView.LateUpdate`가 주인 화면 위치·방향을 넘기는 `Follow`로 주인 등 뒤 수평 거리에 세워 주인 쪽을 마주 보게(주인이 안 보이는 장면에서는 마지막 자리), 물바닥(반투명 판)은 펼친 자리 중심 고정. 반사는 몸체 복사본의 부모 세로 크기를 -솟은 정도로 둬 바닥 아래로 자람. 분위기 세기 `Blend`(하늘 투명도)를 `DomainSceneryView`가 읽어 안개·카메라 배경·주변광을 섞고 원래 바닥(`BattleStage/Floor`)을 숨김
+      - 영역 공격 연출 프리팹은 `FollowUpAttack`(턴 종료)·`ExecuteEffects`(펼칠 때)의 `presentationPrefab`으로 넘김
+      - 영역 공격·해제 연출은 `SkillFx.CasterCasts = false`라 시전자가 떠오르지 않음
+      - 업화 = `HellfireBowFx`(`Prefabs/Fx/FxHellfireBow`, 영역 블록의 바뀌는 스킬 칸 "전용 연출"): 떠오르기 컷(`SetScriptedPose`) → 겹마다 `GlowLines` 하나인 불꽃 줄(점 24개, Perlin 잡음으로 일렁임) + 불씨 `ParticleSystem.Emit` → 내려다보는 컷 → 시위·화살대(굵기 일정한 견본 선) + 화살 머리 `FxMeteor` → 폭발 `FxMeteorExplosion` + 적 전원 `onImpact(1)`
+      - 영역 해제 순서: 남은 턴이 0이 되는 턴의 영역 공격에 `FollowUpAttack.Completed`(추가 공격이 끝나면 `BattleManager`가 부름, 건너뛴 경우도)를 달아, 그 공격이 끝난 뒤에야 `ShouldEnd`가 참 → `CheckEnd`. 끝날 때 `DomainBoundary.OnEnd`가 해제 연출(`DomainCloseFx`, `Prefabs/Fx/FxDomainClose`)을 `ActionStarted` 사건으로 알려, 연출 재생 순서상 마지막 공격의 피해 다음에 나온다
+      - `DomainSceneryView`는 해제 연출이 있으면 끝난 영역의 배경을 지우지 않고 남겨 두고(`closingScenery`, 안전장치로 20초 뒤 가라앉힘), `DomainCloseFx`가 `DomainScenery.Dissolve`(사찰 조각을 반투명 재질 `ShrineFade`로 바꿔 끼우고 MaterialPropertyBlock 투명도 + 물·하늘·분위기 세기를 함께 줄임)로 지운다. 주인이 쓰러져 끝나면 바로 `Sink`
     - 하이퍼캐리 변신기 = `TransformCocoonFx`(`Prefabs/Fx/FxTransformCocoon`, 그림·재질 `Art/Battle/Sun`). 상대 타격이 없는 연출은 `BattleFxView`가 끝날 때까지 기다린 뒤 다음 박자로
     - 변신 모습(헤일로·날개): `TransformationData.AppearancePrefab`을 `UnitView.ApplyAppearance`가 변신 중(`IsTransformed`)에 몸의 자식으로 붙인다. 움직임은 `TransformAppearance`
       - 로직은 변신을 즉시 바꾸므로, 모습을 바꾸는 연출(`SkillFx.ChangesAppearance`: 변신기·종결기)이면 `BattleFxView`가 행동 시작 사건 때 `FreezeAppearance`로 지금 모습을 고정하고, 연출이 바뀌는 순간 `RevealAppearance`(→ `ReleaseAppearance`)로 실제 상태를 반영한다. 모습을 바꾸는 연출이 끝나거나 못 보여주면 그때 풀림 (다른 연출은 풀지 않음: 마지막 엑스트라 턴의 스킬 연출이 끝날 때 종결기가 걸어 둔 고정을 먼저 풀어 날개가 일찍 사라지던 문제 방지)
@@ -303,6 +313,7 @@ UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
   - 기간 오라는 `StartAuraEffect`(아스트라 공연)가 만들고, 주인의 정규 턴 끝(`BattleManager.EndTurn`)마다 남은 턴이 준다. 만든 턴은 세지 않음
   - `SkipsOwnerTurns`면 그동안 주인의 턴이 강제로 스킵된다(`BattleUnit.IsPerforming`, 기절과 같은 경로로 턴 종료 처리만)
   - 전장 이펙트: `AuraFieldView`가 매 프레임 카메라 앞(수평 거리 `followDistance`)으로 옮겨 카메라와 같은 방향을 보게 한다 (이펙트는 그 자식). 오라 데이터가 프리팹(`FieldEffect`)을 들고, Battle 씬의 `AuraFieldView`가 `StateChanged`마다 켜진 오라의 이펙트를 만들고 꺼진 오라의 이펙트를 지운다. 띠 흐름은 `FieldFxScroller`(텍스처 이동·서서히 나타남), 빛은 가산 HDR 재질 + Bloom
+- "받은 피해 회복" 패시브(`OnOwnTurnStartAfterDamage`, 흉신 마라 역류 재생): `BattleUnit.TakeDamage`가 깎인 HP를 `DamageTakenSinceOwnTurn`에 더하고, `StartTurnOf`가 `HandleOwnTurnStart`(0보다 크면 발동, 회복 기준 "지난 자기 턴 이후 받은 피해") 뒤에 0으로 되돌린다. 부활하면 비움
 - "공격하지 않은 턴" 패시브(`OnTurnEndWithoutAttack`, 아스트라): `PassiveRunner`가 자기 스킬 공격 행동을 턴마다 기록하고, `EndTurn`이 지속피해·사망 확정 다음에 `HandleOwnTurnEnd`를 부른다
 - "상태효과 걸린 적 피격" 패시브(`OnAllyHitDebuffedEnemy`, 니콜 이자): `HandleAttackHit`에서 같은 편 전장 유닛의 패시브를 확인해, 맞은 적에게 `requiredStatus`가 있으면 발동. 발동 때 `stacksGainedPerTrigger`만큼 스택을 얻고(쓰는 스택 0), 2스의 스택 비례 피해 블록이 소모
 - 보호막 (기획서 3-7): 유닛당 하나. `StatusApplier.GrantShield`가 보호막이 없으면 새 버프로 걸고, 있으면 그 하나에 양을 더하고 남은 턴을 긴 쪽으로 맞춘다(갱신이라 `BuffGained` 없음)
@@ -328,6 +339,8 @@ UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
   - 경계마다 블록 하위 클래스 + 런타임 `Boundary` 하위 클래스: 스탯 보정(`StatModifiers`), 행동 제어 면역, 표시용 효과(`DisplayStatus`), 끝날 조건(`ShouldEnd`)
     - 펼치면 주인의 `BattleUnit.ActiveBoundary`가 되어 스탯 계산(상태효과 칸 밖 보정)·면역(`IsCrowdControlImmune`)·머리 위 아이콘(`UnitView`)에 반영된다. 버프 칸이 아니라 강탈·소모·만료 대상이 아니다
   - `BattleManager`가 변신 해제·사망 확정 직후 `Boundaries.CheckEnd()`를 불러 끝날 조건을 확인한다
+  - 주인 턴 종료: `EndTurn`이 `Boundaries.HandleTurnEnd(actor)` → `Boundary.OnOwnerTurnEnd`(영역: 적 전체 추가 공격 예약 + 남은 턴 감소) 뒤 끝날 조건 확인. 남은 턴은 `Boundary.RemainingTurns`로 아이콘 숫자에 표시
+  - 스킬 교체: `Boundary.GetSkillOverride(slot)`이 있으면 `BattleUnit.GetSkill`이 변신 스킬보다 먼저 그 스킬을 돌려주고 쿨타임은 0. `SkillExecutor.ExecuteSkill`은 바꾼 스킬을 쓰면 쿨타임 대신 `OnSkillOverrideUsed`로 알려 1회용을 되돌린다 (원래 칸의 쿨타임은 건드리지 않음)
 - 중첩 방식은 버프·디버프 공통으로 데이터를 따른다 (`StatusContainer.IsRefreshOnly`). 아군 버프 에셋은 모두 '갱신', 보스 1 공세만 '중첩'(걸 때마다 새 칸)
 - 스택 효과 (기획서 3-7, 버프·디버프 공통, 지금 쓰는 효과 없음): 상태효과 중첩 방식 `StackCount`면 `StatusContainer.Add`가 기존 칸의 `StatusInstance.AddStack`(스택 +1·최대 스택·남은 턴 갱신·스냅샷은 높은 쪽)만 부른다
   - 지속피해는 `DamageCalculator.CalculateDamageOverTime`에 스택 수를 넘겨 1스택 피해 × 스택. 아이콘 숫자는 `StatusInstance.IconText`("×스택")
@@ -401,8 +414,8 @@ Assets/_Project/
 ## 6. 구현 현황 (2026-11-18 기준)
 
 ### 데이터·저장
-- SO 데이터: 캐릭터(등급·직군·스탯·1~3스·패시브·변신), 적(행동 패턴), 상태효과 31종, 스테이지 11개(기본 7 + 보스 3 + 테스트 `Stage_BuffEnemy`), 전투 규칙, 가챠 규칙·배너, 무기·재료(골드·보석 포함)
-- 효과 블록 26종 (목록은 2장 "효과 블록 목록" 표)
+- SO 데이터: 캐릭터(등급·직군·스탯·1~3스·패시브·변신), 적(행동 패턴), 상태효과 33종(출혈·영역 표시 추가), 스테이지 11개(기본 7 + 보스 3 + 테스트 `Stage_BuffEnemy`), 전투 규칙, 가챠 규칙·배너, 무기·재료(골드·보석 포함)
+- 효과 블록 27종 (목록은 2장 "효과 블록 목록" 표)
 - Inspector 도구: 효과 블록 드롭다운(`SubclassSelector`), 상태효과 종류별 칸 표시
 - 세이브: JSON 저장·불러오기, 임시 파일 교체, 깨진 파일 보관, `version` 필드(현재 7: 별 미션 기록), 새 게임 시작 캐릭터, 에디터 메뉴(세이브 삭제·폴더 열기, 테스트 아이템, 전부 Lv1로)
 - 성장 규칙: 캐릭터·무기 경험치 곡선(Lv1→60 = 900,000), 진급 5회, 경험치 재료 3종·무기 강화석, 레벨업·진급 골드 비용 (`GrowthRulesData`)
@@ -419,8 +432,8 @@ Assets/_Project/
 - 레벨·진급 배율(진급 시점에 점프), 장착 무기 스탯 반영
 - 적 AI: 패턴 목록(조건 → 스킬·대상), 일반 적 랜덤 공격
 
-### 캐릭터 (10 / 11명)
-- S: 격발 딜러(DotMainAttack), 강탈 딜러(BuffStealAttack), 하이퍼캐리(HyperCarry), 곰인형 버퍼(BearBuffer), 공연 오라 버퍼(Astra), 도발 탱커(TauntTank), 부활 힐러(ReviveHealer)
+### 캐릭터 (11 / 12명)
+- S: 격발 딜러(DotMainAttack), 강탈 딜러(BuffStealAttack), 하이퍼캐리(HyperCarry), 곰인형 버퍼(BearBuffer), 공연 오라 버퍼(Astra), 도발 탱커(TauntTank), 부활 힐러(ReviveHealer), 흉신 마라(Mara)
 - A: 독 서브딜러(DotSubAttack), 안젤리카(Ally_Support, 치명 버퍼 → 회복 직군으로 테스트 중), 돌파 반응 광역 딜러(GeniusAoE)
 - 수치는 전부 테스트 값
 
@@ -436,14 +449,14 @@ Assets/_Project/
 - 전투 HUD: 보스 HP바(상단), 웨이브·사이클, 원형 스킬 버튼(`SkillButtonView`)·쿨타임 덮개·스킬 이름판, 대상 선택, 행동 순서 목록(원형 초상화·지금 차례 확대·움직이는 순서), 상태효과 아이콘·툴팁 (전투 로그는 화면에서 숨김, 콘솔에만)
 - 전투 임시 연출: 타격·치명·지속피해·회복·버프 이펙트 + 피해 숫자, 행동 단위로 순서대로 재생 (3장 "연출 재생")
   - 타격감: 돌진·시전 모션(추가 공격·패시브 행동 포함), 피격 번쩍임·밀림, 히트스톱·슬로모션, 화면 흔들림, 3스 컷인, 피해 합계, HP를 타격 순간에 맞춰 줄임, 보호막 깨짐, HP바 흔들림, 연출 다단 히트
-  - 스킬 전용 연출(`SkillFx`) + 연출 컷 카메라: 선브링어 변신 3스 메테오, 하이퍼캐리 변신기·종결기, 격발 딜러 2스 거미줄·3스 실 새장, 하이퍼캐리 2스 황금 검기·반격 땅 가르기, 강탈 딜러 2스 강탈·3스 달빛 일격, 독 서브딜러 3스 독 플라스크, 곰인형 버퍼 2스 곰인형 포옹·3스 응원 춤, 도발 탱커 2스 방패 문양·3스 마법진 방패·성벽, 하이퍼캐리 변신 1스 공간 가르기·반격 태세 날개 감싸기 (임시)
+  - 스킬 전용 연출(`SkillFx`) + 연출 컷 카메라: 선브링어 변신 3스 메테오, 하이퍼캐리 변신기·종결기, 격발 딜러 2스 거미줄·3스 실 새장, 하이퍼캐리 2스 황금 검기·반격 땅 가르기, 강탈 딜러 2스 강탈·3스 달빛 일격, 독 서브딜러 3스 독 플라스크, 곰인형 버퍼 2스 곰인형 포옹·3스 응원 춤, 도발 탱커 2스 방패 문양·3스 마법진 방패·성벽, 하이퍼캐리 변신 1스 공간 가르기·반격 태세 날개 감싸기, 흉신 마라 2스 반전 참격(하얀 참격선)·영역 공격 하얀 참격·업화 불의 활·3스 영역 전개(사찰·물바닥 배경)·영역 공격 하얀 참격 (임시)
 - 상세 창(카드 꾹 누르기): 스탯 / 버프·디버프 / 스킬 탭
 - 로비: 메인 화면(출격·모집·인벤토리·전투원 연결), 스테이지 선택(지도·보스 탭·상세 패널), 편성(4칸·보유 목록·팀 4개·팀 이름·저장, 메인 화면에서 열면 편성 관리만)
 - 전투원: 보유 목록, 상세(스탯·무기 +n)/스킬 탭, 육성 창(레벨업·일괄 추가·진급), 무기 칸 → 장착 창(직군 제한·장착·해제·강화)
 - 업적: 개요(달성 수·트로피·분류 카드·모두 수령) → 분류 목록(제목·자동 설명·진행 막대·보상·수령), 업적 56개, 메인 화면 알림 점
 - 인벤토리: 무기·재료 탭, 정렬, 상세 패널(무기는 레벨 반영 스탯), 일괄 분해(등급 선택), 무기 칸 200·자동 분해
 - 무기: 칼·방패·마법지팡이·로자리오 × 3·4·5성 = 12종
-- 모집: 픽업 배너 7개, 1·10회 뽑기(천장·반천·A 확정, 4성 무기 10%·5성 무기 1%), 확정까지 남은 횟수, 물레 → 공개 → 결과 목록 연출(파티클 + Bloom), 확률 공시 창(등급별·개별 기본·최종 확률)
+- 모집: 픽업 배너 8개, 1·10회 뽑기(천장·반천·A 확정, 4성 무기 10%·5성 무기 1%), 확정까지 남은 횟수, 물레 → 공개 → 결과 목록 연출(파티클 + Bloom), 확률 공시 창(등급별·개별 기본·최종 확률)
 
 ---
 

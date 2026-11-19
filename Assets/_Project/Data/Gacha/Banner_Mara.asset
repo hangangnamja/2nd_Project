@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2380a9aebf828c746977612e1260b81c, type: 3}
+  m_Name: Banner_Mara
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.GachaBannerData
+  id: Banner_Mara
+  bannerName: "\uD53C\uB85C \uBB3C\uB4E0 \uC2E0\uC804"
+  catchphrase: "\uC0C1\uAE30 \uCE90\uB9AD\uD130 \uCD9C\uD604 \uD655\uB960 UP!!!"
+  endDateText: "12\uC6D4 31\uC77C 03:59\uC5D0 \uC885\uB8CC\uB429\uB2C8\uB2E4."
+  pickupCharacter: {fileID: 11400000, guid: b8aa975b00957c2489e158b134a417f8, type: 2}
+  themeColor: {r: 0.55, g: 0.08, b: 0.12, a: 1}

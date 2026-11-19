@@ -218,6 +218,40 @@ namespace Game.UI
             }
         }
 
+        // 아군 caster가 상대를 노리는 장면(어깨 뒤 + 멀리 상대 줄, 1스 구도)으로 페이드 없이 바로 컷한다.
+        // 자기 정면 장면(자신에게 쓰는 스킬)에서 이어지는 광역 공격 연출(흉신 마라 영역 공격)이 상대를 보여주며 시작하도록 부른다.
+        // 이미 caster의 차례 장면이고 자기 정면 구도(selfShot)가 아니면 상대가 보이므로 그대로 둔다 (스킬 구도 1~3 어느 것이든, 화면이 튀지 않게). 반환값: 실제로 컷했는지.
+        // ReferenceEquals: 같은 구도 객체인지 비교 (CameraShot은 클래스라 같은 Inspector 설정이면 같은 객체).
+        public bool CutToOpponentsOf(BattleUnit caster)
+        {
+            if (caster == null || !caster.IsAlly)
+            {
+                return false;
+            }
+
+            if (hasStaged && currentLayout == StageLayout.ActorFocus && stagedActor == caster && !ReferenceEquals(currentShot, selfShot))
+            {
+                return false;
+            }
+
+            if (transition != null)
+            {
+                StopCoroutine(transition);
+                transition = null;
+                if (fadeOverlay != null)
+                {
+                    SetFadeAlpha(0f);
+                }
+            }
+
+            currentLayout = StageLayout.ActorFocus;
+            stagedActor = caster;
+            currentShot = skillShots[0];
+            hasStaged = true;
+            Restage();
+            return true;
+        }
+
         // 스킬의 대상 규칙에 따라 장면을 고른다. 아군을 고르는 스킬은 아군 정면, 자신은 정면, 적을 노리면 스킬 번호별 각도.
         private void ApplySkillScene(BattleUnit actor, int slot)
         {

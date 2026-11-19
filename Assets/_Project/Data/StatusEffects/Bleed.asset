@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e7ea1fe386d9a7468a3d5897f0a5561, type: 3}
+  m_Name: Bleed
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StatusEffectData
+  displayName: "\uCD9C\uD608"
+  description: "\uB9E4\uD134 \uC2DC\uC804\uC790\uC758 \uACF5\uACA9\uB825\uC5D0 \uBE44\uB840\uD55C
+    \uD53C\uD574\uB97C \uBC1B\uB294\uB2E4"
+  category: 1
+  stackMode: 0
+  maxStacks: 99
+  duration: 3
+  features: 2
+  damageAttackRatio: 0.7
+  damageTargetMaxHpRatio: 0
+  maxHpDamageAttackCap: 0
+  damagePopupColor: {r: 0.8, g: 0.05, b: 0.12, a: 1}
+  healSourceMaxHpRatio: 0
+  statModifiers: []
+  icon: {fileID: 2800000, guid: b3de263451e5bc441b6ea5815aee96de, type: 3}
+  isPersonal: 0
+  isPermanent: 0
+  convertsTo: {fileID: 0}

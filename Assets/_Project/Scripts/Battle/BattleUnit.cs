@@ -357,6 +357,9 @@ namespace Game.Battle
             // Math.Max(1, …): 비율이 아주 작아도 HP 0으로 부활해 바로 다시 쓰러지는 일이 없게 한다.
             CurrentHp = Math.Max(1, (int)(MaxHp * (double)hpRatio));
             RemainingDistance = TurnScheduler.TrackLength;
+
+            // 쓰러지기 전에 받은 피해는 부활로 끝난 것이라 역류 재생이 다시 회복하지 않게 비운다.
+            DamageTakenSinceOwnTurn = 0;
             return true;
         }
 
@@ -428,15 +431,28 @@ namespace Game.Battle
         // 변신 중이면 1~3스가 변신 스킬로 바뀌고, 쿨타임도 변신 스킬의 것을 쓴다.
         // 그래서 스킬·쿨타임을 읽는 쪽은 Data.GetSkill이 아니라 항상 이 함수들을 거친다.
 
-        // 지금 쓸 수 있는 slot번 스킬 (변신 중이면 변신 스킬).
+        // 지금 쓸 수 있는 slot번 스킬. 펼친 경계가 바꿔 준 스킬(영역의 업화)이 먼저, 그다음 변신 스킬, 아니면 원래 스킬.
+        // ??: 왼쪽(경계가 바꿔 준 스킬)이 null이면 오른쪽(변신·원래 스킬)을 쓴다.
         public SkillData GetSkill(int slot)
         {
-            return IsTransformed ? Transformation.Data.GetSkill(slot) : Data.GetSkill(slot);
+            return ActiveBoundary?.GetSkillOverride(slot)
+                ?? (IsTransformed ? Transformation.Data.GetSkill(slot) : Data.GetSkill(slot));
         }
 
-        // 해당 슬롯의 남은 쿨타임 (UI 표시용). 변신 중이면 변신 스킬의 쿨타임.
+        // slot번이 지금 경계가 바꿔 준 스킬인지 (그 스킬은 쿨타임이 없고, 쓰면 경계에 알려 되돌린다).
+        public bool HasBoundarySkill(int slot)
+        {
+            return ActiveBoundary?.GetSkillOverride(slot) != null;
+        }
+
+        // 해당 슬롯의 남은 쿨타임 (UI 표시용). 경계가 바꿔 준 스킬은 바로 쓸 수 있어 0, 변신 중이면 변신 스킬의 쿨타임.
         public int GetRemainingCooldown(int slot)
         {
+            if (HasBoundarySkill(slot))
+            {
+                return 0;
+            }
+
             return IsTransformed ? Transformation.GetCooldown(slot) : remainingCooldowns[slot];
         }
 
@@ -747,6 +763,15 @@ namespace Game.Battle
             return CurrentHp - hpBefore;
         }
 
+        // 지난 자기 턴 시작 이후 실제로 깎인 HP 합계 (보호막에 흡수된 양은 제외). 역류 재생 패시브의 회복량.
+        // 자기 턴이 시작될 때 패시브를 확인한 뒤 BattleManager가 0으로 되돌린다 (ResetDamageTakenSinceOwnTurn).
+        public int DamageTakenSinceOwnTurn { get; private set; }
+
+        public void ResetDamageTakenSinceOwnTurn()
+        {
+            DamageTakenSinceOwnTurn = 0;
+        }
+
         // 마지막으로 이 유닛에게 피해를 준 유닛. 사망이 확정될 때 "누가 처치했는지" 판단에 쓴다.
         public BattleUnit LastAttacker { get; private set; }
 
@@ -763,6 +788,7 @@ namespace Game.Battle
             if (dealt > 0)
             {
                 LastAttacker = attacker;
+                DamageTakenSinceOwnTurn += dealt;
             }
 
             // 남은 HP보다 큰 피해가 들어와도 실제로 깎인 만큼만 돌려준다 (예: HP 30에 100 피해 → 30).
