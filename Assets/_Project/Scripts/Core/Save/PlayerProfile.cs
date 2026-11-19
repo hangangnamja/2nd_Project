@@ -89,6 +89,17 @@ namespace Game.Core
             return data.currency.gold;
         }
 
+        // 디버그용: 보석·골드를 amount씩 더하고 저장한 뒤 재화를 보여주는 화면에 알린다 (디버그 키 DebugCurrencyKey가 부름).
+        // ?.Invoke: 구독한 화면이 없으면 아무것도 하지 않는다.
+        public static void AddDebugCurrency(int amount)
+        {
+            EnsureLoaded();
+            data.currency.gems += amount;
+            data.currency.gold += amount;
+            Save();
+            InventoryChanged?.Invoke();
+        }
+
         // ---------- 가챠 ----------
 
         // 세이브의 가챠 카운터. 뽑기 판정(GachaMachine)이 직접 갱신하고, CommitGachaPull이 저장한다.

@@ -37,37 +37,65 @@ namespace Game.Core
 
             saved.level = result.Level;
             saved.exp = result.Exp;
-            SaveGrowth(materialsChanged: !rules.InfiniteMaterials);
+
+            // 골드를 썼으므로 재화를 보여주는 화면(로비 우상단·인벤토리)에도 알린다.
+            SaveGrowth(materialsChanged: true);
             return true;
         }
 
-        // 캐릭터·무기 레벨업 공용: 재료를 확인·소모하고 경험치를 더한 결과를 out으로 돌려준다 (저장은 부른 쪽이 한다).
+        // 캐릭터·무기 레벨업 공용: 재료·골드를 확인·소모하고 경험치를 더한 결과를 out으로 돌려준다 (저장은 부른 쪽이 한다).
         // out: 함수가 값을 채워 돌려주는 매개변수 → 성공 여부(bool)와 결과(ExpResult)를 함께 받는다.
+        // 재료나 골드 중 하나라도 모자라면 아무것도 쓰지 않고 false (둘 다 확인한 뒤에 소모해, 한쪽만 줄어드는 일이 없게).
         private static bool TryApplyExp(GrowthRulesData rules, IReadOnlyList<int> counts, int level, int exp, int promotion, out ExpResult result)
         {
             result = default;
-            if (!HasMaterials(rules, counts))
+            int totalExp = GetTotalExp(rules, counts);
+            if (totalExp <= 0)
             {
                 return false;
             }
 
+            int goldCost = rules.GetLevelUpGoldCost(totalExp);
+            if (!HasMaterials(rules, counts) || !HasGold(goldCost))
+            {
+                return false;
+            }
+
+            ConsumeMaterials(rules, counts);
+            SpendGold(goldCost);
+            result = rules.AddExp(level, exp, rules.GetLevelCap(promotion), totalExp);
+            return true;
+        }
+
+        // 고른 재료의 경험치 합계. counts[i] × i번째 재료 1개당 경험치를 모두 더한다.
+        public static int GetTotalExp(GrowthRulesData rules, IReadOnlyList<int> counts)
+        {
             int totalExp = 0;
             for (int i = 0; i < counts.Count && i < rules.ExpMaterials.Count; i++)
             {
                 totalExp += counts[i] * rules.ExpMaterials[i].Experience;
             }
 
-            if (totalExp <= 0)
-            {
-                return false;
-            }
-
-            ConsumeMaterials(rules, counts);
-            result = rules.AddExp(level, exp, rules.GetLevelCap(promotion), totalExp);
-            return true;
+            return totalExp;
         }
 
-        // 레벨 상한에 도달했고 진급 재료가 충분하면 진급한다 (재료를 쓰고 상한이 10 늘어난다).
+        // 골드를 amount 이상 갖고 있는지 (육성 창의 비용 표시·버튼 켜기와 실제 레벨업·진급이 같은 판정을 쓴다).
+        // 골드는 성장 규칙의 "재료 무한"과 상관없이 항상 실제 보유량으로 판정한다.
+        public static bool HasGold(int amount)
+        {
+            return GetGold() >= amount;
+        }
+
+        // 골드를 쓴다. 저장은 부른 쪽이 한다 (레벨업·진급 결과와 한 번에 저장하기 위해).
+        private static void SpendGold(int amount)
+        {
+            if (amount > 0)
+            {
+                data.currency.gold -= amount;
+            }
+        }
+
+        // 레벨 상한에 도달했고 진급 재료·골드가 충분하면 진급한다 (재료·골드를 쓰고 상한이 10 늘어난다).
         public static bool Promote(CharacterData character)
         {
             EnsureLoaded();
@@ -82,7 +110,7 @@ namespace Game.Core
 
             // 업적: 누적 진급 횟수. 진급과 함께 저장된다.
             AddCounter(AchievementCondition.CharacterPromotions, 1);
-            SaveGrowth(materialsChanged: !rules.InfiniteMaterials);
+            SaveGrowth(materialsChanged: true);
             return true;
         }
 
@@ -92,13 +120,16 @@ namespace Game.Core
             return rules.InfiniteMaterials || GetMaterialCount(rules.PromotionMaterial) >= rules.GetPromotionCost(promotion);
         }
 
-        // 캐릭터·무기 진급 공용: 진급 재료가 충분하면 쓰고 true. 재료 무한이면 쓰지 않고 true. 저장은 부른 쪽이 한다.
+        // 캐릭터·무기 진급 공용: 진급 재료와 골드가 모두 충분하면 쓰고 true. 재료 무한이면 재료는 쓰지 않는다(골드는 씀). 저장은 부른 쪽이 한다.
         private static bool TryPayPromotion(GrowthRulesData rules, int promotion)
         {
-            if (!HasPromotionMaterials(rules, promotion))
+            int goldCost = rules.GetPromotionGoldCost(promotion);
+            if (!HasPromotionMaterials(rules, promotion) || !HasGold(goldCost))
             {
                 return false;
             }
+
+            SpendGold(goldCost);
 
             int cost = rules.GetPromotionCost(promotion);
             if (!rules.InfiniteMaterials && cost > 0)

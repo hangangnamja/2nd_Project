@@ -64,7 +64,15 @@ namespace Game.Data
         [Tooltip("진급마다 필요한 진급 재료 개수. 0번 = 진급 1회째(Lv10에서), 마지막 = 진급 5회째(Lv50에서)")]
         [SerializeField] private List<int> promotionCosts = new List<int>();
 
-        [Tooltip("체크하면 재료를 갖고 있지 않아도 쓸 수 있고 줄지도 않는다 (재화 던전이 생기기 전 테스트용)")]
+        [Header("골드 비용")]
+        [Tooltip("레벨업 때 넣은 경험치 1당 골드 (0.1이면 고급 재료 1개(3,000) = 골드 300). 상한에 막혀 버려지는 경험치도 비용에 포함")]
+        [Label("레벨업 골드 (경험치 1당)", Min = 0f)]
+        [SerializeField] private float levelUpGoldPerExp = 0.1f;
+
+        [Tooltip("진급마다 필요한 골드. 0번 = 진급 1회째(Lv10에서), 마지막 = 진급 5회째(Lv50에서)")]
+        [SerializeField] private List<int> promotionGoldCosts = new List<int>();
+
+        [Tooltip("체크하면 재료를 갖고 있지 않아도 쓸 수 있고 줄지도 않는다 (재화 던전이 생기기 전 테스트용). 골드는 이 칸과 상관없이 항상 쓴다")]
         [Label("디버그: 재료 무한")]
         [SerializeField] private bool infiniteMaterials = true;
 
@@ -79,6 +87,19 @@ namespace Game.Data
         public int GetPromotionCost(int promotion)
         {
             return promotion >= 0 && promotion < promotionCosts.Count ? promotionCosts[promotion] : 0;
+        }
+
+        // 경험치 totalExp만큼 넣어 레벨업할 때 드는 골드.
+        // Mathf.CeilToInt: 소수점을 올림한 정수 (경험치 5 × 0.1 = 0.5 → 1) → 재료를 넣었는데 비용이 0이 되는 일이 없게 한다.
+        public int GetLevelUpGoldCost(int totalExp)
+        {
+            return totalExp > 0 ? Mathf.CeilToInt(totalExp * levelUpGoldPerExp) : 0;
+        }
+
+        // 지금 진급 횟수(promotion)에서 다음 진급에 필요한 골드. 표에 없으면 0(무료). 칸 번호 규칙은 GetPromotionCost와 같다.
+        public int GetPromotionGoldCost(int promotion)
+        {
+            return promotion >= 0 && promotion < promotionGoldCosts.Count ? promotionGoldCosts[promotion] : 0;
         }
 
         // 그 레벨에서 다음 레벨까지 필요한 경험치. 최대 레벨이면 0.

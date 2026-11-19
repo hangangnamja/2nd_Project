@@ -24,4 +24,6 @@ MonoBehaviour:
     experience: 3000
   promotionMaterial: {fileID: 11400000, guid: ce0316f4d1013014898fed8183f16874, type: 2}
   promotionCosts: 0200000004000000080000000c00000014000000
-  infiniteMaterials: 1
+  levelUpGoldPerExp: 0.1
+  promotionGoldCosts: 8813000010270000204e00003075000050c30000
+  infiniteMaterials: 0
