@@ -296,6 +296,13 @@ namespace Game.UI
                     boundaryIcon = new StatusInstance(boundaryDisplay, Unit, appliedOrder: 0);
                 }
 
+                // 턴 제한이 있는 경계(영역)는 아이콘 숫자에 남은 턴을 적는다 (-1 = 턴 제한 없음 → 표시 효과 설정 그대로).
+                int boundaryTurns = Unit.ActiveBoundary.RemainingTurns;
+                if (boundaryTurns >= 0)
+                {
+                    boundaryIcon.SetRemainingTurnsForDisplay(boundaryTurns);
+                }
+
                 statuses.Insert(0, boundaryIcon);
             }
 

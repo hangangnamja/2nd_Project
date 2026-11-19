@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e7ea1fe386d9a7468a3d5897f0a5561, type: 3}
+  m_Name: MaraDomain
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StatusEffectData
+  displayName: "\uACBD\uACC4: \uD608\uD574\uC2E0\uC804"
+  description: "\uC601\uC5ED\uC774 \uD3BC\uCCD0\uC9C4 \uB3D9\uC548 \uC790\uAE30 \uD134\uC774
+    \uB05D\uB0A0 \uB54C\uB9C8\uB2E4 \uC801 \uC804\uCCB4\uB97C \uBCA4\uB2E4. \uC601\uC5ED
+    \uB3D9\uC548 1\uD68C 3\uC2A4\uAC00 \uC5C5\uD654\uB85C \uBC14\uB010\uB2E4. \uC22B\uC790\uB294
+    \uB0A8\uC740 \uD134."
+  category: 0
+  stackMode: 1
+  maxStacks: 99
+  duration: 3
+  features: 0
+  damageAttackRatio: 0
+  damageTargetMaxHpRatio: 0
+  maxHpDamageAttackCap: 0
+  damagePopupColor: {r: 1, g: 0.55, b: 0.3, a: 1}
+  healSourceMaxHpRatio: 0
+  statModifiers: []
+  icon: {fileID: 2800000, guid: f973809492ef60048bdb0beef088a87c, type: 3}
+  isPersonal: 1
+  isPermanent: 0
+  convertsTo: {fileID: 0}

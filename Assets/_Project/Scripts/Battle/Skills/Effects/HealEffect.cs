@@ -7,7 +7,7 @@ namespace Game.Battle.Effects
 {
     // 대상 전원의 HP를 회복한다. 회복량 기준(공격력 / 최대 HP / 이 행동에서 가한 피해)은 캐릭터마다 다르므로 선택할 수 있다.
     // 효과 블록 드롭다운에 보여줄 분류/이름과 설명 (SubclassMenuAttribute).
-    [SubclassMenu("회복·보호/회복", "대상 HP 회복. 기준(공격력·최대 HP·시전자 최대 HP·가한 피해)과 비율을 고르고, 시전자 자신·아군 전체 옵션이 있다. 가한 피해 기준(피흡)은 피해 블록 뒤에 둔다", 200)]
+    [SubclassMenu("회복·보호/회복", "대상 HP 회복. 기준(공격력·최대 HP·시전자 최대 HP·가한 피해·지난 자기 턴 이후 받은 피해)과 비율을 고르고, 시전자 자신·아군 전체 옵션이 있다. 가한 피해 기준(피흡)은 피해 블록 뒤에 둔다", 200)]
     [Serializable]
     public class HealEffect : SkillEffect
     {
@@ -22,6 +22,9 @@ namespace Game.Battle.Effects
 
             // 이 행동에서 앞선 피해 블록들이 가한 피해 합계 기준 = 피흡 (강탈 딜러 3스). 효과 목록에서 피해 블록 뒤에 둬야 한다.
             [InspectorName("가한 피해 (피흡)")] DamageDealt,
+
+            // 회복받는 유닛이 지난 자기 턴 시작 이후 실제로 깎인 HP 합계 (보호막 흡수 제외). 흉신 마라 역류 재생: 100%면 전부 되돌림
+            [InspectorName("지난 자기 턴 이후 받은 피해")] DamageTakenSinceOwnTurn,
         }
 
         [Label("기준 스탯")]
@@ -93,6 +96,7 @@ namespace Game.Battle.Effects
                 ScaleStat.CasterAttack => caster.Attack,
                 ScaleStat.CasterMaxHp => caster.MaxHp,
                 ScaleStat.DamageDealt => context.DamageDealt,
+                ScaleStat.DamageTakenSinceOwnTurn => target.DamageTakenSinceOwnTurn,
                 _ => target.MaxHp,
             };
 
@@ -110,6 +114,13 @@ namespace Game.Battle.Effects
             if (scaleStat == ScaleStat.DamageDealt)
             {
                 return $"{(healAllAllies ? "아군 전체 " : healCaster ? "자신 " : string.Empty)}가한 피해의 {EffectText.Percent(ratio)}만큼 HP 회복 (피흡)";
+            }
+
+            // 역류 재생: "지난 자기 턴 이후 받은 피해의 n%를 회복" (100%면 "전부 회복").
+            if (scaleStat == ScaleStat.DamageTakenSinceOwnTurn)
+            {
+                string amount = Mathf.Approximately(ratio, 1f) ? "전부" : $"{EffectText.Percent(ratio)}만큼";
+                return $"{(healAllAllies ? "아군 전체 " : healCaster ? "자신 " : string.Empty)}지난 자기 턴 이후 받은 피해를 {amount} 회복";
             }
 
             return $"{(healAllAllies ? "아군 전체 " : healCaster ? "자신 " : string.Empty)}HP 회복 ({scale} {EffectText.Percent(ratio)})";

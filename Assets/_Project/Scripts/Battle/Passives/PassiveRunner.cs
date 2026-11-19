@@ -218,6 +218,12 @@ namespace Game.Battle
             }
 
             ActivateOwnPassives(actor, PassiveTrigger.OnOwnTurnStart);
+
+            // 지난 자기 턴 이후 깎인 HP가 있을 때만 (역류 재생). 0이면 회복할 것이 없으니 모션도 내지 않는다.
+            if (actor.DamageTakenSinceOwnTurn > 0)
+            {
+                ActivateOwnPassives(actor, PassiveTrigger.OnOwnTurnStartAfterDamage);
+            }
         }
 
         // 정규 턴이 끝날 때 BattleManager가 부른다: 이번 턴에 공격하지 않았으면 "공격하지 않은 턴" 패시브를 발동한다 (아스트라).
@@ -460,6 +466,7 @@ namespace Game.Battle
                 case PassiveTrigger.OnEnter:
                 case PassiveTrigger.OnKill:
                 case PassiveTrigger.OnOwnTurnStart:
+                case PassiveTrigger.OnOwnTurnStartAfterDamage:
                     return true;
                 default:
                     return false;

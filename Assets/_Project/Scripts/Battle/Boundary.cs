@@ -52,8 +52,25 @@ namespace Game.Battle
         {
         }
 
-        // 지금 끝나야 하는지. BattleManager가 변신 해제·사망 확정 같은 시점마다 확인한다.
+        // 지금 끝나야 하는지. BattleManager가 변신 해제·사망 확정·주인 턴 종료 같은 시점마다 확인한다.
         public abstract bool ShouldEnd();
+
+        // 경계 동안 주인의 slot번 스킬 대신 쓸 스킬. 없으면 null (원래 스킬 그대로).
+        // 영역: 3스 칸이 "업화"로 바뀐다 (BattleUnit.GetSkill이 이 값을 먼저 본다).
+        public virtual SkillData GetSkillOverride(int slot) => null;
+
+        // 바꿔 준 스킬을 주인이 썼을 때. 1회용이면 여기서 원래 스킬로 되돌린다.
+        public virtual void OnSkillOverrideUsed(int slot)
+        {
+        }
+
+        // 주인의 턴(정규 턴·추가 턴)이 끝날 때 BattleManager가 부른다. 턴마다 무언가 하는 경계가 쓴다 (영역: 적 전체 참 + 남은 턴 감소).
+        public virtual void OnOwnerTurnEnd(BattleServices services)
+        {
+        }
+
+        // 머리 위 아이콘·툴팁에 덧붙일 남은 턴 (턴 제한이 없는 경계는 -1).
+        public virtual int RemainingTurns => -1;
     }
 
     // 전장의 경계 자리 (전투 한 판에 하나). 경계 공통 규칙: **한 번에 하나의 경계만 존재한다.**
@@ -83,6 +100,19 @@ namespace Game.Battle
             Current = boundary;
             log($"  [경계] {boundary.Owner.Name}: {boundary.Name} 전개");
             boundary.Begin(log);
+        }
+
+        // 주인의 턴이 끝났음을 경계에 알리고, 끝날 조건(남은 턴 0 등)이 되면 끝낸다.
+        // ?.: 펼쳐진 경계가 없거나 다른 유닛의 경계면 아무것도 하지 않는다.
+        public void HandleTurnEnd(BattleUnit actor, BattleServices services)
+        {
+            if (Current == null || Current.Owner != actor)
+            {
+                return;
+            }
+
+            Current.OnOwnerTurnEnd(services);
+            CheckEnd();
         }
 
         // 펼쳐진 경계가 끝날 조건이면 끝낸다. 변신 해제·사망 확정처럼 상태가 바뀌는 시점마다 부른다.
