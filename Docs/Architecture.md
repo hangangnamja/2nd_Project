@@ -86,7 +86,9 @@
 - 가챠 무기: `GachaMachine`이 캐릭터 구간 뒤 무기 구간(5성 1% → 4성 10% → 3성 나머지)으로 등급을 정하고 `GetWeaponsOfGrade`에서 고른다. 연출은 결과 등급 색만 보므로 4·5성 무기도 캐릭터와 같은 빛
   - 재료 칸 `GrowthMaterialSlot`의 누름·홀드 반복은 `HoldRepeatButton`(누른 채로 있으면 점점 빨리 반복)
   - 실행은 `PlayerProfile.LevelUp`·`Promote`(`PlayerProfile.Growth.cs`): 저장 후 `OwnedCharactersChanged` → 육성 창·전투원 화면이 다시 그려짐
-  - 진급은 캐릭터·무기 공용 `TryPayPromotion`(진급 재료 확인·소모, 재료 무한이면 소모 없음)을 거친다. 진급 화면 버튼은 `HasPromotionMaterials`로 켜고 끈다
+  - 진급은 캐릭터·무기 공용 `TryPayPromotion`(진급 재료·골드 확인·소모, 재료 무한이면 재료만 소모 없음)을 거친다. 진급 화면 버튼은 `HasPromotionMaterials`·`HasGold`로 켜고 끈다
+  - 골드 비용: `GrowthRulesData.GetLevelUpGoldCost`(넣은 경험치 × 경험치 1당 골드, 올림)·`GetPromotionGoldCost`(진급 단계별 목록). 레벨업은 `TryApplyExp`가 재료·골드를 모두 확인한 뒤 함께 소모. 골드는 "재료 무한"과 무관하게 항상 실제 보유량(`PlayerProfile.HasGold`)으로 판정
+  - 육성 창은 확인 버튼 위 `goldCostText`(골드 아이콘 + 필요 / 보유)를 같은 계산으로 그리고, 모자라면 버튼을 끈다
 
 ### 업적 (기획서 12장)
 - `AchievementData`(SO, `Data/Achievements/`): ID·분류·등급·제목·조건(`AchievementCondition`)·스테이지(첫 클리어용)·목표·보상. 설명은 `Describe()`가 조건·목표로 만든다
@@ -103,6 +105,7 @@
 - `PlayerProfile` (static): 처음 쓰일 때 세이브를 불러오고(없으면 새 게임), 바꾸는 함수는 바꾼 직후 저장. 화면은 `SaveData`를 직접 만지지 않고 이 함수로 데이터 에셋을 받음
 - 저장되는 SO(`CharacterData`, `StageData`)는 에셋 이름과 별도로 **ID** 칸을 가짐. 한 번 정하면 바꾸지 않는다
 - 도메인 리로드를 꺼 두었으므로 static 값은 플레이 시작 때 직접 비운다 (`RuntimeInitializeOnLoadMethod`)
+- 디버그 재화 키: `DebugCurrencyKey`(Core)가 플레이 시작 때 스스로 `DontDestroyOnLoad` 오브젝트를 만들고, F9(Input System `Keyboard.current`)를 누르면 `PlayerProfile.AddDebugCurrency(100000)` → 저장 + `InventoryChanged`(로비 재화 표시·모집 화면 보석이 바로 갱신)
 
 ### 캐릭터 조립 구조
 ```
@@ -398,7 +401,8 @@ Assets/_Project/
 - 효과 블록 26종 (목록은 2장 "효과 블록 목록" 표)
 - Inspector 도구: 효과 블록 드롭다운(`SubclassSelector`), 상태효과 종류별 칸 표시
 - 세이브: JSON 저장·불러오기, 임시 파일 교체, 깨진 파일 보관, `version` 필드(현재 6: 업적 기록), 새 게임 시작 캐릭터, 에디터 메뉴(세이브 삭제·폴더 열기, 테스트 아이템, 전부 Lv1로)
-- 성장 규칙: 캐릭터·무기 경험치 곡선(Lv1→60 = 900,000), 진급 5회, 경험치 재료 3종·무기 강화석 (`GrowthRulesData`)
+- 성장 규칙: 캐릭터·무기 경험치 곡선(Lv1→60 = 900,000), 진급 5회, 경험치 재료 3종·무기 강화석, 레벨업·진급 골드 비용 (`GrowthRulesData`)
+- 재화: 뽑기는 보석을 씀(디버그 무료 뽑기 꺼짐), 골드·경험치·진급 재료는 육성에 씀(디버그 재료 무한 꺼짐), 디버그 키 F9 = 보석·골드 +100,000
 
 ### 전투 코어
 - 행동 순서(남은 거리·속도·동시 도착 우선순위·사이클 카운터), 행동 당기기와 미뤄둔 당기기
@@ -466,14 +470,10 @@ Assets/_Project/
 - 보스 AI를 Unity Behavior 패키지로 교체 (지금은 패턴 목록)
 
 ### 육성·재화
-- 디버그 "재료 무한" 끄기 (캐릭터·무기 성장 규칙, 지금 켜져 있음). 획득처는 탐색 던전으로 생김
-- 골드 사용처 (레벨업·진급 비용 후보), 진급 재료 수량 확정 (개수 임시)
+- 진급 재료·골드 수량 확정 (개수 임시, 골드 사용처는 레벨업·진급으로 구현)
 - 중복 캐릭터 처리 (돌파 / 재화 변환, 미정)
 - 무기 종류별 스탯 차이 여부 (지금은 등급만으로 차등, 미정)
 - 스태미나·입장 제한 여부 (미정)
-
-### 가챠
-- 디버그 무료 뽑기 끄기 (`GachaRules`, 지금 켜져 있음). 보석 획득처는 첫 클리어(22개 × 100)·업적이 생김, 별 미션은 아직
 
 ### 아웃게임 기타
 - 시작(타이틀) 화면: 세이브 불러오기, 공용 매니저 생성

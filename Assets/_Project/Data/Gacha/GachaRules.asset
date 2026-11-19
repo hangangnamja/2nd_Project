@@ -14,6 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.GachaRulesData
   sRate: 0.006
   aRate: 0.09
+  fiveStarWeaponRate: 0.01
+  fourStarWeaponRate: 0.1
   hardPity: 90
   softPityStart: 71
   softPityStep: 0.04
@@ -21,4 +23,4 @@ MonoBehaviour:
   pickupChance: 0.5
   gemsPerPull: 100
   obtainedLevel: 1
-  freePulls: 1
+  freePulls: 0

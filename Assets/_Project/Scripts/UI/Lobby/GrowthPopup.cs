@@ -9,7 +9,8 @@ namespace Game.UI
     // 육성 창: 전투원 레벨업과 무기 강화를 같은 창에서 한다. 젠레스 존 제로 에이전트 육성 창을 참고했다.
     //  - 레벨업: 경험치 재료 칸을 눌러(홀드하면 연속) 개수를 고르면, 오를 레벨·경험치·스탯을 미리 보여준다
     //    "일괄 추가"는 다음 진급 레벨(레벨 상한)까지 필요한 만큼 큰 재료부터 채운다. 상한을 넘는 경험치는 버린다
-    //  - 진급: 레벨 상한(10·20·…·50)에 닿았으면 같은 창이 진급 화면으로 바뀐다 (지금은 재화 없이 바로 진급)
+    //  - 진급: 레벨 상한(10·20·…·50)에 닿았으면 같은 창이 진급 화면으로 바뀐다 (진급 재료 + 골드)
+    //  - 레벨업·진급 모두 골드가 들고, 확인 버튼 위에 필요 / 보유 골드를 보여준다
     // 무엇을 키우는지(캐릭터/무기)는 IGrowthTarget이 감춘다 → 창은 규칙·상태·스탯을 대상에게 묻기만 한다.
     // 실제 변경은 대상이 PlayerProfile에 요청하고, 저장 알림으로 이 창과 전투원 화면이 다시 그려진다.
     public class GrowthPopup : MonoBehaviour
@@ -71,6 +72,9 @@ namespace Game.UI
         [Header("확인")]
         [SerializeField] private Button confirmButton;
         [SerializeField] private Text confirmText;
+
+        [Tooltip("확인 버튼 위 골드 비용 \"필요 / 보유\" (모자라면 빨강). 레벨업·진급 모두 표시")]
+        [SerializeField] private Text goldCostText;
 
         private IGrowthTarget target;
         private int[] selected = new int[0];
@@ -312,17 +316,20 @@ namespace Game.UI
             if (isPromotion)
             {
                 ShowPromotion();
+                bool hasPromotionGold = ShowGoldCost(Rules.GetPromotionGoldCost(target.Promotion));
                 confirmText.text = "진급";
-                confirmButton.interactable = PlayerProfile.HasPromotionMaterials(Rules, target.Promotion);
+                confirmButton.interactable = PlayerProfile.HasPromotionMaterials(Rules, target.Promotion) && hasPromotionGold;
                 return;
             }
 
             ShowLevelBar(preview);
             ShowSlots();
 
-            bool hasSelection = TotalSelectedExp() > 0;
+            // 레벨업 골드 = 넣은 경험치 × 경험치 1당 골드 (재료를 고를 때마다 다시 계산). 골드가 모자라면 버튼을 끈다.
+            int selectedExp = TotalSelectedExp();
+            bool hasLevelUpGold = ShowGoldCost(Rules.GetLevelUpGoldCost(selectedExp));
             confirmText.text = isMaxLevel ? "최대 레벨" : "레벨업";
-            confirmButton.interactable = hasSelection && !isMaxLevel;
+            confirmButton.interactable = selectedExp > 0 && !isMaxLevel && hasLevelUpGold;
             hintText.text = preview.Wasted > 0
                 ? $"재료를 홀드하면 연속으로 추가할 수 있습니다   <color=#FF9966>초과 경험치 {preview.Wasted:N0}은 버려집니다</color>"
                 : "재료를 홀드하면 연속으로 추가할 수 있습니다";
@@ -401,6 +408,16 @@ namespace Game.UI
                 ? $"<color=#{ColorUtility.ToHtmlStringRGB(lackColor)}>{ownedText}</color> / {cost:N0}"
                 : $"{ownedText} / {cost:N0}";
             promoteMaterialText.text = $"{materialName}\n<size=30><b>{countText}</b></size>";
+        }
+
+        // 골드 비용 "필요 / 보유"를 보여주고, 보유 골드가 충분한지 돌려준다. 모자라면 필요 숫자를 빨갛게.
+        // 골드는 성장 규칙의 "재료 무한"과 상관없이 항상 실제 보유량으로 판정한다 (PlayerProfile.HasGold).
+        private bool ShowGoldCost(int cost)
+        {
+            bool enough = PlayerProfile.HasGold(cost);
+            string costText = enough ? $"{cost:N0}" : $"<color=#{ColorUtility.ToHtmlStringRGB(lackColor)}>{cost:N0}</color>";
+            goldCostText.text = $"<b>{costText}</b>  <size=16>/ 보유 {PlayerProfile.GetGold():N0}</size>";
+            return enough;
         }
 
         // ---------- 계산 ----------

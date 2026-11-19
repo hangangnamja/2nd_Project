@@ -76,11 +76,19 @@ namespace Game.UI
         private Sprite defaultIllust;
 
         // 화면이 켜질 때마다(메인 화면에서 모집을 누를 때) 첫 배너와 보유 보석·확정까지 남은 횟수를 다시 보여준다.
+        // 켜져 있는 동안은 재화 변경 알림(InventoryChanged)을 받아 보석 표시를 바로 고친다 (디버그 키로 보석을 받았을 때 등).
         private void OnEnable()
         {
             InitializeOnce();
             ShowBanner(0);
             RefreshPlayerState();
+            PlayerProfile.InventoryChanged += RefreshPlayerState;
+        }
+
+        // 꺼질 때 구독 해제: static 알림이라 해제하지 않으면 꺼진 화면을 계속 고치게 된다.
+        private void OnDisable()
+        {
+            PlayerProfile.InventoryChanged -= RefreshPlayerState;
         }
 
         // 버튼 연결은 한 번만 한다 (OnEnable은 화면을 열 때마다 불리므로 중복 연결 방지).
@@ -115,6 +123,10 @@ namespace Game.UI
         {
             gemText.text = PlayerProfile.GetGems().ToString("N0");
             RefreshGuaranteeCounts();
+
+            // 보석이 모자라면 그 뽑기 버튼을 누를 수 없게 흐리게 한다 (CanPull: 보유 보석 ≥ 횟수 × 1회 비용).
+            singlePullButton.interactable = GachaService.CanPull(1);
+            tenPullButton.interactable = GachaService.CanPull(10);
         }
 
         // 확정까지 남은 횟수 = 확정 간격 - 확정 없이 이미 뽑은 횟수.
@@ -201,7 +213,7 @@ namespace Game.UI
             List<GachaResult> results = GachaService.Pull(banners[bannerIndex], count);
             if (results == null)
             {
-                Debug.Log("[Gacha] 보석이 부족합니다.");
+                Debug.Log($"[Gacha] 보석이 부족합니다. (필요 {GachaService.GetCost(count):N0}, 디버그 키 F9로 보석 +100,000)");
                 return;
             }
 
