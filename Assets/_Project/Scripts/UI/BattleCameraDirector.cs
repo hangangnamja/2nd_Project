@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using Game.Battle;
 using Game.Core;
 using Game.Data;
@@ -485,9 +486,40 @@ namespace Game.UI
             cameraTransform.position += appliedShake;
         }
 
+        // 구도의 카메라 자리. 상대 줄을 담는 구도면 상대 줄에 선 큰 모델에 맞춰 뒤로 뺀다:
+        // 자리 = 바라볼 곳 + (원래 자리 - 바라볼 곳) × 배율 → 같은 방향에서 거리만 배율만큼 늘어나 구도(각도)는 그대로, 화면만 넓게 담긴다.
+        // 큰 보스가 쓰러지거나 웨이브가 바뀌면 배율이 1로 돌아와 LateUpdate의 SmoothDamp가 부드럽게 다시 다가간다.
         private Vector3 GetShotPosition(CameraShot shot)
         {
-            return GetAnchorPosition(shot.Anchor) + shot.Offset;
+            Vector3 position = GetAnchorPosition(shot.Anchor) + shot.Offset;
+            // 상대 줄을 담는 구도 = 평소 시점 또는 차례 장면의 스킬 구도 1~3 (Array.IndexOf: 목록에 있으면 0 이상, 없으면 -1).
+            // 아군 줄 정면·자기 정면 구도는 상대가 안 보이므로 그대로 둔다.
+            bool looksAtOpponents = ReferenceEquals(shot, overviewShot) || Array.IndexOf(skillShots, shot) >= 0;
+            if (!looksAtOpponents)
+            {
+                return position;
+            }
+
+            Vector3 lookPoint = GetAnchorPosition(shot.LookAnchor) + shot.LookOffset;
+            return lookPoint + (position - lookPoint) * GetOpponentDistanceScale();
+        }
+
+        // 지금 장면에서 멀리 선 상대 줄(아군 차례면 적, 평소 시점이면 적)의 유닛 중 가장 큰 카메라 거리 배율.
+        // 전장에 있고 화면에 보이는 유닛만 센다 (쓰러진 보스·숨겨진 유닛은 빼고, 화면 생사 ShownHp로 쓰러짐 연출이 끝난 뒤 다가감).
+        private float GetOpponentDistanceScale()
+        {
+            IReadOnlyList<BattleUnit> opponents = stagedActor != null && !stagedActor.IsAlly ? battleManager.Allies : battleManager.Enemies;
+            float scale = 1f;
+            foreach (BattleUnit unit in opponents)
+            {
+                UnitView view = unit.IsOnField && !ShownHp.IsDead(unit) ? stageView.FindView(unit) : null;
+                if (view != null && view.gameObject.activeInHierarchy)
+                {
+                    scale = Mathf.Max(scale, view.CameraDistanceScale);
+                }
+            }
+
+            return scale;
         }
 
         // 카메라 위치에서 바라볼 지점을 향하는 회전. Quaternion.LookRotation(방향): 그 방향을 앞(z)으로 보는 회전.

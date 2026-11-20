@@ -321,7 +321,8 @@ namespace Game.UI
                 // 부활해 살아났으면 빈자리가 아니므로 일반 유닛처럼 보인다.
                 bool isHiddenFallenSlot = fallenSlots.Contains(view) && view.Unit.IsDead && !isTargetable;
 
-                bool isVisible = staged.Contains(view) && !view.Unit.IsExited && !isHiddenFallenSlot;
+                // IsGone: 자폭처럼 그 자리에서 없어진 유닛은 다시 켜지 않는다.
+                bool isVisible = staged.Contains(view) && !view.Unit.IsExited && !isHiddenFallenSlot && !view.IsGone;
                 view.gameObject.SetActive(isVisible);
                 if (!isVisible)
                 {

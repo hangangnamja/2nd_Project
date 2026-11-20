@@ -90,6 +90,9 @@ namespace Game.UI
 
         // 돌진 모션의 나가는 시간 (BattleFxView가 돌진이 대상에 닿는 순간에 맞춰 타격 박자를 재생하려고 읽는다).
         // 3D 모델이면 공격 동작이 내리치는 순간까지의 시간 (애니메이션과 피해 숫자를 맞춘다).
+        // 이 유닛이 상대 줄에 섰을 때 카메라를 뒤로 뺄 배율 (큰 3D 모델만 1보다 큼, 캡슐은 1).
+        public float CameraDistanceScale => model != null ? model.CameraDistanceScale : 1f;
+
         public float LungeOutSeconds => model != null ? model.AttackImpactSeconds : lungeOutSeconds;
 
         // 시전 모션이 가장 높이 떠오르기까지의 시간 (BattleFxView가 이 순간에 버프·회복 박자를 재생한다).
@@ -189,6 +192,12 @@ namespace Game.UI
         private void RefreshModel()
         {
             if (model == null)
+            {
+                return;
+            }
+
+            // 몸을 날리는 중(자폭)이면 쓰러짐 표시를 미룬다: 로직에서는 이미 사라졌지만 화면에서는 아직 날아가는 중.
+            if (isLeaping)
             {
                 return;
             }
@@ -471,6 +480,7 @@ namespace Game.UI
 
             // 꺼지면 코루틴이 멈추므로 "모션 중" 표시도 지운다 (안 지우면 숨겨진 유닛이 영원히 모션 중으로 남아 다음 행동이 기다림).
             motion = null;
+            isLeaping = false;
         }
 
         // 화면 HP가 바뀌면 글자를 다시 쓴다. 쓰러진 유닛은 연출이 끝나 화면에서도 쓰러진 순간(ShownHp.IsDead)이 오므로
@@ -556,6 +566,7 @@ namespace Game.UI
 
             motionOffset = Vector3.zero;
             motionRotation = Quaternion.identity;
+            isLeaping = false;
         }
 
         // 모션을 새로 시작한다. 꺼진 오브젝트는 코루틴을 시작할 수 없으므로 보일 때만 한다.
@@ -612,6 +623,9 @@ namespace Game.UI
         public bool IsInMotion => motion != null;
         public float LastImpactShakeSeconds { get; private set; }
 
+        // 마지막으로 시작한 공격 동작의 연타 간격(초). 0이면 전투 기본 간격을 쓴다 (BattleFxView의 연출 다단 히트).
+        public float LastHitInterval { get; private set; }
+
         // 공격 행동을 시작하고, 타격이 들어가는 순간까지 걸리는 시간(초)을 돌려준다 (BattleFxView가 그만큼 기다린 뒤 피해 숫자를 띄움).
         // 3D 모델이고 스킬에 맞는 스킬 동작(motionName)이 있으면 그 동작 (걸어가기 → 공격), 아니면 기본 돌진.
         public float PlayAttackMotion(Vector3 targetPosition, string motionName)
@@ -619,6 +633,7 @@ namespace Game.UI
             ModelAttackMotion skillMotion = model != null ? model.FindSkillMotion(motionName) : null;
             LastImpactShake = skillMotion != null ? skillMotion.impactShake : 0f;
             LastImpactShakeSeconds = skillMotion != null ? skillMotion.impactShakeSeconds : 0f;
+            LastHitInterval = skillMotion != null ? skillMotion.hitInterval : 0f;
             if (skillMotion == null || !gameObject.activeInHierarchy)
             {
                 PlayLunge(targetPosition);
@@ -628,6 +643,15 @@ namespace Game.UI
             // 걸어갈 거리 = 최대 거리와 (대상까지 거리 - 멈추는 거리) 중 작은 값. 걷는 시간 = 거리 ÷ 속도.
             Vector3 toTarget = targetPosition - anchorPosition;
             toTarget.y = 0f;
+
+            // 몸 날리기: 대상 앞(멈추는 거리)까지 포물선으로 날아가 닿는 순간이 타격 순간.
+            if (skillMotion.leap)
+            {
+                Vector3 landing = toTarget.normalized * Mathf.Max(0f, toTarget.magnitude - skillMotion.leapStopDistance);
+                StartMotion(LeapAttackRoutine(skillMotion, landing));
+                return skillMotion.leapCrouchSeconds + skillMotion.leapSeconds;
+            }
+
             float distance = skillMotion.walkIn
                 ? Mathf.Min(skillMotion.maxWalkDistance, Mathf.Max(0f, toTarget.magnitude - skillMotion.stopDistance))
                 : 0f;
@@ -658,6 +682,61 @@ namespace Game.UI
             }
             yield return MoveOffset(peak, Vector3.zero, Mathf.Max(lungeBackSeconds, walkSeconds * 0.5f), t => Mathf.SmoothStep(0f, 1f, t));
             motion = null;
+        }
+
+        // 몸 날리기 (자폭병): 웅크림 → 포물선으로 날아가며 앞으로 구름 → 대상에 닿는 순간 타격 이펙트 → (사라지는 행동이면) 화면에서 지움.
+        // 포물선 높이 = 4 × 높이 × t × (1 - t): t = 0·1에서 0, 가운데(0.5)에서 최고점(높이).
+        // 날아가는 동안은 isLeaping으로 쓰러짐 표시(어두운 색·쓰러지는 동작)를 미룬다 → 로직은 이미 사라졌어도 날아가는 몸은 원래 색.
+        private IEnumerator LeapAttackRoutine(ModelAttackMotion skillMotion, Vector3 landing)
+        {
+            isLeaping = true;
+            model.PlayState(skillMotion.state);
+
+            // 웅크림: 살짝 내려앉았다가 (감속 곡선)
+            Vector3 crouch = Vector3.down * 0.2f;
+            yield return MoveOffset(Vector3.zero, crouch, skillMotion.leapCrouchSeconds, t => 1f - (1f - t) * (1f - t));
+
+            // 날아감: 수평은 일정한 속도, 높이는 포물선. Quaternion.Euler(각도, 0, 0): 몸의 옆축(x)으로 돌려 앞으로 구르게 한다.
+            for (float elapsed = 0f; elapsed < skillMotion.leapSeconds; elapsed += Time.deltaTime)
+            {
+                float t = elapsed / skillMotion.leapSeconds;
+                motionOffset = Vector3.Lerp(crouch, landing, t) + Vector3.up * (4f * skillMotion.leapHeight * t * (1f - t));
+                motionRotation = Quaternion.Euler(skillMotion.leapSpinDegrees * t, 0f, 0f);
+                yield return null;
+            }
+
+            motionOffset = landing;
+            if (skillMotion.impactEffectPrefab != null)
+            {
+                GameObject burst = Instantiate(skillMotion.impactEffectPrefab, model.EffectAnchor, Quaternion.identity);
+                burst.transform.localScale = Vector3.one * skillMotion.impactEffectScale;
+            }
+
+            isLeaping = false;
+            if (skillMotion.vanishOnImpact)
+            {
+                Vanish();
+                yield break;
+            }
+
+            yield return new WaitForSeconds(skillMotion.recoverSeconds);
+            yield return MoveOffset(landing, Vector3.zero, lungeBackSeconds, t => Mathf.SmoothStep(0f, 1f, t));
+            motionRotation = Quaternion.identity;
+            motion = null;
+        }
+
+        // 몸을 날린 동안인지 (쓰러짐 표시를 미룸).
+        private bool isLeaping;
+
+        // 자폭처럼 그 자리에서 없어진 유닛: 화면에서 끄고, 무대(BattleStageView.RefreshAll)도 다시 켜지 않는다.
+        // SetActive(false)로 꺼지면 코루틴이 멈추고 OnDisable이 "모션 중" 표시를 지워, 다음 행동이 기다리지 않는다.
+        public bool IsGone { get; private set; }
+
+        private void Vanish()
+        {
+            IsGone = true;
+            motion = null;
+            gameObject.SetActive(false);
         }
 
         // 기 모으기 → 폭발: 타격 순간까지 몸이 점점 밝아지며 맥동하고(점점 빨라짐), 타격 순간 가슴에서 이펙트가 터지며

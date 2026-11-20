@@ -17,6 +17,7 @@ MonoBehaviour:
   role: 2
   grade: 0
   illustration: {fileID: 0}
+  battleModel: {fileID: 6199747805355180063, guid: 58d1d16c8860fb94e88d7042116dacf7, type: 3}
   maxHp: 25000
   attack: 296
   defense: 48
@@ -24,12 +25,13 @@ MonoBehaviour:
   critRate: 0.05
   critDamage: 0.5
   skill1:
-    skillName: "\uC9D3\uB204\uB974\uAE30"
+    skillName: "\uAE68\uBB3C\uAE30"
     targetType: 0
     cooldown: 0
     startCooldown: 0
     presentationPrefab: {fileID: 0}
     presentationHits: 1
+    modelMotion: 
     effects:
     - rid: 1000
   skill2:
@@ -39,15 +41,17 @@ MonoBehaviour:
     startCooldown: 0
     presentationPrefab: {fileID: 0}
     presentationHits: 1
+    modelMotion: Roar
     effects:
     - rid: 1003
   skill3:
-    skillName: "\uAC11\uAC01 \uD30C\uC1C4"
+    skillName: "\uD718\uB458\uB7EC\uCE58\uAE30"
     targetType: 1
     cooldown: 3
     startCooldown: 2
     presentationPrefab: {fileID: 0}
     presentationHits: 1
+    modelMotion: Sweep
     effects:
     - rid: 1001
   passives:
@@ -73,6 +77,7 @@ MonoBehaviour:
     countComparison: 1
     countThreshold: 2
     countCap: 0
+    presentationPrefab: {fileID: 0}
     effects: []
   patterns:
   - patternName: "\uB514\uBC84\uD504\uAC00 \uC5C6\uC74C \u2192 \uCD5C\uB300 HP 40%

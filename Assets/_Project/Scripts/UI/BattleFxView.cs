@@ -85,6 +85,9 @@ namespace Game.UI
         [Tooltip("다단 히트 한 타 사이 간격(초)")]
         [SerializeField, Min(0.01f)] private float multiHitInterval = 0.1f;
 
+        // 이번 행동의 연출 다단 히트 간격 (기본은 multiHitInterval, 3D 모델의 연타 동작이면 그 동작의 타격 사이 시간).
+        private float currentHitInterval = 0.1f;
+
         [Tooltip("맞는 순간 멈추는 시간(초): 일반 / 치명")]
         [SerializeField, Min(0f)] private float hitStopSeconds = 0.04f;
         [SerializeField, Min(0f)] private float criticalHitStopSeconds = 0.08f;
@@ -451,6 +454,7 @@ namespace Game.UI
 
             // ?.: 스킬이 아닌 행동(추가 공격·패시브)이면 Skill이 null → ?? 로 1타.
             currentActionHits = action.Source == ActionSource.Skill ? action.Skill?.PresentationHits ?? 1 : 1;
+            currentHitInterval = multiHitInterval;
             if (isUltimateAction && caster.IsAlly && cutIn != null)
             {
                 cutIn.Play(caster.Data.Illustration, caster.Name, action.SkillName);
@@ -514,6 +518,13 @@ namespace Game.UI
                 // 3D 모델은 스킬의 "모델 동작"(걸어가 내려치기 등)으로, 타격 순간까지 기다린 뒤 피해 박자로 넘어간다.
                 // ?.: 스킬이 아닌 행동(추가 공격 등)이면 Skill이 null → 동작 이름도 null (기본 공격).
                 float impactDelay = casterView.PlayAttackMotion(targetPosition.Value, action.Skill?.ModelMotion);
+
+                // 연타 동작(주먹 → 도끼처럼 타격 순간이 둘인 동작)이면 다단 히트 간격을 그 동작의 타격 사이 시간으로 맞춘다.
+                if (casterView.LastHitInterval > 0f)
+                {
+                    currentHitInterval = casterView.LastHitInterval;
+                }
+
                 yield return new WaitForSeconds(impactDelay);
 
                 // 내려찍기처럼 무거운 동작은 땅을 치는 순간 화면을 크게 흔든다 (스킬 동작에 정한 세기, 없으면 0이라 건너뜀).
@@ -765,7 +776,7 @@ namespace Game.UI
             {
                 // ConvertAll(람다): 박자의 타격마다 (연출, 시작 비율 0) 묶음으로 바꾼다.
                 StartCoroutine(PlayMultiHit(beat.ConvertAll(entry => (entry, 0f)), currentActionHits));
-                return multiHitInterval * (currentActionHits - 1);
+                return currentHitInterval * (currentActionHits - 1);
             }
 
             float stop = 0f;
@@ -866,7 +877,7 @@ namespace Game.UI
                 ApplyImpact(shake, stop, hasKill);
                 if (!isFinal)
                 {
-                    yield return new WaitForSeconds(multiHitInterval);
+                    yield return new WaitForSeconds(currentHitInterval);
                 }
             }
         }

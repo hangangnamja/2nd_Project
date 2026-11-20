@@ -225,6 +225,12 @@ UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
   - 직접 만든 휴머노이드 근육 곡선 클립(`GolemIdle`·`GolemSmash`·`GolemHit`·`GolemCast`·`GolemDie`)은 남겨 두고 지금은 쓰지 않음
 - 시전(버프·회복): 기본은 캡슐처럼 떠오르며 금빛 번쩍임 + `PlayCast`. `UnitModel.liftOnCast`를 끄면 떠오르지도 번쩍이지도 않고 "빛나는 부품"(`castGlowRenderers`)의 `_EmissionColor`만 MaterialPropertyBlock으로 0 → HDR 색 → 0 (재질에 Emission이 켜져 있어야 함). 이때 `UnitView.CastRiseSeconds`(버프 박자 시점)는 가장 밝아지는 시간
   - 마법 탑(`Prefabs/Models/Model_BuffTower`, 공세의 사도): 외부 에셋 `Assets/3Dmodels/Tower/Prefab/Tower Mage`를 1.15배로 품고, 보석(`Crystal`)만 발광을 켠 복사 재질 `Art/Character/Tower/TowerCrystal`로 바꿔 끼움. 애니메이터 없음
+  - 나이트메어 드래곤(`Prefabs/Models/Model_NightmareDragon`, 갑각의 거체): 외부 에셋 `Assets/3Dmodels/FourEvilDragonsHP`의 `DarkBlue` 프리팹(Generic 리그)을 1.3배로 품고, 컨트롤러만 `Art/Character/Dragon/DragonBattle`(Idle·Attack=Basic Attack·Hit=getHit·Cast=defend·Die·Walk·Claw·Scream, 공격 상태는 끝나면 Idle)로 바꿔 끼움. 타격 시간은 원본 클립을 실제 Animator로 재생하며 입(`Jaw03`)·앞발(`R_Hand`) 위치로 잼. 스킬 동작 `Roar`(2스, 제자리)·`Sweep`(3스, 걸어가기)
+- 몸 날리기 동작: `ModelAttackMotion.leap`(웅크림·날아가는 시간·높이·멈추는 거리·구르는 각도) → `UnitView.LeapAttackRoutine`(포물선 = 4 × 높이 × t(1 - t), 몸 옆축으로 회전). 타격 순간 = 웅크림 + 날아가는 시간. 날아가는 동안(`isLeaping`) 쓰러짐 표시를 미룸. `vanishOnImpact`면 닿는 순간 `UnitView.IsGone` + `SetActive(false)`, `BattleStageView.RefreshAll`은 `IsGone`인 유닛을 다시 켜지 않음
+- 연타 동작: `ModelAttackMotion.hitInterval`(타 사이 시간) → `UnitView.LastHitInterval` → `BattleFxView.currentHitInterval`이 그 행동의 연출 다단 히트(스킬 "연출 타수") 간격을 동작의 타격 순간에 맞춤 (0이면 기본 `multiHitInterval`)
+- 큰 모델 카메라 거리: `UnitModel.cameraDistanceScale`(기본 1) → `UnitView.CameraDistanceScale`. `BattleCameraDirector.GetShotPosition`이 상대 줄을 담는 구도(평소 시점·스킬 구도 1~3)일 때 화면에 보이는 상대 중 가장 큰 배율로 "바라볼 곳 + (자리 - 바라볼 곳) × 배율" (각도는 그대로, 거리만 늘림). 쓰러지면(`ShownHp.IsDead`) 1로 돌아와 SmoothDamp로 다가감. 나이트메어 드래곤 1.45, 오크 지휘관 1.2
+  - 오크 지휘관(`Prefabs/Models/Model_OrcCommander`, 군단 지휘관): 외부 에셋 `Mini Legion Grunt…/Prefab/GruntHP`(휴머노이드)를 2배로 품고 `Art/Character/Orc/OrcBattle`(Attack=Attack02 주먹·도끼 2연타·Hit=GetHit·Cast=Attack01·Die·Walk). 스킬 동작 `Combo`(조금 걸어가기 + 0.58초 + 연타 간격 0.25초) + 1스 연출 타수 2. 시전은 떠오르지 않음(`liftOnCast` 끔)
+  - 폭탄병(`Prefabs/Models/Model_Bomber`, 자폭병): 외부 에셋 `JKT_ART/mon_00/Mon_00`(Generic)을 2.2배로 품고 `Art/Character/Bomber/BomberBattle`(Attack=walk 1.6배속·Hit=damage·Walk·Explode=`Art/Character/Bomber/BomberExplode`, Idle로 돌아가지 않음). BomberExplode는 원본 attack01에서 폭발 메시(`bomb`)·연기(`smoke_fx01`)를 켜는 키만 뺀 복사본: 도화선 불꽃을 켜고 0.73초에 몸(`Object001`)을 끔 (폭발 이펙트는 직접 만들 예정). 재질은 MatCap(옛 LightMode Always라 URP에서 분홍) → URP Lit, 옛 파티클 셰이더 → URP Particles/Unlit(가산·반투명, 색 2배). 스킬 동작 `Explode`(몸 날리기 + 사라짐: 웅크림 0.3초 + 날아감 0.55초, 폭발 `FxBombBlast` 1.6배). 몸이 날아가는 도중 꺼지지 않게 BomberExplode에서 `Object001` 끄기 키도 뺐음
 - 스킬마다 다른 모델 동작: `SkillData.ModelMotion`("모델 동작" 이름) → `UnitModel`의 스킬 동작 목록(`ModelAttackMotion`: 공격 상태·타격 시간·머무는 시간·걸어가기·걷는 상태·속도·최대 거리·멈추는 거리)에서 찾음. `BattleFxView`는 `UnitView.PlayAttackMotion(대상, 동작 이름)`이 돌려준 시간(걷는 시간 + 타격 시간)만큼 기다린 뒤 피해 박자를 재생. 이름이 없거나 목록에 없으면 기본 돌진
   - 스킬 동작의 `chargeGlow`·`impactEffectPrefab`: 공격 상태 시작부터 타격까지 `UnitModel.SetFlash`로 몸이 점점 밝아지며 맥동(진행도² × 빨라지는 sin), 타격 순간 `UnitModel.EffectAnchor`(가슴 뼈)에 이펙트를 만들고 빛을 0.4초에 걸쳐 뺌 (`UnitView.ChargeAndBurst`)
   - 축적의 수호자 축적 해방 = `Release`: 걸어가 직접 만든 `GolemRoar`(실제 Animator로 잰 승리 포효 자세: 팔꿈치 옆으로·주먹 머리 높이·가슴과 고개 젖힘, 팔·고개만 떨림 키가 점점 촘촘). 몸통을 젖히면 휴머노이드 몸 중심이 바뀌어 다리가 들리므로, 엉덩이 회전이 Idle과 같아지도록 RootQ를 앞뒤로 돌리고 RootT.y로 발을 땅에 맞춤 + 금빛 기 모으기 → 1.5초에 `FxMeteorExplosion`(3.5배) + 흔들림 1.0
@@ -515,7 +521,7 @@ Assets/_Project/
 - 숨은 업적 추가 (사용자가 하나씩 정함), 업적 제목·목표 수치 확정
 
 ### 아트 (에셋 수급 필요)
-- 캐릭터 3D 모델 + 애니메이션(대기·공격·피격·사망): 캡슐 교체. `CharacterData`의 전투 3D 모델 칸에 `UnitModel` 프리팹을 넣으면 됨 (지금은 축적의 수호자 = 바위 골렘만)
+- 캐릭터 3D 모델 + 애니메이션(대기·공격·피격·사망): 캡슐 교체. `CharacterData`의 전투 3D 모델 칸에 `UnitModel` 프리팹을 넣으면 됨 (지금은 축적의 수호자 = 바위 골렘, 공세의 사도 = 마법 탑, 갑각의 거체 = 나이트메어 드래곤)
 - 메테오 바위·폭발 등 스킬 연출 에셋 (지금은 코드로 만든 임시 메시·파티클, URP·카툰풍 에셋 권장)
 - 캐릭터 일러스트 (없는 캐릭터는 직군 색 실루엣)
 

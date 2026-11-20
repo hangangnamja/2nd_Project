@@ -32,6 +32,22 @@ namespace Game.UI
         [Min(0f)] public float impactShake = 0.5f;
         [Min(0f)] public float impactShakeSeconds = 0.35f;
 
+        [Tooltip("스킬의 연출 타수가 2 이상일 때 타 사이 간격(초). 동작의 두 번째 타격 순간 - 첫 타격 순간으로 맞춘다. 0이면 전투 기본 간격")]
+        [Min(0f)] public float hitInterval;
+
+        [Tooltip("체크하면 걸어가는 대신 제자리에서 웅크렸다 점프해 대상에게 몸을 날린다. 타격 순간 = 웅크림 + 날아가는 시간 (위의 타격 시간 대신)")]
+        public bool leap;
+
+        [Tooltip("웅크리는 시간 · 날아가는 시간(초) · 포물선 높이 · 대상 앞에서 멈추는 거리 · 날아가며 앞으로 구르는 각도(도)")]
+        [Min(0f)] public float leapCrouchSeconds = 0.25f;
+        [Min(0.05f)] public float leapSeconds = 0.55f;
+        [Min(0f)] public float leapHeight = 2.5f;
+        [Min(0f)] public float leapStopDistance = 0.6f;
+        public float leapSpinDegrees = 540f;
+
+        [Tooltip("체크하면 타격 순간 몸·이름표가 화면에서 바로 사라진다 (자폭처럼 그 자리에서 없어지는 행동)")]
+        public bool vanishOnImpact;
+
         [Tooltip("체크하면 공격 동작을 시작해 타격 순간까지 몸이 점점 밝게 번쩍이며 빛난다 (기를 모으는 느낌, 맥동이 점점 빨라짐)")]
         public bool chargeGlow;
 
@@ -81,6 +97,9 @@ namespace Game.UI
         [SerializeField, Min(0.1f)] private float colliderRadius = 1.2f;
         [SerializeField, Min(0.2f)] private float colliderHeight = 3.2f;
         [SerializeField] private float colliderCenterY = 0.6f;
+
+        [Tooltip("이 모델이 상대 줄에 서 있는 장면에서 카메라를 얼마나 뒤로 뺄지 (1 = 그대로, 1.5 = 바라보는 곳에서 1.5배 거리). 화면을 가리는 큰 보스용")]
+        [SerializeField, Min(1f)] private float cameraDistanceScale = 1f;
 
         [Header("시전 (버프·회복)")]
         [Tooltip("끄면 시전할 때 캡슐처럼 떠오르지 않고, 몸 전체가 금빛으로 번쩍이지도 않는다 (아래 빛나는 부품만 빛남)")]
@@ -133,6 +152,7 @@ namespace Game.UI
         public float ColliderRadius => colliderRadius;
         public float ColliderHeight => colliderHeight;
         public float ColliderCenterY => colliderCenterY;
+        public float CameraDistanceScale => cameraDistanceScale;
 
         // 쓰러진 자세인지 (부활하면 UnitView가 Idle로 되돌린다).
         public bool IsDown => isDown;
