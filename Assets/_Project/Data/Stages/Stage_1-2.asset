@@ -13,24 +13,26 @@ MonoBehaviour:
   m_Name: Stage_1-2
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StageData
   id: Stage_1-2
-  stageName: "\uC2A4\uD14C\uC774\uC9C0 1-2"
+  stageName: "\uC8FC\uC220\uC0AC\uC758 \uB9DD\uB8E8"
   stageCode: 1-2
-  description: 
+  description: "\uC8FC\uC220 \uD0D1\uC774 \uAC19\uC740 \uD3B8\uC744 \uAC15\uD558\uAC8C
+    \uB9CC\uB4E0\uB2E4. \uAC15\uD654\uB41C \uC801\uC744 \uC870\uC2EC\uD558\uAC70\uB098
+    \uBC84\uD504\uB97C \uBE7C\uC557\uC790."
   enemyLevel: 10
   waves:
   - enemies:
-    - character: {fileID: 11400000, guid: 81d6e306125c13b4b83d00623fe05ecd, type: 2}
+    - character: {fileID: 11400000, guid: 1c641b901f14ba64d9005a4d1f529bfb, type: 2}
       invulnerable: 0
-    - character: {fileID: 11400000, guid: fa5db8d986b4b66428761a8da3d67530, type: 2}
+    - character: {fileID: 11400000, guid: 3de2732e24c93264ebd58b01f2701b7d, type: 2}
       invulnerable: 0
-    - character: {fileID: 11400000, guid: 81d6e306125c13b4b83d00623fe05ecd, type: 2}
+    - character: {fileID: 11400000, guid: 1c641b901f14ba64d9005a4d1f529bfb, type: 2}
       invulnerable: 0
   - enemies:
-    - character: {fileID: 11400000, guid: 81d6e306125c13b4b83d00623fe05ecd, type: 2}
+    - character: {fileID: 11400000, guid: 1c641b901f14ba64d9005a4d1f529bfb, type: 2}
       invulnerable: 0
-    - character: {fileID: 11400000, guid: 1bb45f7a54428b6409569af9e61548c3, type: 2}
+    - character: {fileID: 11400000, guid: 73c3bc1849b81004da7bc3664991f49f, type: 2}
       invulnerable: 0
-    - character: {fileID: 11400000, guid: 81d6e306125c13b4b83d00623fe05ecd, type: 2}
+    - character: {fileID: 11400000, guid: 3de2732e24c93264ebd58b01f2701b7d, type: 2}
       invulnerable: 0
   clearRewards: []
   firstClearRewards: []
@@ -50,3 +52,4 @@ MonoBehaviour:
     rewards:
     - material: {fileID: 11400000, guid: c5ca6006d3535544c8b35b60cf3e5251, type: 2}
       amount: 50
+  battleBackground: {fileID: 0}

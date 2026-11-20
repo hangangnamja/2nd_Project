@@ -1,0 +1,71 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0cf10047d4cbc1d4a9d1cde009aa4d18, type: 3}
+  m_Name: Ch1_WarTotem
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.CharacterData
+  id: Ch1_WarTotem
+  displayName: "\uC8FC\uC220 \uD0D1"
+  role: 0
+  grade: 1
+  illustration: {fileID: 0}
+  battleModel: {fileID: 3970324099170236425, guid: 77cf5d043a9c29a4b84ad538f4508192, type: 3}
+  maxHp: 248
+  attack: 99
+  defense: 48
+  baseSpeed: 95
+  critRate: 0.05
+  critDamage: 0.5
+  skill1:
+    skillName: "\uAD11\uD3ED\uC758 \uC8FC\uC220"
+    targetType: 4
+    cooldown: 0
+    startCooldown: 0
+    presentationPrefab: {fileID: 0}
+    presentationHits: 1
+    modelMotion: 
+    effects:
+    - rid: 7605779530016096346
+    - rid: 7605779530016096347
+  skill2:
+    skillName: "\uC0C8 \uC2A4\uD0AC"
+    targetType: 0
+    cooldown: 0
+    startCooldown: 0
+    presentationPrefab: {fileID: 0}
+    presentationHits: 1
+    modelMotion: 
+    effects: []
+  skill3:
+    skillName: "\uC0C8 \uC2A4\uD0AC"
+    targetType: 0
+    cooldown: 0
+    startCooldown: 0
+    presentationPrefab: {fileID: 0}
+    presentationHits: 1
+    modelMotion: 
+    effects: []
+  passives: []
+  references:
+    version: 2
+    RefIds:
+    - rid: 7605779530016096346
+      type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        status: {fileID: 11400000, guid: dd2b771b6c89ead438aba503b9f8ec80, type: 2}
+        count: 1
+        applyToAllAllies: 0
+    - rid: 7605779530016096347
+      type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        status: {fileID: 11400000, guid: edf1d1a0fe27e8f4a9d22283792da664, type: 2}
+        count: 1
+        applyToAllAllies: 0
