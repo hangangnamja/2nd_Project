@@ -1,0 +1,94 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e992233e7e3770a46b319cf2760de460, type: 3}
+  m_Name: Ch1_Bomber
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Data.EnemyCharacterData
+  id: Ch1_Bomber
+  displayName: "\uD3ED\uD0C4\uBCD1"
+  role: 1
+  grade: 0
+  illustration: {fileID: 0}
+  battleModel: {fileID: 5875334953055067324, guid: 3d94d86d0f613614ba3d7123ebf5e248, type: 3}
+  maxHp: 248
+  attack: 99
+  defense: 48
+  baseSpeed: 105
+  critRate: 0.05
+  critDamage: 0.5
+  skill1:
+    skillName: "\uBAB8\uD1B5 \uBC15\uCE58\uAE30"
+    targetType: 0
+    cooldown: 0
+    startCooldown: 0
+    presentationPrefab: {fileID: 0}
+    presentationHits: 1
+    modelMotion: 
+    effects:
+    - rid: 7605779598317453482
+  skill2:
+    skillName: "\uC790\uD3ED"
+    targetType: 1
+    cooldown: 0
+    startCooldown: 0
+    presentationPrefab: {fileID: 0}
+    presentationHits: 1
+    modelMotion: Explode
+    effects:
+    - rid: 7605779598317453483
+    - rid: 7605779598317453484
+    - rid: 7605779598317453485
+  skill3:
+    skillName: "\uC5C6\uC74C"
+    targetType: 0
+    cooldown: 0
+    startCooldown: 0
+    presentationPrefab: {fileID: 0}
+    presentationHits: 1
+    modelMotion: 
+    effects: []
+  passives: []
+  patterns:
+  - patternName: "3\uBC88\uC9F8 \uC790\uAE30 \uD134 \u2192 \uC790\uD3ED"
+    condition: 2
+    threshold: 3
+    skillNumber: 2
+    target: 0
+  - patternName: "\uD3C9\uC18C \uB2E8\uC77C \uACF5\uACA9"
+    condition: 0
+    threshold: 0
+    skillNumber: 1
+    target: 0
+  isBoss: 0
+  countdownDisplay: {fileID: 11400000, guid: 901c1383e72a90d44b4631f2ac698113, type: 2}
+  countdownTurns: 3
+  references:
+    version: 2
+    RefIds:
+    - rid: 7605779598317453482
+      type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        multiplier: 1
+        secondaryMultiplier: 1
+    - rid: 7605779598317453483
+      type: {class: DamageEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        multiplier: 3
+        secondaryMultiplier: 3
+    - rid: 7605779598317453484
+      type: {class: ApplyStatusEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data:
+        status: {fileID: 11400000, guid: f1fa4cf29ade1b34e899309dd9fcb892, type: 2}
+        count: 1
+        applyToAllAllies: 0
+    - rid: 7605779598317453485
+      type: {class: SelfDestructEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
+      data: 
