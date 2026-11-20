@@ -209,6 +209,7 @@ UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
 - `BattleTargetPicker`: 캡슐을 누르면 뗄 때 대상 선택(`SelectTarget`, 같은 캡슐 위에서 뗐을 때만), `longPressSeconds` 이상 누르고 있으면 `UnitDetailPanel.Open` (적도 아군 카드와 같은 상세 창)
 - `SkillNameBanner`: 적(기본은 보스만, `BattleFxView.enemySkillBannerBossOnly`)이 스킬로 행동하면 `BattleFxView.PlayAction`이 이름 띠를 띄우고 `LeadSeconds`만큼 기다린 뒤 공격 모션
 - 아군·보스 캡슐의 머리 위 상태효과 줄(`UnitStatusBar`)은 끔 → 아군은 아래 카드, 보스는 상단 HP바에서만 보여준다
+- 머리 위 이름·HP 글자(`UnitView.label`)는 쓰지 않음. 나머지 적은 상태효과 줄 아래(`hpBarOffsetY`)에 `UnitHpBar`(Quad 3장: 어두운 판·잔상·빨간 HP, 상태효과 블럭과 같은 단색 머티리얼 `UnitStatusBar.BlockMaterial`)를 붙여 화면 HP(`ShownHp`) 비율을 그림. 화면에서 쓰러지면 끔
 - HP 막대는 세로 그라데이션 그림(`Art/UI/BarGradient`)을 Image 색으로 물들여 쓴다 (기본 UISprite는 늘리면 끝이 어둡게 번짐)
 - `PartyBarView`·`PartyCardView`: 아래 아군 초상화 카드 (HP·스택·차례·대상 표시, 누르면 `SelectTarget`). 카드 아래 버프 줄·디버프 줄(줄마다 5칸 + "…")(목록은 `UnitView.BuildDisplayedStatuses`와 같음). 꾹 누르면(`LongPressed`, 손을 뗄 때의 클릭은 무시) `UnitDetailPanel`
 - `UnitDetailPanel`: 탭(스탯 / 버프·디버프 / 스킬)마다 내용 묶음 하나를 켠다. 목록은 카드 원본(`DetailEntryView`)을 복사해 채우고 다시 열 때 재사용

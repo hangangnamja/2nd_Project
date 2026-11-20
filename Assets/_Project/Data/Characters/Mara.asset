@@ -13,10 +13,11 @@ MonoBehaviour:
   m_Name: Mara
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.CharacterData
   id: Mara
-  displayName: "\uD749\uC2E0 \uB9C8\uB77C"
+  displayName: "\uC591\uBA74 \uC2A4\uCFE0"
   role: 1
   grade: 0
-  illustration: {fileID: 0}
+  illustration: {fileID: 21300000, guid: ffe70c0368d5a7c48890d49f08d05446, type: 3}
+  battleModel: {fileID: 0}
   maxHp: 3000
   attack: 400
   defense: 50
@@ -24,21 +25,23 @@ MonoBehaviour:
   critRate: 0.801
   critDamage: 0.5
   skill1:
-    skillName: "\uD0C0\uACA9"
+    skillName: "\uACA9(\u64CA)"
     targetType: 0
     cooldown: 0
     startCooldown: 0
     presentationPrefab: {fileID: 0}
     presentationHits: 1
+    modelMotion: 
     effects:
     - rid: 7605779756694372543
   skill2:
-    skillName: "\uD314"
+    skillName: "\uD314(\u634C)"
     targetType: 5
     cooldown: 2
     startCooldown: 0
     presentationPrefab: {fileID: 1018689922963652709, guid: 82bd76de9bb86ec4c94f7288416515a8, type: 3}
     presentationHits: 1
+    modelMotion: 
     effects:
     - rid: 7605779756694372544
     - rid: 7605779756694372545
@@ -49,11 +52,12 @@ MonoBehaviour:
     startCooldown: 2
     presentationPrefab: {fileID: 7885678847545980547, guid: 5f77d54a3bcf24b45aece8fb39f00afb, type: 3}
     presentationHits: 1
+    modelMotion: 
     effects:
     - rid: 7605779756694372546
     - rid: 7605779760170664038
   passives:
-  - passiveName: "\uC5ED\uB958 \uC7AC\uC0DD"
+  - passiveName: "\uBC18\uC804 \uC220\uC2DD"
     trigger: 17
     execution: 0
     maxTriggersPerTurn: 0
@@ -97,9 +101,9 @@ MonoBehaviour:
     - rid: 7605779756694372546
       type: {class: DomainBoundaryEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
-        boundaryName: "\uD608\uD574\uC2E0\uC804"
+        boundaryName: "\uBCF5\uB9C8\uC5B4\uC8FC\uC790(\u9B54\u307E\u5FA1\u5EDA\u5B50)"
         durationTurns: 3
-        strikeName: "\uD574"
+        strikeName: "\uD574(\u89E3)"
         strikeOnDeploy: 1
         strikeEffects:
         - rid: 7605779756694372568
@@ -109,12 +113,13 @@ MonoBehaviour:
         closePresentationPrefab: {fileID: 6122451973948619156, guid: 0038a364ed8ddfa4c87b49bac33ee3ab, type: 3}
         overrideSkillNumber: 3
         overrideSkill:
-          skillName: "\uD478\uAC00"
+          skillName: "\uD478\uAC00(\u958B) "
           targetType: 1
           cooldown: 0
           startCooldown: 0
           presentationPrefab: {fileID: 2702323557806137714, guid: 54b97ea8f331abb438a0ba5f7708c313, type: 3}
           presentationHits: 1
+          modelMotion: 
           effects:
           - rid: 7605779756694372547
           - rid: 7605779756694372548
@@ -151,7 +156,7 @@ MonoBehaviour:
     - rid: 7605779760170664038
       type: {class: StartAuraEffect, ns: Game.Battle.Effects, asm: Assembly-CSharp}
       data:
-        auraName: "\uC601\uC5ED \uBC84\uD504"
+        auraName: "\uC601\uC5ED\uC758 \uC8FC\uC778"
         statModifiers:
         - stat: 0
           percent: 1

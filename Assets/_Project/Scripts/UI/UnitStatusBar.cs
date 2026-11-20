@@ -57,6 +57,9 @@ namespace Game.UI
 
         private readonly List<StatusIcon> icons = new List<StatusIcon>();
 
+        // 단색 블럭 머티리얼 (머리 위 HP바 UnitHpBar도 같은 머티리얼로 그린다).
+        public Material BlockMaterial => iconMaterial;
+
         // 상태효과 목록을 받아 블럭을 줄마다 가운데 정렬로 늘어놓고, 색·그림·남은 턴을 갱신한다.
         // 블럭이 커서 한 줄에 다 놓으면 옆 유닛과 겹치므로, 한 줄 최대 개수를 넘으면 위로 줄을 쌓는다.
         public void Show(IReadOnlyList<StatusInstance> statuses)
