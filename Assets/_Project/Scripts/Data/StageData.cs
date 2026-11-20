@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Game.Core;
 using UnityEngine;
 
 namespace Game.Data
@@ -37,6 +38,10 @@ namespace Game.Data
         [Tooltip("별 미션 (위에서부터 ★1 ★2 ★3). 별마다 처음 달성했을 때 보상을 한 번 받는다")]
         [SerializeField] private List<StarMission> starMissions = new List<StarMission>();
 
+        [Tooltip("전투 배경 프리팹 (평원·제단·동굴 등, 맨 위에 BattleBackground). 비우면 기본 배경(평원)")]
+        [Label("전투 배경")]
+        [SerializeField] private GameObject battleBackground;
+
         public string Id => id;
         public string StageName => stageName;
         public string StageCode => stageCode;
@@ -46,6 +51,7 @@ namespace Game.Data
         public IReadOnlyList<StageReward> ClearRewards => clearRewards;
         public IReadOnlyList<StageReward> FirstClearRewards => firstClearRewards;
         public IReadOnlyList<StarMission> StarMissions => starMissions;
+        public GameObject BattleBackground => battleBackground;
     }
 
     // 보상 한 줄: 재료(골드·보석도 재료 에셋) + 개수.

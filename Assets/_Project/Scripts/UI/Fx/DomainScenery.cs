@@ -40,6 +40,9 @@ namespace Game.UI
         [SerializeField, Min(1f)] private float shrineDistance = 9f;
         [SerializeField, Min(1f)] private float skyDistance = 24f;
 
+        [Tooltip("카메라가 주인 등 뒤에 있을 때 사찰을 카메라보다 이만큼 더 뒤로 민다 (사찰 몸체 반폭 + 여유). 큰 보스 때문에 카메라가 멀리 물러나도 사찰 안에 들어가지 않게")]
+        [SerializeField, Min(0f)] private float cameraClearance = 7f;
+
         [Tooltip("하늘 판 가운데 높이 (바닥 기준)")]
         [SerializeField] private float skyHeight = 8f;
 
@@ -309,7 +312,11 @@ namespace Game.UI
         // 주인이 바라보는 쪽(상대 무리 쪽)의 반대편 = 등 뒤로 shrineDistance·skyDistance만큼 물러난 곳에, 앞(+z)이 주인 쪽을 보게 둔다.
         // Quaternion.LookRotation(forward): 오브젝트의 +z가 forward를 보게 하는 회전 → 사찰 정면이 주인과 상대 무리를 마주 본다.
         // 수평 방향만 써서 기울지 않게 한다. 그래서 주인 정면 시점에서는 주인 뒤에, 어깨 뒤 시점에서는 카메라 뒤(안 보임)에 있다.
-        public void Follow(Vector3 ownerPosition, Vector3 ownerForward)
+        // cameraPosition: 지금 카메라 자리. 카메라가 주인 등 뒤에 있으면(어깨 뒤 시점) 사찰을 카메라보다 cameraClearance만큼 더 뒤로 민다.
+        //   등 뒤 거리 = Vector3.Dot(카메라 - 주인, -앞 방향) → 카메라가 주인 뒤쪽으로 떨어진 수평 거리 (앞쪽이면 음수).
+        //   사찰 거리 = Max(기본 거리, 등 뒤 거리 + 여유). 정면 시점(카메라가 앞쪽)이면 기본 거리 그대로라 연출 모습은 같다.
+        //   하늘 판은 사찰과 같은 만큼 같이 민다 (언제나 사찰보다 뒤).
+        public void Follow(Vector3 ownerPosition, Vector3 ownerForward, Vector3 cameraPosition)
         {
             ownerForward.y = 0f;
             if (ownerForward.sqrMagnitude < 0.0001f)
@@ -320,14 +327,19 @@ namespace Game.UI
             ownerForward.Normalize();
             var ground = new Vector3(ownerPosition.x, floorY, ownerPosition.z);
             Quaternion facingOwner = Quaternion.LookRotation(ownerForward, Vector3.up);
+            Vector3 toCamera = cameraPosition - ground;
+            toCamera.y = 0f;
+            float cameraBehind = Vector3.Dot(toCamera, -ownerForward);
+            float pushed = Mathf.Max(0f, cameraBehind + cameraClearance - shrineDistance);
+
             if (shrine != null)
             {
-                shrine.SetPositionAndRotation(ground - ownerForward * shrineDistance, facingOwner);
+                shrine.SetPositionAndRotation(ground - ownerForward * (shrineDistance + pushed), facingOwner);
             }
 
             if (sky != null)
             {
-                sky.SetPositionAndRotation(ground - ownerForward * skyDistance + Vector3.up * skyHeight, facingOwner);
+                sky.SetPositionAndRotation(ground - ownerForward * (skyDistance + pushed) + Vector3.up * skyHeight, facingOwner);
             }
         }
 

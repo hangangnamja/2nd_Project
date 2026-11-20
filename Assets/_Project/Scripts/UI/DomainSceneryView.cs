@@ -20,6 +20,9 @@ namespace Game.UI
         [Tooltip("영역 동안 숨길 원래 전투 바닥 (물바닥에 사찰이 비쳐 보이게)")]
         [SerializeField] private Renderer battleFloor;
 
+        [Tooltip("스테이지 전투 배경 (영역 동안 지형을 숨김). 비우면 기본 바닥만 숨긴다")]
+        [SerializeField] private BattleBackgroundView backgroundView;
+
         [Tooltip("전투 바닥 높이 (캡슐 발밑)")]
         [SerializeField] private float floorY = -1f;
 
@@ -48,8 +51,13 @@ namespace Game.UI
         private Color originalAmbientColor;
         private float appliedBlend;
 
-        private void Awake()
+        // 원래 화면 설정을 기억한다. 전투 배경(BattleBackgroundView)은 전투가 시작된 뒤에 깔리므로,
+        // 씬이 켜질 때가 아니라 영역이 처음 드러나는 순간(blend가 0에서 올라갈 때) 부른다.
+        private bool hasCaptured;
+
+        private void CaptureOriginals()
         {
+            hasCaptured = true;
             originalFogColor = RenderSettings.fogColor;
             originalAmbientMode = RenderSettings.ambientMode;
             originalAmbientColor = RenderSettings.ambientLight;
@@ -112,6 +120,7 @@ namespace Game.UI
             if (active != null && active.SceneryPrefab != null)
             {
                 scenery = Instantiate(active.SceneryPrefab, transform).GetComponent<DomainScenery>();
+                hasOwnerPose = false;
                 if (scenery != null)
                 {
                     scenery.Place(floorY, OwnerPosition(active));
@@ -190,7 +199,8 @@ namespace Game.UI
         }
 
         // 사찰·하늘이 영역 주인을 따라 그 등 뒤에 서게 한다. Update에서 무대가 다시 세워진 뒤(LateUpdate)에 읽는다.
-        // 주인이 화면에 없는 장면(다른 아군 차례)에서는 마지막 자리에 그대로 둔다.
+        // 주인이 화면에 없는 장면(다른 아군 차례)에서는 마지막으로 본 주인 자리를 기준으로 둔다.
+        // 카메라 자리도 함께 넘겨, 카메라가 주인 등 뒤로 멀리 물러난 구도(큰 보스)에서 사찰이 카메라를 덮지 않게 한다.
         private void LateUpdate()
         {
             if (scenery == null || shownBoundary == null || stageView == null)
@@ -201,13 +211,37 @@ namespace Game.UI
             UnitView view = stageView.FindView(shownBoundary.Owner);
             if (view != null && view.gameObject.activeInHierarchy)
             {
-                scenery.Follow(view.AnchorPosition, view.transform.forward);
+                lastOwnerPosition = view.AnchorPosition;
+                lastOwnerForward = view.transform.forward;
+                hasOwnerPose = true;
+            }
+
+            if (hasOwnerPose && targetCamera != null)
+            {
+                scenery.Follow(lastOwnerPosition, lastOwnerForward, targetCamera.transform.position);
             }
         }
+
+        // 마지막으로 본 영역 주인의 자리·방향 (주인이 안 보이는 장면에서도 사찰 자리를 카메라에 맞춰 다시 계산하려고 둠).
+        private Vector3 lastOwnerPosition;
+        private Vector3 lastOwnerForward;
+        private bool hasOwnerPose;
 
         // blend 0~1만큼 안개·배경·주변광을 영역 색으로 섞는다. 조금이라도 영역이면 원래 바닥을 숨긴다 (물바닥과 반사가 보이게).
         private void ApplyBlend(float blend)
         {
+            // 아직 영역을 한 번도 보여준 적이 없으면(원래 값을 기억하지 않음) 되돌릴 것도 없으므로 건너뛴다
+            // → 전투 배경이 정한 화면 설정을 덮어쓰지 않는다.
+            if (!hasCaptured && blend <= 0f)
+            {
+                return;
+            }
+
+            if (appliedBlend <= 0f && blend > 0f)
+            {
+                CaptureOriginals();
+            }
+
             appliedBlend = blend;
             bool isOriginal = blend <= 0f;
             RenderSettings.fogColor = Color.Lerp(originalFogColor, domainFogColor, blend);
@@ -220,7 +254,11 @@ namespace Game.UI
                 targetCamera.backgroundColor = Color.Lerp(originalBackgroundColor, domainBackgroundColor, blend);
             }
 
-            if (battleFloor != null)
+            if (backgroundView != null)
+            {
+                backgroundView.SetSceneryVisible(blend < 0.5f);
+            }
+            else if (battleFloor != null)
             {
                 battleFloor.enabled = blend < 0.5f;
             }
