@@ -51,3 +51,4 @@ MonoBehaviour:
     rewards:
     - material: {fileID: 11400000, guid: c5ca6006d3535544c8b35b60cf3e5251, type: 2}
       amount: 50
+  battleBackground: {fileID: 3829821980372993685, guid: 30fd37ba27a651240860f4ed57f11060, type: 3}

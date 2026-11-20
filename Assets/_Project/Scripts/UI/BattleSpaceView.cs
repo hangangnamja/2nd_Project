@@ -32,9 +32,13 @@ namespace Game.UI
         private float blend;
         private float target;
 
-        // 원래 화면 설정을 기억해 둔다.
-        private void Awake()
+        // 원래 화면 설정을 기억해 둔다. 전투 배경(BattleBackgroundView)은 전투가 시작된 뒤에 깔리므로,
+        // 씬이 켜질 때가 아니라 변신 공간으로 넘어가기 시작하는 순간(blend가 0에서 올라갈 때) 부른다.
+        private bool hasCaptured;
+
+        private void CaptureOriginals()
         {
+            hasCaptured = true;
             originalClearFlags = targetCamera.clearFlags;
             originalBackgroundColor = targetCamera.backgroundColor;
             originalLightColor = mainLight.color;
@@ -70,6 +74,11 @@ namespace Game.UI
                 return;
             }
 
+            if (blend <= 0f && target > 0f)
+            {
+                CaptureOriginals();
+            }
+
             // Mathf.MoveTowards(현재, 목표, 최대 이동량): 목표를 넘지 않게 한 프레임 분량만 움직인다.
             // Time.deltaTime / transitionSeconds: 전환 시간 동안 0 → 1을 정확히 한 번 지나가도록 한 프레임 비율.
             blend = Mathf.MoveTowards(blend, target, Time.deltaTime / transitionSeconds);
@@ -80,6 +89,12 @@ namespace Game.UI
         // Color.Lerp(a, b, t): t = 0이면 a, 1이면 b, 그 사이면 두 색을 비율대로 섞은 색.
         private void ApplyBlend()
         {
+            // 변신 공간을 한 번도 보여주지 않았으면 되돌릴 것도 없다 (전투 배경의 화면 설정을 덮어쓰지 않게).
+            if (!hasCaptured)
+            {
+                return;
+            }
+
             bool isOriginal = blend <= 0f;
 
             // 플레이를 끄거나 씬을 닫을 때는 카메라·조명이 이 컴포넌트보다 먼저 파괴될 수 있다.
