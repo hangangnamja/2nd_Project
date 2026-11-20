@@ -44,7 +44,7 @@
 
 | 원본 (SO, 에셋) | 런타임 (전투 중 생성) |
 |---|---|
-| `CharacterData`: 등급, 직군, 일러스트(화면 공용, 비면 실루엣), 기본 스탯, 치명, 속도, 1~3스, 패시브, 변신 스킬 세트 | `BattleUnit`: 현재 스탯·HP, 남은 거리, 남은 쿨타임, 상태효과 칸, 패시브 스택·사용 횟수 |
+| `CharacterData`: 등급, 직군, 일러스트(화면 공용, 비면 실루엣), 전투 3D 모델(`BattleModel`, 비면 캡슐), 기본 스탯, 치명, 속도, 1~3스, 패시브, 변신 스킬 세트 | `BattleUnit`: 현재 스탯·HP, 남은 거리, 남은 쿨타임, 상태효과 칸, 패시브 스택·사용 횟수 |
 | `StatusEffectData`: 화상·독·버프의 공통 정의 (지속 턴, 중첩/갱신) + **효과 종류**(스탯 보정·지속피해·지속 회복·행동 불가·지연 버프·피해 기록·디버프 면역·피해 무효 중 복수 선택). Inspector는 고른 종류의 칸만 표시 (`StatusEffectDataEditor`) | `StatusInstance`: 실제로 걸린 효과 1개 (정의 참조, 부여자, 남은 턴, 시전 당시 공격력 스냅샷) |
 | `StageData`: 적 레벨 + 웨이브 목록(웨이브마다 적 편성, 자리별 무적) + 보상(`clearRewards` 매번, `firstClearRewards` 첫 클리어만, 재료 + 개수) + 별 미션(`StarMission`: 조건·기준 시간·처음 달성 보상). `StageCatalog`: 기본·토벌 목록 + 탐색 장소(`ExplorationSite`: 장소 이름·재화 표기·난이도별 스테이지) | `StageRunner`: 현재 웨이브, 웨이브 클리어 판정, 다음 웨이브 유무 |
 | `BattleSetup`: 이번 전투의 아군 편성·레벨 + 스테이지 (지금은 테스트 에셋, 이후 로비가 만들어 넘김) | - |
@@ -217,6 +217,20 @@ UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
   - 숫자·스탯 이름·enum 한국어 이름(`[InspectorName]`) 표기는 `EffectText`(Data) 공용
 - 스킬 버튼: `SkillButtonView`(원형 버튼 하나의 모양: 테두리·빛·이름·칸 표시·쿨타임 덮개)를 `BattleHud`가 상태만 넘겨 그리게 하고, 고른 스킬 이름판(`skillPlate`)도 `BattleHud`가 채운다. 원 그림은 `Art/UI/Battle`(CircleFill·CircleRing·CircleGlow)
 - `TurnOrderView`: 칸마다 원형 초상화(`Disc` Mask + `IllustrationView`, 없으면 첫 글자)·테두리 색·이름·게이지. 지금 차례 칸은 `currentScale`배. 행동 순서 칸을 "유닛 + 몇 번째 등장"으로 기억해 순서가 바뀌면 새 자리로 미끄러뜨린다 (레이아웃 그룹은 끄고 자리를 직접 계산). 당기기 표시는 `BattleUnit.TotalActionAdvanced`(누적 당기기, 표시용)를 지난번과 비교
+- 3D 모델 (캡슐 대신): `CharacterData.BattleModel` 프리팹(맨 위에 `UnitModel`)을 `UnitView.CreateModel`이 몸의 자식으로 만들고 캡슐 렌더러를 끈다. 이름표·상태효과 줄 높이·누르는 영역(캡슐 콜라이더)은 `UnitModel`의 값으로 맞춤 (큰 모델은 `BodyOffsetZ`만큼 뒤로 물려 세우고 이름표·콜라이더도 같이 옮김)
+  - 모션은 캡슐과 같은 "기준 자리 + 어긋남"을 그대로 쓰고, 그때마다 애니메이션을 함께 재생: 돌진 → `PlayAttack`(나가는 시간 = `UnitModel.AttackImpactSeconds`, `UnitView.LungeOutSeconds`도 이 값이라 `BattleFxView`가 내리치는 순간에 타격 박자 재생), 시전 → `PlayCast`, 피격 → `PlayHit`, 처치 → `PlayDie`(굴러가며 날아가지 않고 조금만 밀림). 화면 생사(`ShownHp.IsDead`)로 쓰러진 자세·어두운 색, 부활하면 `PlayIdle`
+  - 애니메이션은 Animator 상태 이름을 `CrossFadeInFixedTime`으로 바로 재생 (조건·트리거 없음). 색은 편 색 대신 원래 재질 색 × 배율(쓰러짐 어둡게, 번쩍임 밝게)을 MaterialPropertyBlock `_BaseColor`로
+  - 바위 골렘(`Prefabs/Models/Model_RockGolem`): 외부 에셋(`Assets/3Dmodels/Mini Legion Rock Golem…`)의 `HP_Golem` 프리팹을 1.3배로 품고, 컨트롤러만 `Art/Character/Golem/GolemBattle`(Idle·Attack=Attack02·Hit=GetHit·Cast=Victory·Die, 원본 클립, 동작이 끝나면 Idle)로 바꿔 끼움. 에셋 재질은 내장 Standard 셰이더라 URP에서 분홍이어서 URP Lit로 바꿔 둠
+  - 공격 타이밍: Attack02는 0.97초(원래 속도)에 주먹이 가장 앞으로 뻗음(손 위치를 시간별로 재서 확인) → 1.4배속이라 `AttackImpactSeconds` 0.7
+  - 직접 만든 휴머노이드 근육 곡선 클립(`GolemIdle`·`GolemSmash`·`GolemHit`·`GolemCast`·`GolemDie`)은 남겨 두고 지금은 쓰지 않음
+- 시전(버프·회복): 기본은 캡슐처럼 떠오르며 금빛 번쩍임 + `PlayCast`. `UnitModel.liftOnCast`를 끄면 떠오르지도 번쩍이지도 않고 "빛나는 부품"(`castGlowRenderers`)의 `_EmissionColor`만 MaterialPropertyBlock으로 0 → HDR 색 → 0 (재질에 Emission이 켜져 있어야 함). 이때 `UnitView.CastRiseSeconds`(버프 박자 시점)는 가장 밝아지는 시간
+  - 마법 탑(`Prefabs/Models/Model_BuffTower`, 공세의 사도): 외부 에셋 `Assets/3Dmodels/Tower/Prefab/Tower Mage`를 1.15배로 품고, 보석(`Crystal`)만 발광을 켠 복사 재질 `Art/Character/Tower/TowerCrystal`로 바꿔 끼움. 애니메이터 없음
+- 스킬마다 다른 모델 동작: `SkillData.ModelMotion`("모델 동작" 이름) → `UnitModel`의 스킬 동작 목록(`ModelAttackMotion`: 공격 상태·타격 시간·머무는 시간·걸어가기·걷는 상태·속도·최대 거리·멈추는 거리)에서 찾음. `BattleFxView`는 `UnitView.PlayAttackMotion(대상, 동작 이름)`이 돌려준 시간(걷는 시간 + 타격 시간)만큼 기다린 뒤 피해 박자를 재생. 이름이 없거나 목록에 없으면 기본 돌진
+  - 스킬 동작의 `chargeGlow`·`impactEffectPrefab`: 공격 상태 시작부터 타격까지 `UnitModel.SetFlash`로 몸이 점점 밝아지며 맥동(진행도² × 빨라지는 sin), 타격 순간 `UnitModel.EffectAnchor`(가슴 뼈)에 이펙트를 만들고 빛을 0.4초에 걸쳐 뺌 (`UnitView.ChargeAndBurst`)
+  - 축적의 수호자 축적 해방 = `Release`: 걸어가 직접 만든 `GolemRoar`(실제 Animator로 잰 승리 포효 자세: 팔꿈치 옆으로·주먹 머리 높이·가슴과 고개 젖힘, 팔·고개만 떨림 키가 점점 촘촘). 몸통을 젖히면 휴머노이드 몸 중심이 바뀌어 다리가 들리므로, 엉덩이 회전이 Idle과 같아지도록 RootQ를 앞뒤로 돌리고 RootT.y로 발을 땅에 맞춤 + 금빛 기 모으기 → 1.5초에 `FxMeteorExplosion`(3.5배) + 흔들림 1.0
+  - 축적의 수호자 광역 강타 = `Slam`: 원본 `Walk`로 걸어가 직접 만든 `GolemSlam`(이 골렘의 Idle 0초 자세 기준 근육 곡선, 0.78초에 내려찍음). 근육 값은 감으로 넣지 않고, 한 자세짜리 클립을 실제 Animator로 재생(`Rebind`·`Play`·`Update`, 게임과 같은 경로)해 손 위치·몸 기울기를 재며 목표(치켜듦 = 머리 위 + 뒤로 젖힘, 내려찍음 = 몸 앞 낮은 곳 + 앞으로 24도 숙임)에 가장 가까운 값을 격자 탐색으로 찾음. `AnimationMode`·`HumanPoseHandler`로 잰 값은 실제 Animator와 척추·팔 앞뒤 방향이 반대로 나와서 쓰지 않음
+  - 스킬 동작의 `impactShake`·`impactShakeSeconds`: `UnitView.LastImpactShake`로 넘겨 `BattleFxView`가 타격 순간에 `BattleCameraDirector.Shake`
+  - 모델 칸에는 원본 모델이 아니라 `UnitModel`이 붙은 전투용 프리팹을 넣는다 (원본을 넣으면 캡슐로 남고, `CharacterData.OnValidate`가 경고)
 - `Billboard`: 이름표·상태효과 줄이 카메라를 보고 거리에 맞춰 크기를 조절. `UnitView`의 조준 고리(`TargetRing`)는 카메라 쪽으로 당겨 그림
 - 숨겨진 유닛의 이펙트는 `BattleFxView`가 건너뜀
 
@@ -228,6 +242,7 @@ UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
   - 지속피해는 예외: 이어진 지속피해끼리는 같은 유닛이어도 한 박자로 묶고, `PlayDotBurst`가 짧은 간격으로 숫자를 흩뿌린다. 색은 `DamageTakenInfo.DamageOverTimeSource`(상태효과)의 `DamagePopupColor`
   - 버프는 예외: 이어서 들어온 같은 유닛의 버프는 새 박자 대신 같은 글자에 이름을 줄바꿈으로 붙인다 (한 스킬의 여러 버프를 한 번에)
 - `BattleManager`는 턴이 끝날 때마다 재생이 끝나기를 기다린 뒤 다음 턴·웨이브 전환으로 넘어간다
+  - 행동 박자를 시작하기 전에 `BattleFxView.WaitForPreviousAction`이 앞 행동의 전용 연출(`isSkillFxRunning`)과 앞 행동 유닛의 모션(`UnitView.IsInMotion`, 꺼지면 풀림)이 끝날 때까지 기다린다(최대 15초) → 다음 행동의 피해가 앞 동작 도중에 끼어들지 않음. 지속피해만 든 박자(턴 종료 발동·격발)도 같은 대기를 거친다
   - 재생 코루틴(`PlayBeats`)은 마무리 대기(`endHold`) 중에 들어온 박자도 이어서 재생한 뒤 끝난다 (웨이브 시작 연출·끌어온 턴 직후처럼 재생이 끝나기 전에 새 행동이 들어와도 멈추지 않게). 전용 연출 알림은 박자마다 자기 대상 것만 꺼내고, 연출이 끝났는데 알림이 없는 대상은 남은 피해로 마무리한다
 - 타격감 (기획서 3-11)
   - `BattleEvents.ActionStarted`(`SkillExecutor.ExecuteEffects`가 스킬·추가 공격 시작 때 알림, 3스 여부는 칸 번호)로 행동 박자를 따로 만들어 컷인(`SkillCutInView`) → 돌진(`UnitView.PlayLunge`) 또는 시전(`UnitView.PlayCast`)을 기다린 뒤 타격·버프 박자를 재생
@@ -257,7 +272,7 @@ UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
       - 영역 공격·해제 연출은 `SkillFx.CasterCasts = false`라 시전자가 떠오르지 않음
       - 업화 = `HellfireBowFx`(`Prefabs/Fx/FxHellfireBow`, 영역 블록의 바뀌는 스킬 칸 "전용 연출"): 떠오르기 컷(`SetScriptedPose`) → 겹마다 `GlowLines` 하나인 불꽃 줄(점 24개, Perlin 잡음으로 일렁임) + 불씨 `ParticleSystem.Emit` → 내려다보는 컷 → 시위·화살대(굵기 일정한 견본 선) + 화살 머리 `FxMeteor` → 폭발 `FxMeteorExplosion` + 적 전원 `onImpact(1)`
       - 영역 해제 순서: 남은 턴이 0이 되는 턴의 영역 공격에 `FollowUpAttack.Completed`(추가 공격이 끝나면 `BattleManager`가 부름, 건너뛴 경우도)를 달아, 그 공격이 끝난 뒤에야 `ShouldEnd`가 참 → `CheckEnd`. 끝날 때 `DomainBoundary.OnEnd`가 해제 연출(`DomainCloseFx`, `Prefabs/Fx/FxDomainClose`)을 `ActionStarted` 사건으로 알려, 연출 재생 순서상 마지막 공격의 피해 다음에 나온다
-      - `DomainSceneryView`는 해제 연출이 있으면 끝난 영역의 배경을 지우지 않고 남겨 두고(`closingScenery`, 안전장치로 20초 뒤 가라앉힘), `DomainCloseFx`가 `DomainScenery.Dissolve`(사찰 조각을 반투명 재질 `ShrineFade`로 바꿔 끼우고 MaterialPropertyBlock 투명도 + 물·하늘·분위기 세기를 함께 줄임)로 지운다. 주인이 쓰러져 끝나면 바로 `Sink`
+      - `DomainSceneryView`는 해제 연출이 있으면 끝난 영역의 배경을 지우지 않고 남겨 두고(`closingScenery`, 안전장치로 20초 뒤 가라앉힘), `DomainCloseFx`가 `DomainScenery.Dissolve`(사찰 조각을 반투명 재질 `ShrineFade`로 바꿔 끼우고 MaterialPropertyBlock 투명도 + 물·하늘·분위기 세기를 함께 줄임)로 지운다. 주인이 쓰러져 끝나면 화면에서도 쓰러질 때(`ShownHp.IsDead`, 쓰러뜨린 공격 연출이 끝난 뒤)까지 기다렸다가 `Sink` (`SinkAfterOwnerFalls`)
     - 하이퍼캐리 변신기 = `TransformCocoonFx`(`Prefabs/Fx/FxTransformCocoon`, 그림·재질 `Art/Battle/Sun`). 상대 타격이 없는 연출은 `BattleFxView`가 끝날 때까지 기다린 뒤 다음 박자로
     - 변신 모습(헤일로·날개): `TransformationData.AppearancePrefab`을 `UnitView.ApplyAppearance`가 변신 중(`IsTransformed`)에 몸의 자식으로 붙인다. 움직임은 `TransformAppearance`
       - 로직은 변신을 즉시 바꾸므로, 모습을 바꾸는 연출(`SkillFx.ChangesAppearance`: 변신기·종결기)이면 `BattleFxView`가 행동 시작 사건 때 `FreezeAppearance`로 지금 모습을 고정하고, 연출이 바뀌는 순간 `RevealAppearance`(→ `ReleaseAppearance`)로 실제 상태를 반영한다. 모습을 바꾸는 연출이 끝나거나 못 보여주면 그때 풀림 (다른 연출은 풀지 않음: 마지막 엑스트라 턴의 스킬 연출이 끝날 때 종결기가 걸어 둔 고정을 먼저 풀어 날개가 일찍 사라지던 문제 방지)
@@ -500,7 +515,7 @@ Assets/_Project/
 - 숨은 업적 추가 (사용자가 하나씩 정함), 업적 제목·목표 수치 확정
 
 ### 아트 (에셋 수급 필요)
-- 캐릭터 3D 모델 + 애니메이션(대기·공격·피격·사망): 캡슐 교체. 로직은 화면과 분리돼 있어 `UnitView`만 바꾸면 됨
+- 캐릭터 3D 모델 + 애니메이션(대기·공격·피격·사망): 캡슐 교체. `CharacterData`의 전투 3D 모델 칸에 `UnitModel` 프리팹을 넣으면 됨 (지금은 축적의 수호자 = 바위 골렘만)
 - 메테오 바위·폭발 등 스킬 연출 에셋 (지금은 코드로 만든 임시 메시·파티클, URP·카툰풍 에셋 권장)
 - 캐릭터 일러스트 (없는 캐릭터는 직군 색 실루엣)
 

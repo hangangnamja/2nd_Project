@@ -1,3 +1,4 @@
+using System.Collections;
 using Game.Battle;
 using Game.Battle.Effects;
 using UnityEngine;
@@ -92,7 +93,9 @@ namespace Game.UI
                 }
                 else
                 {
-                    StartCoroutine(scenery.Sink());
+                    // 주인이 쓰러져 끝난 경우: 로직에서는 이미 쓰러졌어도 화면에선 쓰러뜨린 공격 연출이 아직 남아 있다
+                    // → 화면에서도 쓰러진 것으로 바뀐 뒤(ShownHp.IsDead) 가라앉힌다.
+                    StartCoroutine(SinkAfterOwnerFalls(scenery, shownBoundary));
                 }
 
                 scenery = null;
@@ -114,6 +117,23 @@ namespace Game.UI
                     scenery.Place(floorY, OwnerPosition(active));
                     spawnedAt = Time.time;
                 }
+            }
+        }
+
+        // 영역 주인이 화면에서도 쓰러질 때까지(쓰러뜨린 공격 연출이 끝날 때까지) 기다렸다가 배경을 가라앉힌다.
+        // 안전장치: 실제 시간 20초가 지나면 그냥 가라앉힌다. 주인이 없으면 바로.
+        private IEnumerator SinkAfterOwnerFalls(DomainScenery target, DomainBoundary boundary)
+        {
+            float waited = 0f;
+            while (boundary != null && target != null && !ShownHp.IsDead(boundary.Owner) && waited < 20f)
+            {
+                waited += Time.unscaledDeltaTime;
+                yield return null;
+            }
+
+            if (target != null)
+            {
+                yield return target.Sink();
             }
         }
 

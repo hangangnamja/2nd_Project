@@ -177,6 +177,9 @@ namespace Game.UI
         // 스킬 전용 연출 코루틴이 아직 돌고 있는지. 끝났는데도 알림을 못 받은 대상은 더 기다리지 않고 남은 피해를 마저 보여준다.
         private bool isSkillFxRunning;
 
+        // 마지막으로 행동을 시작한 유닛의 화면 (다음 행동은 이 유닛의 모션이 끝난 뒤 시작).
+        private UnitView lastActorView;
+
         [Tooltip("연출의 일부 타격(잔챙이 메테오 등)의 손맛 세기 (1 = 일반 타격)")]
         [SerializeField, Range(0f, 1f)] private float partialImpactScale = 0.35f;
 
@@ -367,6 +370,10 @@ namespace Game.UI
                 // yield return 코루틴: 그 코루틴이 끝날 때까지 이어서 기다린다.
                 if (beat[0].Kind == FxKind.Action)
                 {
+                    // 앞 행동의 연출이 끝날 때까지 기다린다: 전용 연출(푸가 등 — 피해 뒤에도 내려오기·사라지기가 이어짐)과
+                    // 앞 행동 유닛의 모션(돌아오기 등). 그래야 다음 행동(턴 종료 영역 공격 등)의 피해가 앞 동작 도중에 끼어들지 않는다.
+                    yield return WaitForPreviousAction();
+
                     // 다음 행동(추가 공격 등)을 시작하기 전에, 앞 행동에서 쓰러지는 타격까지 보여준 유닛을 화면에서도 쓰러뜨린다
                     // (회색·카드 흐림·보스 바 숨김). 로직 순서 "공격 → 피해 → 사망 처리 → 추가 공격"을 화면도 같은 순서로 보여준다.
                     ShownHp.ReleaseFallen();
@@ -379,6 +386,14 @@ namespace Game.UI
                 {
                     yield return PlayHitsOnImpact(beat);
                     continue;
+                }
+
+                // 지속피해 박자(턴 종료 발동·격발)도 앞 행동의 동작이 다 끝난 뒤에 터뜨린다.
+                // 안 그러면 때리고 돌아오는 도중에 턴 종료 지속피해를 맞아 움찔거리며 동작이 끊겨 보인다.
+                // TrueForAll(IsDamageOverTime): 박자 안의 사건이 모두 지속피해일 때만 참.
+                if (beat.TrueForAll(IsDamageOverTime))
+                {
+                    yield return WaitForPreviousAction();
                 }
 
                 // 박자 재생에 걸리는 시간(지속피해를 차례로 터뜨리는 시간)과 기본 간격 중 긴 쪽만큼 기다린다.
@@ -405,6 +420,17 @@ namespace Game.UI
                 || (action.Caster.Data is EnemyCharacterData enemy && enemy.IsBoss);
         }
 
+        // 앞 행동의 전용 연출·행동 유닛 모션이 끝날 때까지 기다린다 (안전장치: 실제 시간 15초가 지나면 넘어감).
+        private IEnumerator WaitForPreviousAction()
+        {
+            float waited = 0f;
+            while ((isSkillFxRunning || (lastActorView != null && lastActorView.IsInMotion)) && waited < 15f)
+            {
+                waited += Time.unscaledDeltaTime;
+                yield return null;
+            }
+        }
+
         private IEnumerator PlayAction(ActionStartInfo action)
         {
             BattleUnit caster = action.Caster;
@@ -412,6 +438,7 @@ namespace Game.UI
             bool targetsTeam = HasTarget(action, opponents: false);
 
             UnitView casterView = stageView.FindView(caster);
+            lastActorView = casterView;
             bool isCasterVisible = casterView != null && casterView.gameObject.activeInHierarchy;
             if (!isCasterVisible && casterView != null && caster.IsOnField && cameraDirector != null)
             {
@@ -484,8 +511,17 @@ namespace Game.UI
             Vector3? targetPosition = FindOpponentTargetPosition(action);
             if (targetPosition.HasValue)
             {
-                casterView.PlayLunge(targetPosition.Value);
-                yield return new WaitForSeconds(casterView.LungeOutSeconds);
+                // 3D 모델은 스킬의 "모델 동작"(걸어가 내려치기 등)으로, 타격 순간까지 기다린 뒤 피해 박자로 넘어간다.
+                // ?.: 스킬이 아닌 행동(추가 공격 등)이면 Skill이 null → 동작 이름도 null (기본 공격).
+                float impactDelay = casterView.PlayAttackMotion(targetPosition.Value, action.Skill?.ModelMotion);
+                yield return new WaitForSeconds(impactDelay);
+
+                // 내려찍기처럼 무거운 동작은 땅을 치는 순간 화면을 크게 흔든다 (스킬 동작에 정한 세기, 없으면 0이라 건너뜀).
+                if (casterView.LastImpactShake > 0f && cameraDirector != null)
+                {
+                    cameraDirector.Shake(casterView.LastImpactShake, casterView.LastImpactShakeSeconds);
+                }
+
                 yield break;
             }
 
