@@ -89,10 +89,12 @@ namespace Game.UI
         public BattleUnit Unit { get; private set; }
 
         // 돌진 모션의 나가는 시간 (BattleFxView가 돌진이 대상에 닿는 순간에 맞춰 타격 박자를 재생하려고 읽는다).
-        public float LungeOutSeconds => lungeOutSeconds;
+        // 3D 모델이면 공격 동작이 내리치는 순간까지의 시간 (애니메이션과 피해 숫자를 맞춘다).
+        public float LungeOutSeconds => model != null ? model.AttackImpactSeconds : lungeOutSeconds;
 
         // 시전 모션이 가장 높이 떠오르기까지의 시간 (BattleFxView가 이 순간에 버프·회복 박자를 재생한다).
-        public float CastRiseSeconds => castRiseSeconds;
+        // 3D 모델이 떠오르지 않고 부품만 빛나는 경우엔 그 빛이 가장 밝아지는 시간.
+        public float CastRiseSeconds => model != null && !model.LiftOnCast && model.HasCastGlow ? model.CastGlowRiseSeconds : castRiseSeconds;
 
         // ---------- 모션 (자리 + 어긋남) ----------
         // 무대(BattleStageView)가 정한 자리 = 기준 자리. 모션은 그 위에 더하는 "어긋남"만 바꾸고, 매 프레임 기준 자리 + 어긋남으로 놓는다.
@@ -145,6 +147,64 @@ namespace Game.UI
             return icon;
         }
 
+        // ---------- 3D 모델 (캡슐 대신) ----------
+        // 캐릭터 데이터에 전투 모델 프리팹이 있으면 몸의 자식으로 만들고 캡슐은 감춘다 (없으면 null → 지금처럼 캡슐).
+        // 모션(돌진·피격·처치·시전)은 그대로 두고, 그때마다 모델의 애니메이션을 함께 재생한다.
+        private UnitModel model;
+
+        // 모델을 만들고 캡슐 모습을 감춘 뒤, 이름표·상태효과 줄 높이와 누르는 영역을 모델 크기에 맞춘다.
+        // 콜라이더는 그대로 두어 대상 선택(BattleTargetPicker의 Raycast)이 모델 크기로 동작하게 한다.
+        private void CreateModel()
+        {
+            GameObject prefab = Unit.Data.BattleModel;
+            if (prefab == null || model != null)
+            {
+                return;
+            }
+
+            GameObject instance = Instantiate(prefab, transform);
+            model = instance.GetComponent<UnitModel>();
+            if (model == null)
+            {
+                Debug.LogWarning($"[UnitView] {Unit.Name}의 전투 모델 프리팹에 UnitModel이 없습니다.");
+                Destroy(instance);
+                return;
+            }
+
+            bodyRenderer.enabled = false;
+            // 모델을 뒤로 물려 세웠으면(BodyOffsetZ) 이름표·상태효과 줄·누르는 영역도 같은 만큼 뒤로.
+            label.transform.localPosition = new Vector3(0f, model.LabelHeight, model.BodyOffsetZ);
+            statusBar.transform.localPosition = new Vector3(0f, model.StatusBarHeight, model.BodyOffsetZ);
+            if (TryGetComponent(out CapsuleCollider capsule))
+            {
+                capsule.radius = model.ColliderRadius;
+                capsule.height = model.ColliderHeight;
+                capsule.center = new Vector3(0f, model.ColliderCenterY, model.BodyOffsetZ);
+            }
+
+            model.PlayIdle();
+        }
+
+        // 모델 색·자세를 화면 생사에 맞춘다: 쓰러졌으면 어둡게 + 쓰러지는 동작(아직 안 했으면), 살아났으면 서 있는 동작으로.
+        private void RefreshModel()
+        {
+            if (model == null)
+            {
+                return;
+            }
+
+            bool dead = ShownHp.IsDead(Unit);
+            model.SetDead(dead);
+            if (dead && !model.IsDown)
+            {
+                model.PlayDie();
+            }
+            else if (!dead && model.IsDown)
+            {
+                model.PlayIdle();
+            }
+        }
+
         // ---------- 변신 모습 (헤일로·날개) ----------
         // 변신 중이면 변신 데이터의 "변신 모습" 프리팹을 몸에 붙인다. 로직은 변신을 즉시 바꾸지만 화면은 연출(변신기·종결기)에 맞춰야 하므로,
         // 연출이 FreezeAppearance로 지금 모습을 고정해 두고, 바뀌는 순간(구체가 터질 때, 영역이 깨질 때) ReleaseAppearance로 실제 상태를 반영한다.
@@ -191,6 +251,7 @@ namespace Game.UI
         public void Bind(BattleUnit unit)
         {
             Unit = unit;
+            CreateModel();
             SetAnchor(transform.position, transform.rotation);
             Refresh(isActing: false, isTargetable: false);
         }
@@ -215,6 +276,7 @@ namespace Game.UI
             // URP Lit 셰이더는 기본 색(_BaseColor)을 material.color로 바꿀 수 있다.
             baseColor = PickColor(isActing);
             bodyRenderer.material.color = baseColor;
+            RefreshModel();
 
             // 아군은 화면 아래 초상화 카드(PartyCardView), 보스는 상단 보스 HP바(BossHpBarView)에서 버프·디버프를 보여주므로
             // 머리 위 줄을 끈다. 나머지 적만 머리 위에 표시.
@@ -406,6 +468,9 @@ namespace Game.UI
         private void OnDisable()
         {
             ShownHp.Changed -= HandleShownHpChanged;
+
+            // 꺼지면 코루틴이 멈추므로 "모션 중" 표시도 지운다 (안 지우면 숨겨진 유닛이 영원히 모션 중으로 남아 다음 행동이 기다림).
+            motion = null;
         }
 
         // 화면 HP가 바뀌면 글자를 다시 쓴다. 쓰러진 유닛은 연출이 끝나 화면에서도 쓰러진 순간(ShownHp.IsDead)이 오므로
@@ -448,6 +513,9 @@ namespace Game.UI
                 // Color.Lerp(a, b, t): t만큼 a에서 b로 섞는다 → 남은 시간 비율만큼 번쩍임 색에 가깝다 (시작 순간 가장 밝고 점점 원래 색).
                 float t = Mathf.Clamp01(flashRemaining / flashDuration);
                 bodyRenderer.material.color = Color.Lerp(baseColor, flashColor, t);
+
+                // 3D 모델은 편 색 대신 원래 색에서 번쩍임만 섞는다 (?.: 모델이 없으면 건너뜀).
+                model?.SetFlash(t, flashColor);
             }
         }
 
@@ -511,26 +579,127 @@ namespace Game.UI
             float distance = Mathf.Min(lungeDistance, Mathf.Max(0f, toTarget.magnitude - lungeStopShort));
 
             // normalized: 길이 1짜리 방향. 대상까지의 방향 × 이동 거리 = 튀어 나갈 지점(기준 자리 기준).
-            StartMotion(LungeRoutine(toTarget.normalized * distance));
+            // 3D 모델은 공격 동작(치켜들었다 내리침)에 맞춰, 내리치는 순간에 앞으로 다 나가 있도록 그 시간 동안 천천히 다가가고
+            // 내리친 뒤 잠시 머물렀다 돌아온다. 캡슐은 짧게 툭 튀어 나간다.
+            if (model != null)
+            {
+                StartMotion(LungeRoutine(toTarget.normalized * distance, model.AttackImpactSeconds, model.AttackRecoverSeconds));
+                model.PlayAttack();
+                return;
+            }
+
+            StartMotion(LungeRoutine(toTarget.normalized * distance, lungeOutSeconds, lungeHoldSeconds));
         }
 
         // 돌진 순서: 빠르게 나감(감속) → 머묾 → 부드럽게 돌아옴.
-        private IEnumerator LungeRoutine(Vector3 peak)
+        // outSeconds: 나가는 시간, holdSeconds: 나간 자리에 머무는 시간.
+        private IEnumerator LungeRoutine(Vector3 peak, float outSeconds, float holdSeconds)
         {
             // 람다 t => 1 - (1 - t)²: 처음에 빠르고 끝에서 느려지는 감속 곡선 → 툭 치고 멈추는 느낌.
-            yield return MoveOffset(Vector3.zero, peak, lungeOutSeconds, t => 1f - (1f - t) * (1f - t));
-            yield return new WaitForSeconds(lungeHoldSeconds);
+            yield return MoveOffset(Vector3.zero, peak, outSeconds, t => 1f - (1f - t) * (1f - t));
+            yield return new WaitForSeconds(holdSeconds);
 
             // Mathf.SmoothStep: 처음과 끝이 부드러운 곡선 → 자연스럽게 제자리로.
             yield return MoveOffset(peak, Vector3.zero, lungeBackSeconds, t => Mathf.SmoothStep(0f, 1f, t));
             motion = null;
         }
 
+        // 마지막으로 시작한 공격 동작이 타격 순간에 줄 화면 흔들림 세기·시간 (스킬 동작에 정한 값, 기본 돌진이면 0).
+        // BattleFxView가 타격 순간까지 기다린 뒤 이 값으로 카메라를 흔든다.
+        public float LastImpactShake { get; private set; }
+
+        // 모션(돌진·걸어가기·시전·피격 등)이 재생 중인지. 연출이 다음 행동을 이 모션이 끝난 뒤 시작할 때 본다.
+        public bool IsInMotion => motion != null;
+        public float LastImpactShakeSeconds { get; private set; }
+
+        // 공격 행동을 시작하고, 타격이 들어가는 순간까지 걸리는 시간(초)을 돌려준다 (BattleFxView가 그만큼 기다린 뒤 피해 숫자를 띄움).
+        // 3D 모델이고 스킬에 맞는 스킬 동작(motionName)이 있으면 그 동작 (걸어가기 → 공격), 아니면 기본 돌진.
+        public float PlayAttackMotion(Vector3 targetPosition, string motionName)
+        {
+            ModelAttackMotion skillMotion = model != null ? model.FindSkillMotion(motionName) : null;
+            LastImpactShake = skillMotion != null ? skillMotion.impactShake : 0f;
+            LastImpactShakeSeconds = skillMotion != null ? skillMotion.impactShakeSeconds : 0f;
+            if (skillMotion == null || !gameObject.activeInHierarchy)
+            {
+                PlayLunge(targetPosition);
+                return LungeOutSeconds;
+            }
+
+            // 걸어갈 거리 = 최대 거리와 (대상까지 거리 - 멈추는 거리) 중 작은 값. 걷는 시간 = 거리 ÷ 속도.
+            Vector3 toTarget = targetPosition - anchorPosition;
+            toTarget.y = 0f;
+            float distance = skillMotion.walkIn
+                ? Mathf.Min(skillMotion.maxWalkDistance, Mathf.Max(0f, toTarget.magnitude - skillMotion.stopDistance))
+                : 0f;
+            float walkSeconds = distance / skillMotion.walkSpeed;
+            StartMotion(WalkAndAttackRoutine(skillMotion, toTarget.normalized * distance, walkSeconds));
+            return walkSeconds + skillMotion.impactSeconds;
+        }
+
+        // 걸어가기 → 공격 → 머묾 → 제자리로 부드럽게 돌아옴.
+        // 걷는 구간은 일정한 속도(진행도 그대로, 람다 t => t)라 발걸음과 이동이 어긋나지 않는다.
+        private IEnumerator WalkAndAttackRoutine(ModelAttackMotion skillMotion, Vector3 peak, float walkSeconds)
+        {
+            if (walkSeconds > 0f)
+            {
+                model.PlayState(skillMotion.walkState);
+                yield return MoveOffset(Vector3.zero, peak, walkSeconds, t => t);
+            }
+
+            model.PlayState(skillMotion.state);
+            if (skillMotion.chargeGlow)
+            {
+                yield return ChargeAndBurst(skillMotion);
+                yield return new WaitForSeconds(skillMotion.recoverSeconds);
+            }
+            else
+            {
+                yield return new WaitForSeconds(skillMotion.impactSeconds + skillMotion.recoverSeconds);
+            }
+            yield return MoveOffset(peak, Vector3.zero, Mathf.Max(lungeBackSeconds, walkSeconds * 0.5f), t => Mathf.SmoothStep(0f, 1f, t));
+            motion = null;
+        }
+
+        // 기 모으기 → 폭발: 타격 순간까지 몸이 점점 밝아지며 맥동하고(점점 빨라짐), 타격 순간 가슴에서 이펙트가 터지며
+        // 가장 밝게 번쩍인 뒤 빛이 빠르게 빠진다. 피해 숫자·화면 흔들림은 BattleFxView가 같은 순간(PlayAttackMotion이 돌려준 시간)에 띄운다.
+        // 밝기 = 진행도² × (0.65 + 0.35 × sin(위상)), 위상 = 진행도² × 40 → 시간이 갈수록 맥동이 빨라진다.
+        private IEnumerator ChargeAndBurst(ModelAttackMotion skillMotion)
+        {
+            for (float t = 0f; t < skillMotion.impactSeconds; t += Time.deltaTime)
+            {
+                float p = t / skillMotion.impactSeconds;
+                model.SetFlash(p * p * (0.65f + 0.35f * Mathf.Sin(p * p * 40f)), skillMotion.chargeGlowColor);
+                yield return null;
+            }
+
+            if (skillMotion.impactEffectPrefab != null)
+            {
+                GameObject burst = Instantiate(skillMotion.impactEffectPrefab, model.EffectAnchor, Quaternion.identity);
+                burst.transform.localScale = Vector3.one * skillMotion.impactEffectScale;
+            }
+
+            for (float t = 0f; t < 0.4f; t += Time.deltaTime)
+            {
+                model.SetFlash(1f - t / 0.4f, skillMotion.chargeGlowColor);
+                yield return null;
+            }
+
+            model.SetFlash(0f, Color.white);
+        }
+
         // 버프·회복 행동(시전): 제자리에서 위로 떠오르며 빛났다가 내려온다. 공격 돌진과 구분되는 "기를 모으는" 느낌.
         public void PlayCast()
         {
+            // 떠오르지 않는 3D 모델(탑 등)은 제자리에서 빛나는 부품만 빛난다 (몸 전체 금빛 번쩍임·떠오르기 없음).
+            if (model != null && !model.LiftOnCast)
+            {
+                model.PlayCast();
+                return;
+            }
+
             Flash(castGlowColor, castRiseSeconds + castHoldSeconds + castFallSeconds);
             StartMotion(CastRoutine());
+            model?.PlayCast();
         }
 
         // 시전 순서: 감속하며 떠오름 → 머묾 → 부드럽게 내려옴.
@@ -558,6 +727,7 @@ namespace Game.UI
         public void PlayHitReaction(Vector3? from, float strength)
         {
             Flash(Color.white, flashSeconds);
+            model?.PlayHit();
             if (motion != null)
             {
                 return;
@@ -590,7 +760,23 @@ namespace Game.UI
         public void PlayKnockdown(Vector3? from)
         {
             Flash(Color.white, flashSeconds);
+
+            // 3D 모델은 쓰러지는 애니메이션이 있으므로 캡슐처럼 날아가며 굴러가지 않고, 조금만 밀리며 그 자리에서 쓰러진다.
+            if (model != null)
+            {
+                model.PlayDie();
+                StartMotion(ModelKnockdownRoutine(GetPushDirection(from) * 0.6f));
+                return;
+            }
+
             StartMotion(KnockdownRoutine(GetPushDirection(from)));
+        }
+
+        // 3D 모델 처치: 조금만 밀리고 끝 (쓰러지는 건 애니메이션이 맡음). 끝나면 "모션 중"을 푼다.
+        private IEnumerator ModelKnockdownRoutine(Vector3 push)
+        {
+            yield return MoveOffset(Vector3.zero, push, knockdownSeconds, t => 1f - (1f - t) * (1f - t));
+            motion = null;
         }
 
         private IEnumerator KnockdownRoutine(Vector3 direction)

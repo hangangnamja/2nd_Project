@@ -36,6 +36,12 @@ namespace Game.Data
         [Label("연출 타수", Min = 1f)]
         [SerializeField] private int presentationHits = 1;
 
+        // 3D 모델로 보이는 유닛이 이 스킬을 쓸 때 재생할 동작 이름 (모델 프리팹 UnitModel의 "스킬 동작" 목록에서 같은 이름을 찾음).
+        // 비워 두거나 목록에 없으면 기본 공격 동작. 캡슐 유닛은 이 값을 쓰지 않는다.
+        [Tooltip("3D 모델의 스킬 동작 이름 (UnitModel의 스킬 동작 목록). 비우면 기본 공격 동작")]
+        [Label("모델 동작")]
+        [SerializeField] private string modelMotion;
+
         // [SerializeReference]: 리스트 원소를 "실제 하위 클래스 그대로" 저장한다.
         // 일반 [SerializeField]는 선언된 타입(SkillEffect)으로만 저장해 DamageEffect의 배율 같은 값이 사라지지만,
         // SerializeReference는 DamageEffect, HealEffect처럼 서로 다른 타입을 한 리스트에 섞어 담을 수 있다.
@@ -49,6 +55,7 @@ namespace Game.Data
         public int StartCooldown => startCooldown;
         public GameObject PresentationPrefab => presentationPrefab;
         public int PresentationHits => Mathf.Max(1, presentationHits);
+        public string ModelMotion => modelMotion;
         public IReadOnlyList<SkillEffect> Effects => effects;
 
         // 경계를 펼치는 스킬인지 (효과 목록에 경계 블록이 있는지). 같은 편 경계가 펼쳐진 동안 이런 스킬은 쓸 수 없다 (기획서 3-12).

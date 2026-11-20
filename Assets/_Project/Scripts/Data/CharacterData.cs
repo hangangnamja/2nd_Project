@@ -25,6 +25,11 @@ namespace Game.Data
         [Tooltip("캐릭터 일러스트 (Sprite). 비워 두면 화면마다 임시 그림을 쓴다")]
         [SerializeField] private Sprite illustration;
 
+        // 전투에서 캡슐 대신 보여줄 3D 모델 (UnitModel이 붙은 프리팹: 모델·애니메이션·크기를 프리팹에서 정함).
+        // 비워 두면 지금처럼 색 캡슐로 보인다. 화면 표시만 바뀌고 전투 로직은 그대로다.
+        [Tooltip("전투 3D 모델 프리팹 (UnitModel 컴포넌트). 비워 두면 캡슐")]
+        [SerializeField] private GameObject battleModel;
+
         // Min 속성: Inspector에서 이 값보다 작게 입력하지 못하도록 막는다 (HP 0인 캐릭터 방지).
         [SerializeField, Min(1)] private int maxHp = 1000;
         [SerializeField, Min(0)] private int attack = 100;
@@ -61,6 +66,19 @@ namespace Game.Data
         public CharacterRole Role => role;
         public CharacterGrade Grade => grade;
         public Sprite Illustration => illustration;
+        public GameObject BattleModel => battleModel;
+
+#if UNITY_EDITOR
+        // Inspector에서 값을 바꿀 때마다 Unity가 부른다. 전투 3D 모델 칸에 UnitModel이 없는 프리팹(원본 모델 등)을 넣으면
+        // 전투에서 캡슐로 남으므로 바로 알려 준다. GetComponent("이름"): 화면 코드(UI)를 참조하지 않고 이름으로만 찾는다.
+        private void OnValidate()
+        {
+            if (battleModel != null && battleModel.GetComponent("UnitModel") == null)
+            {
+                Debug.LogWarning($"[{name}] 전투 3D 모델 '{battleModel.name}'에 UnitModel이 없습니다. 원본 모델을 품은 전투용 프리팹(Prefabs/Models)을 넣어야 3D로 보입니다.", this);
+            }
+        }
+#endif
         public int MaxHp => maxHp;
         public int Attack => attack;
         public int Defense => defense;
