@@ -16,6 +16,12 @@ namespace Game.UI
         [SerializeField] private TextMesh label;
         [SerializeField] private UnitStatusBar statusBar;
 
+        [Tooltip("머리 위 작은 HP바의 높이 (상태효과 줄 기준점에서 아래로). 상태효과 블럭·남은 턴 숫자 밑에 오게 둔다")]
+        [SerializeField] private float hpBarOffsetY = -0.55f;
+
+        // 머리 위 작은 HP바 (보스·아군 제외 적만, 상태효과 줄과 함께 켜짐)
+        private UnitHpBar hpBar;
+
         [Header("상태별 색상")]
         [SerializeField] private Color allyColor = new Color(0.35f, 0.6f, 1f);
         [SerializeField] private Color enemyColor = new Color(1f, 0.4f, 0.35f);
@@ -261,6 +267,7 @@ namespace Game.UI
         {
             Unit = unit;
             CreateModel();
+            CreateHpBar();
             SetAnchor(transform.position, transform.rotation);
             Refresh(isActing: false, isTargetable: false);
         }
@@ -275,11 +282,10 @@ namespace Game.UI
 
             lastTargetable = isTargetable;
             lastActing = isActing;
-            UpdateLabel();
+            UpdateHpBar();
 
-            // 아군 이름·HP·스택은 화면 아래 초상화 카드(PartyCardView)에서 보여준다.
-            // 아군은 카메라 바로 앞에 서는 장면이 많아 머리 위 글자가 화면을 가리므로 숨긴다. 적은 그대로 머리 위에 표시.
-            label.gameObject.SetActive(!Unit.IsAlly);
+            // 머리 위 이름·HP 글자는 쓰지 않는다: 아군은 아래 초상화 카드, 보스는 상단 보스 HP바, 나머지 적은 머리 위 작은 HP바(UnitHpBar)로 보여준다.
+            label.gameObject.SetActive(false);
 
             // renderer.material: 이 오브젝트 전용 머티리얼 복사본을 돌려주므로 다른 캡슐 색에는 영향이 없다.
             // URP Lit 셰이더는 기본 색(_BaseColor)을 material.color로 바꿀 수 있다.
@@ -429,44 +435,27 @@ namespace Game.UI
             return statuses;
         }
 
-        // 스택형 패시브가 있으면 이름 뒤에 현재 스택을 붙인다 (테스트용). 예: "DotMainAttack ★1/2"
-        private string BuildStackText()
+        // 머리 위 HP바를 화면 HP(ShownHp, 타격 박자에 맞춰 줄어듦) 비율로 맞춘다. 화면에서 쓰러진 유닛은 바를 끈다.
+        private void UpdateHpBar()
         {
-            string text = string.Empty;
-
-            foreach (PassiveData passive in Unit.Data.Passives)
+            if (hpBar == null)
             {
-                if (passive.UsesStacks)
-                {
-                    text += $" ★{Unit.GetPassiveStacks(passive)}/{passive.MaxStacks}";
-                }
+                return;
             }
 
-            return text;
+            hpBar.gameObject.SetActive(!ShownHp.IsDead(Unit));
+            hpBar.SetRatio(Unit.MaxHp > 0 ? (float)ShownHp.Hp(Unit) / Unit.MaxHp : 0f);
         }
 
-        // 퇴장·변신 상태 표시. 변신 중이면 진행한 변신 턴 / 제한을 붙인다. 예: " (퇴장)", " [변신 1/3]"
-        // 무적은 글자 대신 머리 위 아이콘으로 보여준다 (BuildDisplayedStatuses).
-        private string BuildFieldStateText()
+        // 머리 위 HP바를 상태효과 줄 바로 아래에 만든다 (상태효과 줄과 함께 켜지고 꺼지며 카메라를 바라봄).
+        // 상태효과 블럭은 줄 기준점(y = 0)에 가운데가 오고 그 아래에 남은 턴 숫자가 붙으므로, 숫자 밑(hpBarOffsetY)에 둔다.
+        private void CreateHpBar()
         {
-            if (Unit.IsExited)
-            {
-                return " (퇴장)";
-            }
-
-            TransformationState transformation = Unit.Transformation;
-            return Unit.IsTransformed
-                ? $" [변신 {transformation.TurnsTaken}/{transformation.Data.TurnLimit}]"
-                : string.Empty;
-        }
-
-        // 상태 우선순위: 사망 → 퇴장 → 행동 중 → 소속(아군/적) 순으로 색을 고른다.
-        // 머리 위 글자(이름·스택·상태·HP). HP는 연출에 맞춘 화면 HP(ShownHp) → 타격 박자에 맞춰 줄어든다.
-        // 지금 선택된 스킬로 고를 수 있는 대상은 이름 앞에 ▼ 표시를 붙여 구분한다.
-        private void UpdateLabel()
-        {
-            string marker = lastTargetable ? "▼ " : string.Empty;
-            label.text = $"{marker}{Unit.Name}{BuildStackText()}{BuildFieldStateText()}\nHP {ShownHp.Hp(Unit)}/{Unit.MaxHp}";
+            var barObject = new GameObject("HpBar");
+            barObject.transform.SetParent(statusBar.transform, false);
+            barObject.transform.localPosition = new Vector3(0f, hpBarOffsetY, 0f);
+            hpBar = barObject.AddComponent<UnitHpBar>();
+            hpBar.Build(statusBar.BlockMaterial);
         }
 
         private void OnEnable()
@@ -498,7 +487,7 @@ namespace Game.UI
             }
             else
             {
-                UpdateLabel();
+                UpdateHpBar();
             }
         }
 

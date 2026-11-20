@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4e7ea1fe386d9a7468a3d5897f0a5561, type: 3}
   m_Name: MaraDomain
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.StatusEffectData
-  displayName: "\uACBD\uACC4: \uD608\uD574\uC2E0\uC804"
-  description: "\uC601\uC5ED\uC774 \uD3BC\uCCD0\uC9C4 \uB3D9\uC548 \uC790\uAE30 \uD134\uC774
-    \uB05D\uB0A0 \uB54C\uB9C8\uB2E4 \uC801 \uC804\uCCB4\uB97C \uBCA4\uB2E4. \uC601\uC5ED
-    \uB3D9\uC548 1\uD68C 3\uC2A4\uAC00 \uC5C5\uD654\uB85C \uBC14\uB010\uB2E4. \uC22B\uC790\uB294
-    \uB0A8\uC740 \uD134."
+  displayName: "\uC601\uC5ED: \uD608\uD574\uC2E0\uC804"
+  description: "\uC601\uC5ED\uC758 \uC9C0\uC18D\uC2DC\uAC04 \uB3D9\uC548 \uC2A4\uD0EF\uC774
+    \uC0C1\uC2B9\uD558\uACE0 \uB9E4\uD134 \uC801\uB4E4\uC5D0\uAC8C \uD574(\u89E3)
+    \uB97C \uC0AC\uC6A9\uD55C\uB2E4.\n\n\"\uC65C\uADF8\uB7EC\uC9C0? \uB354 \uC5F4\uC2EC\uD788
+    \uD574\uBCF4\uB77C\uACE0\""
   category: 0
   stackMode: 1
   maxStacks: 99
