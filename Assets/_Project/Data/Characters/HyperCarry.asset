@@ -17,6 +17,7 @@ MonoBehaviour:
   role: 1
   grade: 0
   illustration: {fileID: 21300000, guid: d5665d2198be535489baa08cc6cca441, type: 3}
+  battleModel: {fileID: 8773763352532828593, guid: 4dfc54a0cf8f83141ba9ed77b5b00d91, type: 3}
   maxHp: 1000
   attack: 130
   defense: 50
@@ -30,6 +31,7 @@ MonoBehaviour:
     startCooldown: 0
     presentationPrefab: {fileID: 0}
     presentationHits: 1
+    modelMotion: 
     effects:
     - rid: 7605779530016096421
   skill2:
@@ -39,6 +41,7 @@ MonoBehaviour:
     startCooldown: 0
     presentationPrefab: {fileID: 3272811110150583233, guid: 9a2bebc6e92ad464e8a0d1828b568ac1, type: 3}
     presentationHits: 1
+    modelMotion: 
     effects:
     - rid: 7605779530016096422
     - rid: 7605779530016096423
@@ -49,6 +52,7 @@ MonoBehaviour:
     startCooldown: 2
     presentationPrefab: {fileID: 8843102575177825710, guid: 76d72b5e0b91afc4097de8c6a9a68782, type: 3}
     presentationHits: 1
+    modelMotion: 
     effects:
     - rid: 7605779530016096424
     - rid: 7605779530016096491
@@ -88,6 +92,7 @@ MonoBehaviour:
       startCooldown: 0
       presentationPrefab: {fileID: 8827903539877663010, guid: 8a00b2660bd0f7b479a4fb911d38f88d, type: 3}
       presentationHits: 1
+      modelMotion: 
       effects:
       - rid: 7605779530016096426
       - rid: 7605779530016096427
@@ -98,6 +103,7 @@ MonoBehaviour:
       startCooldown: 0
       presentationPrefab: {fileID: 3592876736584035590, guid: d285e3e0d6a5ae0469b20a34abb595ab, type: 3}
       presentationHits: 1
+      modelMotion: 
       effects:
       - rid: 7605779530016096428
       - rid: 7605779530016096429
@@ -110,6 +116,7 @@ MonoBehaviour:
       startCooldown: 0
       presentationPrefab: {fileID: 6713828389412017804, guid: b1d0264bf03867c43990883b2b6cfbb6, type: 3}
       presentationHits: 4
+      modelMotion: 
       effects:
       - rid: 7605779530016096432
       - rid: 7605779530016096433
@@ -120,6 +127,7 @@ MonoBehaviour:
       startCooldown: 0
       presentationPrefab: {fileID: 701255360802325112, guid: fc5e7082b4f835e40bed25d7493e9524, type: 3}
       presentationHits: 1
+      modelMotion: 
       effects:
       - rid: 7605779530016096434
   references:

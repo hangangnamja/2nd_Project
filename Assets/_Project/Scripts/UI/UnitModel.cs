@@ -70,6 +70,9 @@ namespace Game.UI
 
         [Header("애니메이션 상태 이름 (Animator 컨트롤러)")]
         [SerializeField] private string idleState = "Idle";
+
+        [Tooltip("자기 차례(스킬을 쓰는 턴)일 때의 대기 상태 이름. 비우거나 컨트롤러에 없으면 일반 대기(위) 그대로")]
+        [SerializeField] private string readyIdleState = "IdleMain";
         [SerializeField] private string attackState = "Attack";
         [SerializeField] private string castState = "Cast";
         [SerializeField] private string hitState = "Hit";
@@ -119,6 +122,9 @@ namespace Game.UI
 
         [Header("스킬 동작 (스킬 데이터의 \"모델 동작\" 이름으로 찾음, 없으면 위의 기본 공격)")]
         [SerializeField] private List<ModelAttackMotion> skillMotions = new List<ModelAttackMotion>();
+
+        [Tooltip("스킬에 \"모델 동작\"이 없거나 목록에 없을 때 대신 쓸 스킬 동작 이름 (예: 걸어가서 치는 공용 동작). 비우면 기본 돌진")]
+        [SerializeField] private string defaultSkillMotion = "";
 
         private Renderer[] renderers;
         private Color[] originalColors;
@@ -174,7 +180,57 @@ namespace Game.UI
         public void PlayIdle()
         {
             isDown = false;
-            Play(idleState);
+            Play(CurrentIdleState);
+        }
+
+        // 지금 써야 할 대기 상태: 자기 차례이고 차례용 대기 상태가 컨트롤러에 있으면 그것, 아니면 일반 대기.
+        // Animator.HasState(층, 해시): 그 층에 그 이름의 상태가 있는지 (StringToHash = 상태 이름을 숫자로 바꾼 값).
+        private string CurrentIdleState =>
+            isReady && !string.IsNullOrEmpty(readyIdleState) && animator != null
+            && animator.HasState(0, Animator.StringToHash(readyIdleState))
+                ? readyIdleState
+                : idleState;
+
+        // 지금 자기 차례인지 (UnitView가 상태 알림마다 넣어 줌).
+        private bool isReady;
+
+        // 자기 차례가 시작·끝날 때 UnitView가 부른다. 실제 동작 교체는 아래 Update가 한다.
+        public void SetReady(bool ready) => isReady = ready;
+
+        // 대기 중인데 지금 차례에 맞지 않는 대기 동작이면 맞는 쪽으로 바꾼다.
+        // 매 프레임 확인하는 이유: 공격·피격 동작은 끝나면 컨트롤러 연결을 따라 일반 대기(Idle)로 돌아오므로,
+        // 차례 도중에 돌아와도 다시 차례용 대기로 바꿔 주려고. 동작 도중에는 IsInIdle이 거짓이라 끊지 않는다.
+        // 바뀐 동작이 대기로 돌아오면, 연출이 돌려 둔 몸 방향(SetBodyYaw)도 원래대로 되돌린다.
+        private void Update()
+        {
+            if (isDown || !IsInIdle())
+            {
+                return;
+            }
+
+            if (bodyYaw != 0f)
+            {
+                SetBodyYaw(0f);
+            }
+
+            string wanted = CurrentIdleState;
+            if (!animator.GetCurrentAnimatorStateInfo(0).IsName(wanted))
+            {
+                Play(wanted);
+            }
+        }
+
+        // 지금 Animator가 일반 대기나 차례용 대기 상태에 있는지.
+        // GetCurrentAnimatorStateInfo(0).IsName(이름): 0번 층의 현재 상태 이름이 같은지. 넘어가는 중(IsInTransition)이면 대기가 아닌 것으로 본다.
+        private bool IsInIdle()
+        {
+            if (animator == null || !animator.isActiveAndEnabled || animator.IsInTransition(0))
+            {
+                return false;
+            }
+
+            AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(0);
+            return state.IsName(idleState) || state.IsName(readyIdleState);
         }
 
         public void PlayAttack() => Play(attackState);
@@ -182,16 +238,81 @@ namespace Game.UI
         // 상태 이름으로 바로 재생 (스킬 동작의 걷기·공격 상태).
         public void PlayState(string state) => Play(state);
 
-        // 스킬 데이터의 "모델 동작" 이름에 맞는 스킬 동작을 찾는다. 이름이 비었거나 목록에 없으면 null (기본 공격 동작을 쓴다).
-        // List.Find(조건 람다): 조건이 참인 첫 칸, 없으면 null.
-        public ModelAttackMotion FindSkillMotion(string motionName)
+        // 상태를 클립의 지정 시각(초)부터 재생한다 (앞쪽 준비 동작을 건너뛰고 필요한 부분만 보여줄 때).
+        // CrossFadeInFixedTime(해시, 넘어가는 시간, 층, 시작 시각(초)): 지금 동작에서 부드럽게 넘어가며 그 시각부터 재생.
+        public void PlayState(string state, float startSeconds)
         {
-            if (string.IsNullOrEmpty(motionName))
+            if (animator == null || string.IsNullOrEmpty(state) || !animator.isActiveAndEnabled)
             {
-                return null;
+                return;
             }
 
-            return skillMotions.Find(motion => motion.name == motionName);
+            int hash = Animator.StringToHash(state);
+            if (animator.HasState(0, hash))
+            {
+                animator.CrossFadeInFixedTime(hash, crossFadeSeconds, 0, startSeconds);
+            }
+        }
+
+        // 애니메이션 재생 속도 배율 (1 = 원래 속도, 0 = 멈춤). 전용 연출이 동작 타이밍을 이펙트에 맞출 때 쓰고, 끝나면 1로 되돌린다.
+        // Animator.speed: 이 Animator의 모든 상태·넘어가기(CrossFade)에 곱해지는 속도.
+        public void SetSpeed(float speed)
+        {
+            if (animator != null)
+            {
+                animator.speed = speed;
+            }
+        }
+
+        // 지금 재생 중인 상태를 지정한 시각(초)으로 바로 옮긴다 (넘어가기 없이). 연출의 정확한 순간(시위를 놓는 순간 등)에 동작을 맞출 때.
+        // 그 상태가 지금 재생 중일 때만 옮긴다 (다른 동작 도중이면 무시).
+        // AnimatorStateInfo.length: 현재 상태 클립 길이(초). Animator.Play(해시, 층, 정규화 시각): 정규화 시각 = 초 ÷ 길이 (0 = 처음, 1 = 끝).
+        public void JumpToState(string state, float seconds)
+        {
+            if (animator == null || !animator.isActiveAndEnabled)
+            {
+                return;
+            }
+
+            AnimatorStateInfo current = animator.GetCurrentAnimatorStateInfo(0);
+            if (current.IsName(state) && current.length > 0f)
+            {
+                animator.Play(current.shortNameHash, 0, seconds / current.length);
+            }
+        }
+
+        // 모델만 세로축으로 돌린다(도, + = 오른쪽). 원본 동작이 몸을 옆으로 튼 자세라 적·카메라 쪽을 보게 맞출 때 쓰고,
+        // 그 동작이 끝나 대기로 돌아오면 Update가 0으로 되돌린다 (연출이 따로 되돌리지 않아도 됨).
+        // UnitView 쪽 방향·모션(돌진 등)은 건드리지 않으므로 돌진 중에도 쓸 수 있다.
+        public void SetBodyYaw(float degrees)
+        {
+            bodyYaw = degrees;
+            transform.localRotation = Quaternion.Euler(0f, degrees, 0f);
+        }
+
+        private float bodyYaw;
+
+        // 휴머노이드 모델의 뼈 위치 (활을 손에 맞춰 그릴 때 등). 휴머노이드가 아니거나 뼈가 없으면 false.
+        public bool TryGetBonePosition(HumanBodyBones bone, out Vector3 position)
+        {
+            Transform boneTransform = animator != null && animator.isHuman ? animator.GetBoneTransform(bone) : null;
+            position = boneTransform != null ? boneTransform.position : Vector3.zero;
+            return boneTransform != null;
+        }
+
+        // 스킬 데이터의 "모델 동작" 이름에 맞는 스킬 동작을 찾는다.
+        // 이름이 비었거나 목록에 없으면 기본 스킬 동작(defaultSkillMotion)을, 그것도 없으면 null (기본 돌진을 쓴다).
+        // 이유: 여러 캐릭터가 같은 모델(Ybot)을 쓸 때, 스킬마다 이름을 적지 않아도 모든 공격이 걸어가서 치게 하려고.
+        public ModelAttackMotion FindSkillMotion(string motionName)
+        {
+            // List.Find(조건 람다): 조건이 참인 첫 칸, 없으면 null.
+            ModelAttackMotion found = string.IsNullOrEmpty(motionName) ? null : skillMotions.Find(motion => motion.name == motionName);
+            if (found != null || string.IsNullOrEmpty(defaultSkillMotion))
+            {
+                return found;
+            }
+
+            return skillMotions.Find(motion => motion.name == defaultSkillMotion);
         }
         // 시전: 시전 동작을 재생하고, 빛나는 부품이 있으면 빛나게 한다.
         public void PlayCast()

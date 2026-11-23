@@ -73,6 +73,17 @@ namespace Game.UI
         [Tooltip("변신한 모습을 보여주는 시간(초), 그다음 원래 시점으로")]
         [SerializeField, Min(0f)] private float holdAfterBurst = 1.4f;
 
+        [Header("3D 모델 동작 (캡슐이면 무시)")]
+        [Tooltip("구체 안에서 괴로워하는 Animator 상태 (반복, 연출 시작부터 구체가 깨질 때까지)")]
+        [SerializeField] private string agonyState = "Agony";
+
+        [Tooltip("구체가 깨지며 헤일로·날개가 달리는 순간 재생할 Animator 상태 · 시작할 클립 시각(초, 팔을 끌어올리기 직전) · 모델을 더 돌리는 각도(도)")]
+        [SerializeField] private string powerUpState = "PowerUp";
+        [SerializeField, Min(0f)] private float powerUpStartSeconds = 0.35f;
+
+        [Tooltip("파워업 동작은 원본이 몸을 오른쪽(약 65도)으로 튼 자세라, 그만큼 왼쪽(-)으로 돌려 정면 카메라 쪽을 보게 한다")]
+        [SerializeField] private float powerUpBodyTurn = -50f;
+
         [Header("정면 시점")]
         [Tooltip("캐리 정면으로 떨어진 카메라 거리 (처음 → 모으기 끝)")]
         [SerializeField] private float viewDistance = 6.5f;
@@ -95,6 +106,7 @@ namespace Game.UI
         private Vector3 viewForward;
         private Vector3 viewSide;
         private BattleCameraDirector cinematicCamera;
+        private bool hasBrokenOut;
 
         // 구체가 깨지는 순간 헤일로·날개가 나타나도록, 변신 모습을 바꾸는 연출로 표시한다.
         public override bool ChangesAppearance => true;
@@ -104,6 +116,12 @@ namespace Game.UI
             if (cinematicCamera != null)
             {
                 cinematicCamera.EndCinematic();
+            }
+
+            // 구체가 깨지기 전에 연출이 사라지면 반복하던 괴로워하는 동작이 남으므로 대기로 돌려 놓는다.
+            if (!hasBrokenOut && CasterView != null)
+            {
+                CasterView.PlayModelState("Idle");
             }
 
             // renderer.material로 만든 복사본은 직접 지운다.
@@ -126,6 +144,12 @@ namespace Game.UI
         {
             PlaceParts(caster);
             BeginFrontView(caster, camera);
+
+            // 3D 모델이면 구체가 생기는 동안부터 깨질 때까지 머리를 감싸 쥐고 괴로워한다 (반복 동작).
+            if (CasterView != null)
+            {
+                CasterView.PlayModelState(agonyState);
+            }
 
             yield return AppearCocoon();
             yield return Charge(camera);
@@ -319,6 +343,14 @@ namespace Game.UI
             }
 
             RevealAppearance();
+
+            // 헤일로·날개가 달리는 순간 힘을 끌어올리는 동작으로 바뀌어, 그 자세로 연출이 끝난다 (동작이 끝나면 대기로 돌아오며 모델 방향도 원래대로).
+            hasBrokenOut = true;
+            if (CasterView != null)
+            {
+                CasterView.PlayModelState(powerUpState, powerUpStartSeconds);
+                CasterView.SetModelYaw(powerUpBodyTurn);
+            }
         }
 
         // 영역 벽이 캐리에게서 퍼져 나가며 옅어진다 (변신과 함께 고립 경계를 펼침). 다 퍼지면 감춘다.

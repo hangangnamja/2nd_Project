@@ -80,7 +80,7 @@ MonoBehaviour:
   riseViewFieldOfView: 55
   aimViewBack: 4.5
   aimViewUp: 2.6
-  aimViewSide: 2.2
+  aimViewSide: -2.2
   aimViewLookAt: 0.45
   aimViewFieldOfView: 58
 --- !u!1 &4809596586302939088

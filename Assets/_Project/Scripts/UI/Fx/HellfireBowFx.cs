@@ -8,8 +8,8 @@ namespace Game.UI
 {
     // 업화 연출 (흉신 마라: 영역 동안 1회 3스가 바뀌는 광역 400% + 화상, 임시). 불의 활로 불화살을 쏘아 적 무리 가운데를 크게 터뜨린다.
     //  1) 마라 정면 아래에서 올려다보는 시점으로 컷 (마라만 화면에) → 마라가 하늘로 부웅 떠오른다
-    //  2) 마라 손 앞에서 불꽃이 활 모양으로 가운데부터 양 끝으로 뻗어 나가 불의 활이 된다 (일렁이는 불꽃 줄 여러 겹 + 불씨)
-    //  3) 마라 뒤 위쪽에서 대각선 아래로 내려다보는 시점으로 컷 → 마라가 활을 적 무리에 겨누고 시위를 당기면 불화살이 맺힌다
+    //  2) 마라 뒤 위쪽에서 대각선 아래로 내려다보는 시점으로 컷 → 마라가 적 무리를 향해 활 겨누는 자세를 잡는다 (3D 모델 활쏘기 동작)
+    //  3) 뻗은 손 앞에서 불꽃이 활 모양으로 가운데부터 양 끝으로 뻗어 불의 활이 되고, 시위를 당기면 불화살이 맺힌다 (일렁이는 불꽃 줄 여러 겹 + 불씨)
     //  4) 시위를 놓으면 불화살이 적 무리 가운데로 날아가 크게 폭발 → 적 전원 피해 + 강한 흔들림, 활은 흩어지며 사라진다
     //  5) 여운 뒤 마라가 내려오고 원래 시점으로
     // 불꽃 줄 모양(재질·색·굵기 곡선)은 프리팹의 견본 선, 불씨·불화살 머리·폭발은 파티클 프리팹이 맡는다. 이 코드는 위치·순서·시간·카메라만 정한다.
@@ -76,6 +76,20 @@ namespace Game.UI
         [SerializeField, Min(0f)] private float explosionShake = 0.9f;
         [SerializeField, Min(0f)] private float explosionShakeSeconds = 0.7f;
 
+        [Header("3D 모델 활쏘기 동작 (캡슐이면 무시)")]
+        [Tooltip("활쏘기 Animator 상태 · 연출이 끝나면 돌아갈 상태")]
+        [SerializeField] private string bowState = "Bow";
+        [SerializeField] private string returnState = "Idle";
+
+        [Tooltip("활쏘기 동작에서 시위를 놓는 순간(초, 원래 속도 기준). 떠오를 때부터 이 순간까지를 느리게 늘여 재생하다가, 불화살이 날아가는 순간 여기로 맞춰 원래 속도로 놓는다")]
+        [SerializeField, Min(0f)] private float releaseSeconds = 0.17f;
+
+        [Tooltip("시위를 놓은 뒤 반동을 보여주는 시간(초). 그 뒤로는 왼팔을 뻗은 자세로 멈춰 내려올 때까지 버틴다")]
+        [SerializeField, Min(0f)] private float followThroughSeconds = 0.15f;
+
+        [Tooltip("몸을 더 돌리는 각도(도). 지금 활쏘기 동작은 원본의 몸 방향(옆으로 선 자세)을 그대로 써서 0이면 활 든 왼팔이 바로 앞(적 쪽)을 향한다. 동작을 바꿔 방향이 어긋나면 조절")]
+        [SerializeField] private float bodyTurn = 0f;
+
         [Header("카메라 1: 떠오르기 (마라 정면 아래)")]
         [SerializeField, Min(1f)] private float riseViewDistance = 7f;
         [SerializeField] private float riseViewHeight = -0.6f;
@@ -85,13 +99,17 @@ namespace Game.UI
         [Tooltip("마라 뒤로 · 마라 위로 · 옆으로 떨어진 거리")]
         [SerializeField] private float aimViewBack = 4.5f;
         [SerializeField] private float aimViewUp = 2.6f;
-        [SerializeField] private float aimViewSide = 2.2f;
+        [Tooltip("옆 거리: + = 마라 오른쪽, - = 왼쪽. 활쏘기 자세는 가슴이 오른쪽을 향하는 옆선 자세라, 음수(왼쪽 = 등 쪽)여야 마라 등 너머로 적을 겨누는 모습이 보인다 (양수면 가슴이 화면을 향해 보임)")]
+        [SerializeField] private float aimViewSide = -2.2f;
 
         [Tooltip("바라보는 곳: 마라 → 적 무리 가운데 사이의 비율 (0 = 마라, 1 = 적)")]
         [SerializeField, Range(0f, 1f)] private float aimViewLookAt = 0.45f;
         [SerializeField] private float aimViewFieldOfView = 58f;
 
         private const int BowPoints = 24;
+
+        // 활쏘기 동작으로 넘어가는 동안 원래 속도로 재생하는 시간(초). 넘어가기(0.08초)가 끝나고, 시위를 놓기(0.17초) 전이어야 한다.
+        private const float AimBlendSeconds = 0.1f;
 
         // 떠오르기는 이 연출이 직접 하므로 기본 시전 모션(제자리에서 살짝 떠오름)은 끈다.
         public override bool CasterCasts => false;
@@ -101,6 +119,9 @@ namespace Game.UI
         private readonly List<GlowLines> flameGroups = new List<GlowLines>();
         private GlowLines stringGroup;
         private GameObject arrowHead;
+
+        // 이번 연출에서 시위를 당기는 거리 (기본 drawBack, 3D 모델이면 두 손 사이 거리).
+        private float pullDistance;
 
         // 연출이 중간에 사라져도 카메라·캡슐이 연출 상태로 남지 않게 되돌린다.
         private void OnDestroy()
@@ -113,6 +134,8 @@ namespace Game.UI
             if (CasterView != null)
             {
                 CasterView.ClearScriptedPose();
+                CasterView.SetModelSpeed(1f);
+                CasterView.PlayModelState(returnState);
             }
 
             if (arrowHead != null)
@@ -141,10 +164,14 @@ namespace Game.UI
             Vector3 aim = (enemyCenter - lifted).normalized;
             Quaternion facing = Quaternion.LookRotation(Flat(enemyCenter - origin));
 
+            // 몸 방향: 적 쪽을 본 방향에서 bodyTurn만큼 더 돌림 (Quaternion 곱 = 회전을 이어 붙임). 활쏘기 동작은 원본 몸 방향이 들어 있어 0이면 왼팔이 적을 향한다.
+            Quaternion bodyFacing = facing * Quaternion.Euler(0f, bodyTurn, 0f);
+
             lookPoint = new GameObject("CinematicLook").transform;
             lookPoint.SetParent(transform, false);
 
-            // 1) 정면 아래에서 올려다보며 떠오른다 (바라보는 곳도 마라를 따라 올라감).
+            // 1) 정면 아래에서 올려다보며 떠오른다 (바라보는 곳도 마라를 따라 올라감). 이때는 아직 겨누지 않는다:
+            //    이 카메라는 적 쪽에서 마라를 보므로, 여기서 적을 겨누면 팔이 화면(카메라)을 향해 보이기 때문.
             BeginRiseView(origin, facing * Vector3.forward, camera);
             yield return Animate(liftSeconds, t =>
             {
@@ -153,13 +180,34 @@ namespace Game.UI
                 lookPoint.position = position + Vector3.up * 0.6f;
             });
 
-            // 2) 불의 활이 가운데부터 양 끝으로 뻗는다.
-            BowFrame frame = new BowFrame(lifted, aim, bowCant, bowForward);
+            // 2) 마라 뒤 위에서 적 무리 쪽을 내려다보는 시점으로 컷한 뒤 활을 겨눈다 → 마라가 적을 향해 쏘는 모습이 보인다.
+            BeginAimView(lifted, enemyCenter, camera);
+            CasterView.SetScriptedPose(lifted, bodyFacing);
+
+            // 활쏘기 동작: 원래 속도로 잠깐(aimBlendSeconds) 틀어 겨누는 자세로 넘어간 뒤(넘어가기도 Animator 속도를 따르므로),
+            // 시위를 놓는 순간(releaseSeconds)이 불화살을 쏘는 순간에 오도록 남은 구간을 느리게 늘여 재생한다.
+            // 느린 속도 = 남은 동작 시간 ÷ 쏘기 전까지 남은 연출 시간 (활이 생기기 + 당기기 + 겨눔).
+            CasterView.PlayModelState(bowState);
+            CasterView.SetModelSpeed(1f);
+            yield return new WaitForSeconds(AimBlendSeconds);
+            float untilRelease = bowFormSeconds + drawSeconds + aimHoldSeconds;
+            CasterView.SetModelSpeed(Mathf.Max(0f, releaseSeconds - AimBlendSeconds) / untilRelease);
+
+            // 3) 불의 활이 가운데부터 양 끝으로 뻗는다. 3D 모델이면 활 손잡이를 뻗은 왼손 자리에, 시위 당기는 거리를 두 손 사이 거리에 맞춘다.
+            Vector3 grip = lifted + Vector3.up * 0.3f + aim * bowForward;
+            pullDistance = drawBack;
+            if (CasterView.TryGetModelBone(HumanBodyBones.LeftHand, out Vector3 bowHand)
+                && CasterView.TryGetModelBone(HumanBodyBones.RightHand, out Vector3 stringHand))
+            {
+                grip = bowHand;
+                pullDistance = Vector3.Distance(bowHand, stringHand);
+            }
+
+            BowFrame frame = new BowFrame(grip, aim, bowCant);
             CreateBow();
             yield return Animate(bowFormSeconds, t => DrawBow(frame, Mathf.SmoothStep(0f, 1f, t), 0f, 1f));
 
-            // 3) 마라 뒤 위에서 대각선 아래로 내려다보는 시점으로 컷 → 시위를 당기며 불화살이 맺힌다.
-            BeginAimView(lifted, enemyCenter, camera);
+            // 4) 시위를 당기며 불화살이 맺힌다.
             arrowHead = arrowHeadPrefab != null ? Instantiate(arrowHeadPrefab) : null;
             if (arrowHead != null)
             {
@@ -170,17 +218,21 @@ namespace Game.UI
             {
                 float pull = Mathf.SmoothStep(0f, 1f, t);
                 DrawBow(frame, 1f, pull, 1f);
-                PlaceArrow(frame.Nock(pull * drawBack), aim);
+                PlaceArrow(frame.Nock(pull * pullDistance), aim);
             });
 
             yield return Animate(aimHoldSeconds, t =>
             {
                 DrawBow(frame, 1f, 1f, 1f);
-                PlaceArrow(frame.Nock(drawBack), aim);
+                PlaceArrow(frame.Nock(pullDistance), aim);
             });
 
-            // 4) 시위를 놓는다: 화살이 적 무리 가운데로 날아가고, 활은 흩어지며 사라진다.
-            Vector3 launch = frame.Nock(drawBack) + aim * arrowLength;
+            // 5) 시위를 놓는다: 화살이 적 무리 가운데로 날아가고, 활은 흩어지며 사라진다.
+            //    활쏘기 동작도 이 순간 시위를 놓는 시각으로 맞추고 원래 속도로 돌려 반동을 재생한다 (느리게 늘인 동안 쌓인 오차를 없앰).
+            CasterView.JumpModelState(bowState, releaseSeconds);
+            CasterView.SetModelSpeed(1f);
+            StartCoroutine(HoldFollowThrough());
+            Vector3 launch = frame.Nock(pullDistance) + aim * arrowLength;
             Coroutine bowFade = StartCoroutine(FadeBow(frame));
             yield return Animate(flightSeconds, t =>
             {
@@ -193,8 +245,12 @@ namespace Game.UI
             yield return bowFade;
             yield return new WaitForSeconds(afterSeconds);
 
-            // 5) 내려와서 원래 시점으로.
-            yield return Animate(descendSeconds, t => CasterView.SetScriptedPose(Vector3.Lerp(lifted, origin, t * t), facing));
+            // 6) 대기 동작으로 돌아가며 내려와서 원래 시점으로. (멈춰 둔 활쏘기 동작을 원래 속도로 풀어야 넘어가기가 진행된다)
+            CasterView.SetModelSpeed(1f);
+            //    Quaternion.Slerp(a, b, t): 두 방향 사이를 t 비율로 부드럽게 돌림 → 옆으로 돌렸던 몸이 내려오면서 다시 적 쪽을 본다.
+            CasterView.PlayModelState(returnState);
+            yield return Animate(descendSeconds, t => CasterView.SetScriptedPose(
+                Vector3.Lerp(lifted, origin, t * t), Quaternion.Slerp(bodyFacing, facing, t)));
             CasterView.ClearScriptedPose();
             if (cinematicCamera != null)
             {
@@ -203,6 +259,17 @@ namespace Game.UI
             }
 
             Destroy(gameObject);
+        }
+
+        // 시위를 놓은 뒤 잠깐(followThroughSeconds) 반동을 보여주고 그 자세로 멈춘다 (속도 0).
+        // 원래 동작은 끝에 팔을 내려 몸이 화면을 향한 것처럼 보이므로, 왼팔을 적 쪽으로 뻗은 채 폭발을 지켜보게 한다.
+        private IEnumerator HoldFollowThrough()
+        {
+            yield return new WaitForSeconds(followThroughSeconds);
+            if (CasterView != null)
+            {
+                CasterView.SetModelSpeed(0f);
+            }
         }
 
         // 활을 그리는 기준 틀: 손잡이 자리·겨누는 방향(앞)·활의 위아래 방향(위)·옆.
@@ -215,13 +282,14 @@ namespace Game.UI
             public readonly Vector3 Up;
             public readonly Vector3 Side;
 
-            public BowFrame(Vector3 caster, Vector3 aim, float cant, float forwardOffset)
+            // grip: 손잡이 자리 (3D 모델이면 왼손, 캡슐이면 몸 앞 정해진 자리).
+            public BowFrame(Vector3 grip, Vector3 aim, float cant)
             {
                 Forward = aim;
                 Vector3 up = Vector3.ProjectOnPlane(Vector3.up, aim).normalized;
                 Up = Quaternion.AngleAxis(cant, aim) * up;
                 Side = Vector3.Cross(Up, Forward).normalized;
-                Grip = caster + Vector3.up * 0.3f + aim * forwardOffset;
+                Grip = grip;
             }
 
             // 시위를 pull만큼 당겼을 때 화살 끝(시위 가운데) 자리.
@@ -296,7 +364,7 @@ namespace Game.UI
             LineRenderer shaft = stringGroup.Lines[1];
             bool shown = extent >= 0.99f;
             bowString.enabled = shown;
-            Vector3 nock = frame.Nock(pull * drawBack);
+            Vector3 nock = frame.Nock(pull * pullDistance);
             bowString.SetPosition(0, top);
             bowString.SetPosition(1, nock);
             bowString.SetPosition(2, bottom);

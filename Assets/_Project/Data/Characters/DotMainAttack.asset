@@ -17,6 +17,7 @@ MonoBehaviour:
   role: 1
   grade: 0
   illustration: {fileID: 21300000, guid: 46ce1f93a0811ff44bd35d2787133dcb, type: 3}
+  battleModel: {fileID: 8773763352532828593, guid: 4dfc54a0cf8f83141ba9ed77b5b00d91, type: 3}
   maxHp: 1000
   attack: 120
   defense: 50
@@ -30,6 +31,7 @@ MonoBehaviour:
     startCooldown: 0
     presentationPrefab: {fileID: 0}
     presentationHits: 1
+    modelMotion: 
     effects:
     - rid: 7605779465967763785
   skill2:
@@ -39,6 +41,7 @@ MonoBehaviour:
     startCooldown: 0
     presentationPrefab: {fileID: 6951145401628856495, guid: 6a27862615cfb094fb254e02c0511062, type: 3}
     presentationHits: 1
+    modelMotion: 
     effects:
     - rid: 7605779465967763912
     - rid: 7605779465967763913
@@ -49,6 +52,7 @@ MonoBehaviour:
     startCooldown: 0
     presentationPrefab: {fileID: 8656205954120017065, guid: 9ecba9a5e878c404abf14fb57d022c91, type: 3}
     presentationHits: 1
+    modelMotion: 
     effects:
     - rid: 7605779465967763914
     - rid: 7605779465967763915
