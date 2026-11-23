@@ -17,6 +17,7 @@ MonoBehaviour:
   role: 1
   grade: 1
   illustration: {fileID: 21300000, guid: 183cf2ddb9d2ebe4792ec1189934bbbf, type: 3}
+  battleModel: {fileID: 8773763352532828593, guid: 4dfc54a0cf8f83141ba9ed77b5b00d91, type: 3}
   maxHp: 900
   attack: 105
   defense: 45
@@ -28,6 +29,9 @@ MonoBehaviour:
     targetType: 0
     cooldown: 0
     startCooldown: 0
+    presentationPrefab: {fileID: 0}
+    presentationHits: 1
+    modelMotion: 
     effects:
     - rid: 7605779465967764100
   skill2:
@@ -35,6 +39,9 @@ MonoBehaviour:
     targetType: 1
     cooldown: 2
     startCooldown: 0
+    presentationPrefab: {fileID: 0}
+    presentationHits: 1
+    modelMotion: 
     effects:
     - rid: 7605779465967764101
   skill3:
@@ -42,6 +49,9 @@ MonoBehaviour:
     targetType: 1
     cooldown: 4
     startCooldown: 0
+    presentationPrefab: {fileID: 0}
+    presentationHits: 1
+    modelMotion: 
     effects:
     - rid: 7605779465967764102
     - rid: 7605779465967764103
@@ -56,8 +66,16 @@ MonoBehaviour:
     maxStacks: 0
     stacksPerOwnAction: 0
     stackCostPerTrigger: 0
+    stacksGainedPerTrigger: 0
     hpThreshold: 0.5
+    requiredStatus: {fileID: 0}
+    tauntDisplay: {fileID: 0}
     auraModifiers: []
+    countedCategory: 0
+    countComparison: 1
+    countThreshold: 1
+    countCap: 0
+    presentationPrefab: {fileID: 0}
     effects:
     - rid: 7605779465967764104
   references:

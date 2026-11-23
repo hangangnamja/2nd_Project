@@ -91,6 +91,12 @@ namespace Game.UI
 
         [SerializeField] private float viewFieldOfView = 55f;
 
+        [Header("3D 모델 칼 베기 동작 (캡슐이면 무시)")]
+        [Tooltip("칼 베기 Animator 상태 · 크게 휘두르는 순간(초, 클립 시각) · 휘두르는 동안 모델을 더 돌리는 각도(도, 원본은 몸이 오른쪽을 향해 -70으로 적 쪽을 봄)")]
+        [SerializeField] private string swordState = "SwordSlash";
+        [SerializeField, Min(0f)] private float swordSwingSeconds = 1.17f;
+        [SerializeField] private float swordBodyTurn = -70f;
+
         // 휘두르는 면: 중심(캐리 앞), 앞 방향(적 쪽), 옆 방향(기울기 적용). 점 = 중심 + (앞 × cos + 옆 × sin) × 반지름.
         private Vector3 origin;
         private Vector3 forward;
@@ -125,6 +131,7 @@ namespace Game.UI
             if (CasterView != null)
             {
                 CasterView.PlayLunge(center);
+                PlaySwordMotion();
             }
 
             yield return new WaitForSeconds(windUpSeconds);
@@ -140,6 +147,21 @@ namespace Game.UI
             }
 
             Destroy(gameObject);
+        }
+
+        // 3D 모델이면 칼 베기 동작(흉신 마라 영역 공격과 같은 동작)을 돌진에 겹쳐 재생한다 (돌진이 튼 기본 공격 동작을 덮어씀).
+        // 크게 휘두르는 순간(swordSwingSeconds)이 검흔이 반쯤 그어지는 순간(숨 고르기 + 휘두르기의 절반)에 오도록, 그만큼 앞에서부터 재생한다.
+        // 원본 동작은 휘두를 때 몸이 오른쪽을 향하므로 모델만 swordBodyTurn만큼 돌려 적 쪽을 벤다 (동작이 끝나 대기로 돌아오면 모델이 스스로 되돌림).
+        private void PlaySwordMotion()
+        {
+            if (!CasterView.HasModel)
+            {
+                return;
+            }
+
+            float startSeconds = Mathf.Max(0f, swordSwingSeconds - (windUpSeconds + swingSeconds * 0.5f));
+            CasterView.PlayModelState(swordState, startSeconds);
+            CasterView.SetModelYaw(swordBodyTurn);
         }
 
         // 휘두르는 면을 정한다: 앞 = 캐리 → 적 무리 가운데(수평), 옆 = 앞에 수직인 수평 방향을 앞 방향 축으로 tiltDegrees만큼 기울인 것.

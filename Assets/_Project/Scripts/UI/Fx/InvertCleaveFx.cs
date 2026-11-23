@@ -35,6 +35,9 @@ namespace Game.UI
 
         public override bool HidesDefaultHitEffect => hideDefaultHitEffect;
 
+        // 기본 시전 모션(떠오르며 시전 자세)을 끈다: 바로 다가가며 팔을 휘두르는 베기 동작을 보여줘야 해서.
+        public override bool CasterCasts => false;
+
         [Header("혈흔")]
         [Tooltip("베인 자리에서 뿜어지는 피 (끝나면 스스로 지워지는 파티클 프리팹, 파티클이 프리팹의 앞(+z) 방향으로 뿜어지는 모양)")]
         [SerializeField] private GameObject bloodSprayPrefab;
@@ -61,6 +64,9 @@ namespace Game.UI
         [Tooltip("손을 뻗으며 한 발 더 들어가는 거리 · 시간(초)")]
         [SerializeField, Min(0f)] private float touchStep = 0.35f;
         [SerializeField, Min(0.01f)] private float touchSeconds = 0.08f;
+
+        [Tooltip("3D 모델이면 다가가기 시작할 때 재생할 Animator 상태 (팔을 감아 올렸다 휘둘러 베기). 휘두름 끝이 닿는 순간(숨 고르기 + 달리기 + 손 뻗기)에 오도록 동작을 만든다. 캡슐이면 무시")]
+        [SerializeField] private string casterModelState = "Slash";
 
         [Header("화면 반전")]
         [Tooltip("반전이 켜지는 시간 · 반전이 유지되는 시간(초). 반전은 화면을 베는 순간 한 번에 풀린다")]
@@ -244,6 +250,9 @@ namespace Game.UI
             CreateOverlay();
             CreateGrayscale();
             CasterView.SetScriptedPose(origin, facing);
+
+            // 베기 동작은 지금 시작: 숨 고르기·달리기 동안 팔을 감아 올렸다가, 손이 닿는 순간 가슴 앞을 가로질러 휘두른 자세가 된다.
+            CasterView.PlayModelState(casterModelState);
             yield return new WaitForSeconds(windUpSeconds);
 
             // 1) 달려가서 2) 손을 뻗어 댄다 → 닿는 순간 불꽃 + 반전

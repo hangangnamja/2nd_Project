@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: Mara
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.CharacterData
   id: Mara
-  displayName: "\uC591\uBA74 \uC2A4\uCFE0"
+  displayName: "\uC591\uBA74 \uC2A4\uCFE0\uB098"
   role: 1
   grade: 0
   illustration: {fileID: 21300000, guid: ffe70c0368d5a7c48890d49f08d05446, type: 3}
-  battleModel: {fileID: 0}
+  battleModel: {fileID: 8773763352532828593, guid: 4dfc54a0cf8f83141ba9ed77b5b00d91, type: 3}
   maxHp: 3000
   attack: 400
   defense: 50

@@ -293,6 +293,12 @@ namespace Game.UI
             bodyRenderer.material.color = baseColor;
             RefreshModel();
 
+            // 자기 차례(스킬을 쓰는 턴)면 3D 모델이 차례용 대기 동작(IdleMain), 아니면 일반 대기 동작을 한다.
+            if (model != null)
+            {
+                model.SetReady(isActing);
+            }
+
             // 아군은 화면 아래 초상화 카드(PartyCardView), 보스는 상단 보스 HP바(BossHpBarView)에서 버프·디버프를 보여주므로
             // 머리 위 줄을 끈다. 나머지 적만 머리 위에 표시.
             // 패턴 매칭 is: 데이터가 EnemyCharacterData이고 보스 표시가 켜져 있으면 보스.
@@ -602,6 +608,61 @@ namespace Game.UI
             // Mathf.SmoothStep: 처음과 끝이 부드러운 곡선 → 자연스럽게 제자리로.
             yield return MoveOffset(peak, Vector3.zero, lungeBackSeconds, t => Mathf.SmoothStep(0f, 1f, t));
             motion = null;
+        }
+
+        // 3D 모델의 Animator 상태를 이름으로 바로 재생한다 (스킬 전용 연출이 베기·합장 같은 전용 동작을 틀 때).
+        // 캡슐이거나 모델에 그 상태가 없으면 아무것도 하지 않는다 → 연출은 모델 유무와 상관없이 같은 순서로 진행된다.
+        public void PlayModelState(string state)
+        {
+            if (model != null && !string.IsNullOrEmpty(state))
+            {
+                model.PlayState(state);
+            }
+        }
+
+        // 3D 모델이 있는지 (모델 전용 연출을 할지 정할 때, 예: 영역 공격 전 클로즈업).
+        public bool HasModel => model != null;
+
+        // 3D 모델의 상태를 클립의 지정 시각(초)부터 재생 (앞쪽 준비 동작을 건너뜀). 캡슐이면 아무것도 하지 않는다.
+        public void PlayModelState(string state, float startSeconds)
+        {
+            if (model != null && !string.IsNullOrEmpty(state))
+            {
+                model.PlayState(state, startSeconds);
+            }
+        }
+
+        // 3D 모델만 세로축으로 돌린다(도). 그 동작이 끝나 대기로 돌아오면 모델이 스스로 0으로 되돌린다. 캡슐이면 무시.
+        public void SetModelYaw(float degrees)
+        {
+            if (model != null)
+            {
+                model.SetBodyYaw(degrees);
+            }
+        }
+
+        // 3D 모델의 애니메이션 속도 배율 · 상태를 지정 시각으로 옮기기 · 뼈 위치. 캡슐이면 아무것도 하지 않거나 false.
+        // 전용 연출(업화 활쏘기)이 동작 타이밍을 이펙트에 맞출 때 쓴다.
+        public void SetModelSpeed(float speed)
+        {
+            if (model != null)
+            {
+                model.SetSpeed(speed);
+            }
+        }
+
+        public void JumpModelState(string state, float seconds)
+        {
+            if (model != null)
+            {
+                model.JumpToState(state, seconds);
+            }
+        }
+
+        public bool TryGetModelBone(HumanBodyBones bone, out Vector3 position)
+        {
+            position = Vector3.zero;
+            return model != null && model.TryGetBonePosition(bone, out position);
         }
 
         // 마지막으로 시작한 공격 동작이 타격 순간에 줄 화면 흔들림 세기·시간 (스킬 동작에 정한 값, 기본 돌진이면 0).
