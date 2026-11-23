@@ -14,8 +14,11 @@ namespace Game.UI
         [Tooltip("켜면 오라 이펙트가 카메라를 따라와 언제나 화면 앞쪽을 가로지른다 (장면마다 카메라가 달라져도 보이도록)")]
         [SerializeField] private bool followCamera = true;
 
-        [Tooltip("카메라 앞으로 얼마나 떨어진 곳에 이펙트를 둘지 (수평 거리)")]
-        [SerializeField, Min(0f)] private float followDistance = 7f;
+        [Tooltip("카메라 앞으로 얼마나 떨어진 곳에 이펙트를 둘지 (수평 거리). 상대 줄보다 멀리 두어야 이펙트가 적을 가리지 않고 무대 뒤 배경처럼 깔린다")]
+        [SerializeField, Min(0f)] private float followDistance = 20f;
+
+        [Tooltip("이펙트 프리팹을 만들 때 기준으로 삼은 거리. 실제 거리가 이보다 멀면 그 비율만큼 키워 화면에서 같은 크기로 보이게 한다")]
+        [SerializeField, Min(0.1f)] private float designDistance = 7f;
 
         // 오라 주인 → 띄워 둔 이펙트. 주인이 같아도 오라가 바뀌면(다시 공연) 이펙트를 새로 만든다.
         private readonly Dictionary<BattleUnit, (TimedAura aura, GameObject effect)> shown =
@@ -93,6 +96,9 @@ namespace Game.UI
 
             // Quaternion.LookRotation(forward): 카메라와 같은 수평 방향을 앞(z)으로 보는 회전.
             transform.SetPositionAndRotation(position, Quaternion.LookRotation(forward, Vector3.up));
+
+            // 멀리 둔 만큼 키운다 (거리 비율): 화면에 보이는 크기는 거리에 반비례하므로, 거리 × k면 크기도 × k로 같아 보인다.
+            transform.localScale = Vector3.one * (followDistance / designDistance);
         }
 
         // 쓰러지지 않았고, 전장 이펙트가 있는 기간 오라를 생성 중인 유닛을 모은다. 퇴장한 유닛의 오라도 적용 중이므로 포함한다.
