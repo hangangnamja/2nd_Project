@@ -339,7 +339,7 @@ UnitView (MonoBehaviour)  3D 모델, 애니메이션, HP바. 표시만 담당
   - 패시브 오라(`PassiveTrigger.Aura`)와 기간 오라(`BattleUnit.ActiveAura`, `TimedAura`) 두 가지. 주인이 쓰러지면 꺼지고, **퇴장해도 유지**(`IsDead`만 확인)
   - 기간 오라는 `StartAuraEffect`(아스트라 공연)가 만들고, 주인의 정규 턴 끝(`BattleManager.EndTurn`)마다 남은 턴이 준다. 만든 턴은 세지 않음
   - `SkipsOwnerTurns`면 그동안 주인의 턴이 강제로 스킵된다(`BattleUnit.IsPerforming`, 기절과 같은 경로로 턴 종료 처리만)
-  - 전장 이펙트: `AuraFieldView`가 매 프레임 카메라 앞(수평 거리 `followDistance`)으로 옮겨 카메라와 같은 방향을 보게 한다 (이펙트는 그 자식). 오라 데이터가 프리팹(`FieldEffect`)을 들고, Battle 씬의 `AuraFieldView`가 `StateChanged`마다 켜진 오라의 이펙트를 만들고 꺼진 오라의 이펙트를 지운다. 띠 흐름은 `FieldFxScroller`(텍스처 이동·서서히 나타남), 빛은 가산 HDR 재질 + Bloom
+  - 전장 이펙트: `AuraFieldView`가 매 프레임 카메라 앞(수평 거리 `followDistance` 20, 상대 줄보다 멀리)으로 옮겨 카메라와 같은 방향을 보게 하고, 프리팹 기준 거리(`designDistance` 7) 대비 비율만큼 키운다 (이펙트는 그 자식, 화면 크기는 그대로). 오라 데이터가 프리팹(`FieldEffect`)을 들고, Battle 씬의 `AuraFieldView`가 `StateChanged`마다 켜진 오라의 이펙트를 만들고 꺼진 오라의 이펙트를 지운다. 띠 흐름은 `FieldFxScroller`(텍스처 이동·서서히 나타남), 빛은 가산 HDR 재질 + Bloom
 - "받은 피해 회복" 패시브(`OnOwnTurnStartAfterDamage`, 흉신 마라 역류 재생): `BattleUnit.TakeDamage`가 깎인 HP를 `DamageTakenSinceOwnTurn`에 더하고, `StartTurnOf`가 `HandleOwnTurnStart`(0보다 크면 발동, 회복 기준 "지난 자기 턴 이후 받은 피해") 뒤에 0으로 되돌린다. 부활하면 비움
 - "공격하지 않은 턴" 패시브(`OnTurnEndWithoutAttack`, 아스트라): `PassiveRunner`가 자기 스킬 공격 행동을 턴마다 기록하고, `EndTurn`이 지속피해·사망 확정 다음에 `HandleOwnTurnEnd`를 부른다
 - "상태효과 걸린 적 피격" 패시브(`OnAllyHitDebuffedEnemy`, 니콜 이자): `HandleAttackHit`에서 같은 편 전장 유닛의 패시브를 확인해, 맞은 적에게 `requiredStatus`가 있으면 발동. 발동 때 `stacksGainedPerTrigger`만큼 스택을 얻고(쓰는 스택 0), 2스의 스택 비례 피해 블록이 소모
@@ -459,9 +459,10 @@ Assets/_Project/
 - 레벨·진급 배율(진급 시점에 점프), 장착 무기 스탯 반영
 - 적 AI: 패턴 목록(조건 → 스킬·대상), 일반 적 랜덤 공격
 
-### 캐릭터 (11 / 12명)
+### 캐릭터 (11 / 11명)
 - S: 격발 딜러(DotMainAttack), 강탈 딜러(BuffStealAttack), 하이퍼캐리(HyperCarry), 곰인형 버퍼(BearBuffer), 공연 오라 버퍼(Astra), 도발 탱커(TauntTank), 부활 힐러(ReviveHealer), 흉신 마라(Mara)
-- A: 독 서브딜러(DotSubAttack), 안젤리카(Ally_Support, 치명 버퍼 → 회복 직군으로 테스트 중), 돌파 반응 광역 딜러(GeniusAoE)
+- A: 독 서브딜러(DotSubAttack), 니콜(CriticalRateBuff), 돌파 반응 광역 딜러(GeniusAoE)
+- 안젤리카(Ally_Support, A 회복 힐러)는 뺐음 (2026-11-23)
 - 수치는 전부 테스트 값
 
 ### 스테이지·적
@@ -496,7 +497,6 @@ Assets/_Project/
 - 핵심재미·반복구조 확정 (기획서 0장). 후보: "큰 데미지를 뽑아내는 쾌감" (기획서 10장)
 - 부활 힐러 역할 재검토: 적이 대부분 광역이라 단일 회복의 쓸모가 적음 (빼기 / 다른 컨셉으로 교체 검토 중)
 - 강탈 딜러 범용 성능: 적 버프가 없으면 약함 (범용 서열 하이퍼캐리 > 지속피해 > 강탈). 바닥 올리기 후보: 뺏을 버프가 없으면 대신 1턴 버프 획득
-- A 회복 힐러 안젤리카(Ally_Support): 스킬 구성 미정, 부활 힐러 결정과 함께 정리
 
 ### 전투
 - 스킬 전용 연출 남은 것: 독 서브딜러 2스, 아스트라 2스·3스(공연 시작), 부활 힐러 2스·3스·자가 부활, 돌파 딜러 2스·3스·돌파 추가 공격, 니콜 2스·3스 (구현된 목록은 6장)

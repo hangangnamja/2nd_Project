@@ -13,7 +13,6 @@ MonoBehaviour:
   m_Name: GameDatabase
   m_EditorClassIdentifier: Assembly-CSharp::Game.Data.GameDatabase
   characters:
-  - {fileID: 11400000, guid: 2f677f8251338f548b38f185b10f804a, type: 2}
   - {fileID: 11400000, guid: 3ac05b34f6b0d6844bb9fbff35d5dbfb, type: 2}
   - {fileID: 11400000, guid: 033421e72036eea4a8c6c907397e96ea, type: 2}
   - {fileID: 11400000, guid: 4cb9afbd1657ffa458f53baa27eef1dc, type: 2}

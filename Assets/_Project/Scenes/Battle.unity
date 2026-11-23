@@ -12567,7 +12567,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game.UI.AuraFieldView
   battleManager: {fileID: 413514915}
   followCamera: 1
-  followDistance: 7
+  followDistance: 20
+  designDistance: 7
 --- !u!4 &1051275642
 Transform:
   m_ObjectHideFlags: 0
